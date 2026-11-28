@@ -199,5 +199,11 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
     {
         ui.SetProgressionBalance(summary.FinalCoins, summary.ReputationEarned);
         ui.FinalScreen(summary);
+
+        LastGiftEndingController ending = GetComponent<LastGiftEndingController>();
+        if (ending == null)
+            ending = gameObject.AddComponent<LastGiftEndingController>();
+
+        ending.Play(ui);
     }
 }
