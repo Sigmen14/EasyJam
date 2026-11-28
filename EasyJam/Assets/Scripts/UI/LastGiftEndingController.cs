@@ -316,7 +316,7 @@ namespace TheLastGift.UI
                 new Vector2(0.03f, 0.06f),
                 new Vector2(0.97f, 0.86f),
                 TextAnchor.MiddleCenter);
-            hintText.resizeTextMinSize = 18;
+            hintText.resizeTextMinSize = 21;
         }
 
         private void CreateSnow()
@@ -628,7 +628,7 @@ namespace TheLastGift.UI
                 Vector2.zero,
                 Vector2.one,
                 TextAnchor.MiddleCenter);
-            label.resizeTextMinSize = 19;
+            label.resizeTextMinSize = 21;
 
             return frame.gameObject;
         }
@@ -941,14 +941,15 @@ namespace TheLastGift.UI
             Text text = rect.gameObject.AddComponent<Text>();
             text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             text.text = value;
-            text.fontSize = fontSize;
+            int readableFontSize = Mathf.Max(21, fontSize);
+            text.fontSize = readableFontSize;
             text.color = color;
             text.alignment = alignment;
             text.horizontalOverflow = HorizontalWrapMode.Wrap;
             text.verticalOverflow = VerticalWrapMode.Overflow;
             text.resizeTextForBestFit = true;
-            text.resizeTextMinSize = Mathf.Max(18, fontSize - 4);
-            text.resizeTextMaxSize = fontSize;
+            text.resizeTextMinSize = Mathf.Min(readableFontSize, Mathf.Max(21, readableFontSize - 4));
+            text.resizeTextMaxSize = readableFontSize;
             text.raycastTarget = false;
             text.supportRichText = true;
             Outline outline = rect.gameObject.AddComponent<Outline>();
@@ -985,7 +986,7 @@ namespace TheLastGift.UI
 
             Text text = CreateText(rect, "Надпись кнопки", label, 22, WarmCream,
                 Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
-            text.resizeTextMinSize = 19;
+            text.resizeTextMinSize = 21;
             return rect.gameObject;
         }
 
