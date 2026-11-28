@@ -174,17 +174,18 @@ namespace TheLastGift.UI
             Build("Главное меню");
             Card(
                 "Добро пожаловать в «Последний подарок»",
-                "Ты открыла маленькую рождественскую лавку!\n\nПомогай покупателям собирать и упаковывать подарки.\nЗа выполненные заказы лавка получает монеты.\n\nВсё управление объяснимо прямо во время игры.");
+                "Ты открыла маленькую рождественскую лавку!\nСобирай подарки по пожеланиям покупателей.\nЗа выполненные заказы получай монеты.\nВыбирай подарки и перетаскивай их в коробку мышью.");
 
-            Button("НАЧАТЬ ИГРУ", green, () =>
+            ButtonAt("НАЧАТЬ ИГРУ", green, () =>
             {
                 if (!tutorialShown)
                     ShowTutorial();
                 else
                     Gameplay();
-            }, 0, -270, 360, 72);
+            }, new Vector2(0.35f, 0.18f), new Vector2(0.65f, 0.275f));
 
-            Button("ВЫЙТИ", wood, Application.Quit, 0, -325, 220, 54);
+            ButtonAt("ВЫЙТИ", wood, Application.Quit,
+                new Vector2(0.41f, 0.085f), new Vector2(0.59f, 0.16f));
         }
 
         public void ShowTutorial()
@@ -192,13 +193,13 @@ namespace TheLastGift.UI
             Build("Обучение");
             Card(
                 "Как играть",
-                "1. Слева прочитай пожелание покупателя.\n\n2. Справа выбери подарок на полке.\n\n3. Зажми подарок мышью и перетащи его в коробку по центру.\n\n4. Когда закончишь, нажми зелёную кнопку «ПРОВЕРИТЬ ЗАКАЗ».\n\nПодарки можно перетаскивать по одному. Попробуй!");
+                "1. Слева прочитай, что нужно покупателю.\n2. Справа выбери нужные подарки.\n3. Зажми подарок мышью и перетащи его в коробку по центру.\n4. Когда всё готово, нажми «ПРОВЕРИТЬ ЗАКАЗ».\n\nПеретаскивай подарки по одному.");
 
-            Button("ПОНЯТНО, НАЧИНАЕМ!", green, () =>
+            ButtonAt("ПОНЯТНО, НАЧИНАЕМ!", green, () =>
             {
                 tutorialShown = true;
                 Gameplay();
-            }, 0, -255, 420, 72);
+            }, new Vector2(0.27f, 0.085f), new Vector2(0.73f, 0.19f));
         }
 
         public void Gameplay()
@@ -555,19 +556,25 @@ namespace TheLastGift.UI
 
         private void Card(string title, string body)
         {
-            Panel(root.transform, "Тень карточки",
-                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                new Vector2(780, 430), new Vector2(14, -12), wood);
-            Panel(root.transform, "Карточка",
-                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                new Vector2(780, 430), Vector2.zero, paper);
+            bool isTutorial = title == "Как играть";
+            Vector2 cardMin = isTutorial ? new Vector2(0.10f, 0.28f) : new Vector2(0.12f, 0.36f);
+            Vector2 cardMax = isTutorial ? new Vector2(0.90f, 0.90f) : new Vector2(0.88f, 0.88f);
 
-            Label(title, 34, green,
-                new Vector2(0.25f, 0.56f), new Vector2(0.75f, 0.64f),
-                TextAnchor.MiddleCenter);
-            Label(body, 21, brown,
-                new Vector2(0.30f, 0.33f), new Vector2(0.70f, 0.55f),
-                TextAnchor.MiddleCenter);
+            Panel(root.transform, "Тень карточки",
+                cardMin, cardMax, new Vector2(14, -12), new Vector2(14, -12), wood);
+            RectTransform card = Panel(root.transform, "Карточка",
+                cardMin, cardMax, Vector2.zero, Vector2.zero, paper);
+
+            // Text is parented to the card itself, not positioned over the whole
+            // screen. This keeps the title and body inside the panel at every size.
+            CreateText(card, title, isTutorial ? 40 : 42, green,
+                new Vector2(0.055f, isTutorial ? 0.84f : 0.77f),
+                new Vector2(0.945f, 0.96f), TextAnchor.MiddleCenter, Vector2.zero);
+
+            CreateText(card, body, isTutorial ? 27 : 29, brown,
+                new Vector2(0.075f, 0.10f),
+                new Vector2(0.925f, isTutorial ? 0.81f : 0.70f),
+                TextAnchor.MiddleCenter, Vector2.zero);
         }
 
         private RectTransform Panel(Transform parent, string objectName, Vector2 min, Vector2 max, Color color)
@@ -615,11 +622,13 @@ namespace TheLastGift.UI
             Text text = textObject.GetComponent<Text>();
             text.font = font;
             text.text = value;
-            // Увеличенный размер шрифта для читаемости на обычных игровых разрешениях.
-            int readableSize = Mathf.RoundToInt(size * 1.28f);
+            // Повышаем базовый размер во всех экранах, оставляя небольшой
+            // диапазон авто-подгонки, чтобы текст не выходил за границы блоков.
+            int readableSize = Mathf.Max(22, Mathf.RoundToInt(size * 1.48f));
+            int minimumReadableSize = Mathf.Min(readableSize, Mathf.Max(18, Mathf.RoundToInt(size * 1.20f)));
             text.fontSize = readableSize;
             text.resizeTextForBestFit = true;
-            text.resizeTextMinSize = 16;
+            text.resizeTextMinSize = minimumReadableSize;
             text.resizeTextMaxSize = readableSize;
             text.color = color;
             text.alignment = alignment;
