@@ -361,13 +361,20 @@ namespace TheLastGift.UI
 
         private Sprite GetCurrentCustomerPortrait()
         {
-            if (currentOrder == null || customerPortraits.Length == 0)
+            return currentOrder == null
+                ? null
+                : GetCustomerPortrait(currentOrder.CustomerName);
+        }
+
+        private Sprite GetCustomerPortrait(string customerName)
+        {
+            if (string.IsNullOrWhiteSpace(customerName) || customerPortraits.Length == 0)
                 return null;
 
             // Match each campaign customer to the correct person in the portrait atlas.
             // Indices use the atlas order: left-to-right, top-to-bottom.
             int portraitIndex;
-            switch (currentOrder.CustomerName.Trim().ToUpperInvariant())
+            switch (customerName.Trim().ToUpperInvariant())
             {
                 case "ЭММА": portraitIndex = 0; break;   // young woman
                 case "НОЙ": portraitIndex = 1; break;    // young man with glasses
@@ -591,10 +598,12 @@ namespace TheLastGift.UI
             FestiveHeader(root.transform, "Заголовок очереди",
                 "ПОКУПАТЕЛИ ОЖИДАЮТ", new Vector2(0.12f, 0.83f),
                 new Vector2(0.88f, 0.93f), red, 27);
-            Label("В мастерской ждут рождественские заказы", 21, brown,
-                new Vector2(0.10f, 0.75f), new Vector2(0.90f, 0.81f), TextAnchor.MiddleCenter);
-            Label("Выбери, какой заказ выполнить следующим. Остальные останутся в очереди.",
-                16, brown, new Vector2(0.08f, 0.69f), new Vector2(0.92f, 0.75f),
+            FestivePanel(root.transform, "Подложка описания очереди",
+                new Vector2(0.06f, 0.665f), new Vector2(0.94f, 0.82f), cream);
+            Label("В мастерской ждут рождественские заказы", 23, brown,
+                new Vector2(0.10f, 0.755f), new Vector2(0.90f, 0.81f), TextAnchor.MiddleCenter);
+            Label("Выбери, какой заказ выполнять следующим.\nОстальные останутся в очереди.",
+                19, brown, new Vector2(0.09f, 0.67f), new Vector2(0.91f, 0.755f),
                 TextAnchor.MiddleCenter);
 
             if (entries == null || entries.Count == 0)
@@ -623,8 +632,11 @@ namespace TheLastGift.UI
                 CreateOrderQueueCard(entry, x, cardWidth, onSelectOrder);
             }
 
+            FestivePanel(root.transform, "Подложка подсказки о срочности",
+                new Vector2(0.06f, 0.085f), new Vector2(0.94f, 0.175f), cream);
             Label("ЗАКАЗ НЕ ПРОПАДЁТ, ДАЖЕ ЕСЛИ БОНУС ЗА СРОЧНОСТЬ УЖЕ НЕДОСТУПЕН.",
-                14, green, new Vector2(0.08f, 0.145f), new Vector2(0.92f, 0.205f),
+                16, new Color32(29, 78, 50, 255),
+                new Vector2(0.08f, 0.095f), new Vector2(0.92f, 0.165f),
                 TextAnchor.MiddleCenter);
         }
 
@@ -636,8 +648,8 @@ namespace TheLastGift.UI
             card.transform.SetParent(root.transform, false);
 
             RectTransform rect = card.GetComponent<RectTransform>();
-            rect.anchorMin = new Vector2(left, 0.235f);
-            rect.anchorMax = new Vector2(left + width, 0.675f);
+            rect.anchorMin = new Vector2(left, 0.195f);
+            rect.anchorMax = new Vector2(left + width, 0.64f);
             rect.offsetMin = Vector2.zero;
             rect.offsetMax = Vector2.zero;
 
@@ -658,22 +670,29 @@ namespace TheLastGift.UI
             FestivePanel(card.transform, "Праздничная рамка карточки",
                 Vector2.zero, Vector2.one, paper);
 
+            Sprite customerPortrait = GetCustomerPortrait(entry.Order.CustomerName);
             Sprite giftSprite = entry.Order.GiftNames != null && entry.Order.GiftNames.Count > 0
                 ? GetGiftSprite(entry.Order.GiftNames[0]) : null;
-            if (giftSprite != null)
+            if (customerPortrait != null)
+            {
+                ImageAt(card.transform, "Портрет покупателя",
+                    new Vector2(0.055f, 0.735f), new Vector2(0.27f, 0.96f),
+                    customerPortrait, Color.white);
+            }
+            else if (giftSprite != null)
             {
                 ImageAt(card.transform, "Иконка подарка",
-                    new Vector2(0.055f, 0.755f), new Vector2(0.27f, 0.945f),
+                    new Vector2(0.055f, 0.735f), new Vector2(0.27f, 0.96f),
                     giftSprite, Color.white);
             }
             else
             {
                 ChildLabel(card.transform, "✦", 38, red,
-                    new Vector2(0.055f, 0.755f), new Vector2(0.27f, 0.945f),
+                    new Vector2(0.055f, 0.735f), new Vector2(0.27f, 0.96f),
                     TextAnchor.MiddleCenter);
             }
 
-            ChildLabel(card.transform, entry.Order.CustomerName, 18, brown,
+            ChildLabel(card.transform, entry.Order.CustomerName, 21, brown,
                 new Vector2(0.29f, 0.79f), new Vector2(0.95f, 0.94f),
                 TextAnchor.MiddleCenter);
 
@@ -684,7 +703,7 @@ namespace TheLastGift.UI
                 if (entry.Order.GiftNames.Count > 1)
                     giftCaption += " +" + (entry.Order.GiftNames.Count - 1);
             }
-            ChildLabel(card.transform, giftCaption, 15, green,
+            ChildLabel(card.transform, giftCaption, 17, green,
                 new Vector2(0.07f, 0.68f), new Vector2(0.93f, 0.755f),
                 TextAnchor.MiddleCenter);
 
@@ -692,21 +711,21 @@ namespace TheLastGift.UI
             Panel(card.transform, entry.IsUrgent ? "Срочная метка" : "Обычная метка",
                 new Vector2(0.12f, 0.585f), new Vector2(0.88f, 0.66f), priorityColor);
             ChildLabel(card.transform, entry.IsUrgent ? "СРОЧНО" : "ОБЫЧНЫЙ ЗАКАЗ",
-                14, paper, new Vector2(0.13f, 0.59f), new Vector2(0.87f, 0.655f),
+                16, paper, new Vector2(0.13f, 0.59f), new Vector2(0.87f, 0.655f),
                 TextAnchor.MiddleCenter);
 
-            ChildLabel(card.transform, entry.Order.CustomerWish, 14, brown,
+            ChildLabel(card.transform, entry.Order.CustomerWish, 16, brown,
                 new Vector2(0.08f, 0.365f), new Vector2(0.92f, 0.565f),
                 TextAnchor.MiddleCenter);
 
             Text waitLabel = ChildLabel(card.transform, FormatQueueWaitLabel(entry),
-                13, entry.IsUrgent ? red : green,
+                15, entry.IsUrgent ? red : green,
                 new Vector2(0.07f, 0.245f), new Vector2(0.93f, 0.34f),
                 TextAnchor.MiddleCenter);
             displayedQueueEntries.Add(entry);
             displayedQueueWaitLabels.Add(waitLabel);
 
-            ChildLabel(card.transform, "ВЫБРАТЬ ЗАКАЗ", 15, gold,
+            ChildLabel(card.transform, "ВЫБРАТЬ ЗАКАЗ", 17, gold,
                 new Vector2(0.08f, 0.065f), new Vector2(0.92f, 0.17f),
                 TextAnchor.MiddleCenter);
 
@@ -1002,7 +1021,7 @@ namespace TheLastGift.UI
                 hint = "Подбери бумагу, ленту и открытку, чтобы порадовать покупателя.";
             FestivePanel(wrappingRoot.transform, "Карточка пожелания покупателя",
                 new Vector2(0.065f, 0.778f), new Vector2(0.635f, 0.852f), cream);
-            CreateText(wrappingRoot.transform, currentOrder.CustomerName + ": " + hint, 18, brown,
+            CreateText(wrappingRoot.transform, currentOrder.CustomerName + ": " + hint, 20, brown,
                 new Vector2(0.075f, 0.785f), new Vector2(0.625f, 0.85f), TextAnchor.MiddleCenter, Vector2.zero);
 
             FestiveHeader(wrappingRoot.transform, "Заголовок выбора бумаги", "УПАКОВОЧНАЯ БУМАГА",
@@ -1125,9 +1144,9 @@ namespace TheLastGift.UI
                 new Vector2(0.802f, 0.66f), new Vector2(0.818f, 0.685f), gold);
 
             FestivePanel(wrappingRoot.transform, "Рамка открытки предпросмотра",
-                new Vector2(0.685f, 0.305f), new Vector2(0.92f, 0.385f), paper);
-            CreateText(wrappingRoot.transform, GetWrappingCardText(selectedCard), 15, brown,
-                new Vector2(0.700f, 0.318f), new Vector2(0.905f, 0.372f), TextAnchor.MiddleCenter, Vector2.zero);
+                new Vector2(0.675f, 0.29f), new Vector2(0.93f, 0.405f), paper);
+            CreateText(wrappingRoot.transform, GetWrappingCardText(selectedCard), 20, brown,
+                new Vector2(0.688f, 0.30f), new Vector2(0.917f, 0.395f), TextAnchor.MiddleCenter, Vector2.zero);
         }
 
         private void CreateWrappingOptionButton(Transform parent, string caption, Color color,
@@ -1337,21 +1356,21 @@ namespace TheLastGift.UI
                 new Vector2(0.04f, 0.795f), new Vector2(0.25f, 0.845f), TextAnchor.MiddleCenter);
 
             Panel(root.transform, "Портрет покупателя",
-                new Vector2(0.055f, 0.66f), new Vector2(0.125f, 0.775f), gold);
+                new Vector2(0.05f, 0.655f), new Vector2(0.15f, 0.785f), gold);
             Sprite customerPortrait = GetCurrentCustomerPortrait();
             if (customerPortrait != null)
             {
                 ImageAt(root.transform, "Фото покупателя",
-                    new Vector2(0.059f, 0.664f), new Vector2(0.121f, 0.771f),
+                    new Vector2(0.054f, 0.659f), new Vector2(0.146f, 0.781f),
                     customerPortrait, Color.white);
             }
             else
             {
-                Label("☺", 66, red,
-                    new Vector2(0.055f, 0.66f), new Vector2(0.125f, 0.775f), TextAnchor.MiddleCenter);
+                Label("☺", 70, red,
+                    new Vector2(0.05f, 0.655f), new Vector2(0.15f, 0.785f), TextAnchor.MiddleCenter);
             }
-            Label(currentOrder.CustomerName, 18, brown,
-                new Vector2(0.135f, 0.69f), new Vector2(0.25f, 0.77f), TextAnchor.MiddleCenter);
+            Label(currentOrder.CustomerName, 21, brown,
+                new Vector2(0.155f, 0.665f), new Vector2(0.255f, 0.775f), TextAnchor.MiddleCenter);
 
             bool isUrgentOrder = activeOrderQueueEntry != null && activeOrderQueueEntry.IsUrgent;
             FestivePanel(root.transform, "Пожелание покупателя",
@@ -1365,7 +1384,7 @@ namespace TheLastGift.UI
                     new Vector2(0.235f, 0.652f), TextAnchor.MiddleCenter);
                 UpdateActiveOrderQueueWaitTime(activeOrderQueueEntry);
             }
-            Label(currentOrder.Wish, 17, brown,
+            Label(currentOrder.Wish, 19, brown,
                 new Vector2(0.05f, 0.475f), new Vector2(0.24f, isUrgentOrder ? 0.605f : 0.645f),
                 TextAnchor.MiddleCenter);
 
@@ -1401,7 +1420,7 @@ namespace TheLastGift.UI
                 new Vector2(0.29f, 0.785f), new Vector2(0.71f, 0.84f), TextAnchor.MiddleCenter);
             FestivePanel(root.transform, "Подсказка над коробкой",
                 new Vector2(0.29f, 0.745f), new Vector2(0.71f, 0.785f), cream);
-            Label("Перетаскивай сюда подарки с полки справа", 16, brown,
+            Label("Перетаскивай сюда подарки с полки справа", 18, brown,
                 new Vector2(0.30f, 0.748f), new Vector2(0.70f, 0.782f), TextAnchor.MiddleCenter);
 
             FestivePanel(root.transform, "Коробка — декоративная рамка",
@@ -1440,7 +1459,7 @@ namespace TheLastGift.UI
 
             Label(workshopExtraShelf ? "ПОДАРКИ И НОВАЯ ПОЛКА ✦" : "ПОДАРКИ НА ПОЛКЕ", 18, paper,
                 new Vector2(0.75f, 0.795f), new Vector2(0.96f, 0.845f), TextAnchor.MiddleCenter);
-            Label("Зажми предмет и перетащи его", 14, brown,
+            Label("Зажми предмет и перетащи его", 16, brown,
                 new Vector2(0.75f, 0.755f), new Vector2(0.96f, 0.795f), TextAnchor.MiddleCenter);
 
             if (currentOrder.Definition != null && currentOrder.Definition.IsStoryFinaleOrder)
@@ -2496,11 +2515,13 @@ namespace TheLastGift.UI
             bool isTutorial = title == "Как играть";
             bool isOrderSuccess = title == "Заказ выполнен!";
             bool isFinalGift = title == "Последний подарок";
+            // The tutorial spans almost the full screen, while leaving a clear
+            // strip below for its separate start button.
             Vector2 cardMin = isTutorial
-                ? new Vector2(0.10f, 0.28f)
+                ? new Vector2(0.025f, 0.21f)
                 : isOrderSuccess ? new Vector2(0.12f, 0.26f) : new Vector2(0.12f, 0.36f);
             Vector2 cardMax = isTutorial
-                ? new Vector2(0.90f, 0.90f)
+                ? new Vector2(0.975f, 0.91f)
                 : isOrderSuccess ? new Vector2(0.88f, 0.92f) : new Vector2(0.88f, 0.88f);
 
             if (isMainMenu)
@@ -2544,10 +2565,12 @@ namespace TheLastGift.UI
                 new Vector2(0.04f, 0.83f), new Vector2(0.96f, 0.975f),
                 isOrderSuccess ? red : green, isTutorial ? 32 : 30);
 
-            Vector2 bodyMin = isOrderSuccess ? new Vector2(0.075f, 0.44f) : new Vector2(0.075f, 0.10f);
+            Vector2 bodyMin = isOrderSuccess
+                ? new Vector2(0.075f, 0.44f)
+                : new Vector2(isTutorial ? 0.035f : 0.075f, 0.10f);
             Vector2 bodyMax = isOrderSuccess
                 ? new Vector2(0.925f, 0.79f)
-                : new Vector2(0.925f, isTutorial ? 0.81f : 0.70f);
+                : new Vector2(isTutorial ? 0.965f : 0.925f, isTutorial ? 0.82f : 0.70f);
             // The final card has no body copy, so extend its cream surface almost
             // across the full inner board area to keep every seam between the wooden
             // layers covered, while leaving a clear gap below the header ribbon.
@@ -2562,7 +2585,7 @@ namespace TheLastGift.UI
 
             if (!string.IsNullOrEmpty(body))
             {
-                CreateText(card, body, isTutorial ? 22 : 27, brown,
+                CreateText(card, body, isTutorial ? 24 : 27, brown,
                     bodyMin, bodyMax, TextAnchor.MiddleCenter, Vector2.zero);
             }
 

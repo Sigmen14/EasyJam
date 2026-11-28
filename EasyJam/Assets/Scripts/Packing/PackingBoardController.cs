@@ -457,6 +457,7 @@ namespace TheLastGift.Packing
 
         private void DrawReturnToShopButton()
         {
+            const string buttonCaption = "ВЕРНУТЬСЯ В ЛАВКУ";
             var scale = Mathf.Clamp(Screen.height / 900f, 0.78f, 1.25f);
             if (returnToShopButtonStyle == null)
             {
@@ -464,7 +465,7 @@ namespace TheLastGift.Packing
                 {
                     alignment = TextAnchor.MiddleCenter,
                     fontStyle = FontStyle.Bold,
-                    padding = new RectOffset(6, 6, 2, 2),
+                    padding = new RectOffset(8, 8, 4, 4),
                     border = new RectOffset(12, 12, 8, 8),
                     wordWrap = false,
                     clipping = TextClipping.Clip
@@ -472,16 +473,25 @@ namespace TheLastGift.Packing
             }
 
             var fontScale = Mathf.Max(1.15f, scale);
+            var buttonWidth = Mathf.Min(360f, Screen.width - 32f);
             returnToShopButtonStyle.fontSize = Mathf.RoundToInt(23f * fontScale);
 
-            var buttonWidth = Mathf.Min(300f, Screen.width - 32f);
+            // Fit the full Russian caption inside the button frame on narrow windows.
+            while (returnToShopButtonStyle.fontSize > 16
+                && returnToShopButtonStyle.CalcSize(new GUIContent(buttonCaption)).x > buttonWidth - 12f)
+            {
+                returnToShopButtonStyle.fontSize--;
+            }
+
+            var preferredHeight = returnToShopButtonStyle.CalcSize(new GUIContent(buttonCaption)).y + 8f;
+            var buttonHeight = Mathf.Max(48f * fontScale, preferredHeight);
             var buttonRect = new Rect(
-                Screen.width - buttonWidth - 16f,
+                Mathf.Max(16f, Screen.width - buttonWidth - 16f),
                 172f * fontScale,
                 buttonWidth,
-                44f * fontScale);
+                buttonHeight);
 
-            if (GUI.Button(buttonRect, "ВЕРНУТЬСЯ В ЛАВКУ", returnToShopButtonStyle))
+            if (GUI.Button(buttonRect, buttonCaption, returnToShopButtonStyle))
                 LastGiftUIController.ReturnFromPackingMiniGame();
         }
 
@@ -493,7 +503,7 @@ namespace TheLastGift.Packing
 
             var scale = Mathf.Max(1.15f, Mathf.Clamp(Screen.height / 900f, 0.78f, 1.2f));
             var panelWidth = Mathf.Min(660f, Screen.width - 36f);
-            var panelHeight = 338f * scale;
+            var panelHeight = 356f * scale;
             var panel = new Rect(
                 (Screen.width - panelWidth) * 0.5f,
                 (Screen.height - panelHeight) * 0.5f,
@@ -530,10 +540,10 @@ namespace TheLastGift.Packing
                 "Все подарки аккуратно уложены.\nНи одной пустой клеточки!", completionBodyStyle);
 
             var badge = new Rect(panel.x + panel.width * 0.24f, panel.y + 242f * scale,
-                panel.width * 0.52f, 30f * scale);
+                panel.width * 0.52f, 44f * scale);
             GUI.Label(badge, $"ИДЕАЛЬНАЯ УПАКОВКА  •  {width * height}/{width * height}", completionKickerStyle);
 
-            var button = new Rect(panel.x + panel.width * 0.18f, panel.y + 282f * scale,
+            var button = new Rect(panel.x + panel.width * 0.18f, panel.y + 296f * scale,
                 panel.width * 0.64f, 44f * scale);
             if (GUI.Button(button, "СЫГРАТЬ ЕЩЁ РАЗ", completionButtonStyle))
                 RestartPuzzle();
