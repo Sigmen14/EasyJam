@@ -54,6 +54,7 @@ namespace TheLastGift.Packing
         private GUIStyle completionSubtitleStyle;
         private GUIStyle completionBodyStyle;
         private GUIStyle completionButtonStyle;
+        private GUIStyle returnToShopButtonStyle;
         private Texture2D hudPanelTexture;
         private Texture2D completionPanelTexture;
         private Texture2D completionButtonTexture;
@@ -323,14 +324,29 @@ namespace TheLastGift.Packing
         private void DrawReturnToShopButton()
         {
             var scale = Mathf.Clamp(Screen.height / 900f, 0.78f, 1.25f);
-            var buttonWidth = Mathf.Min(270f, Screen.width - 32f);
+            if (returnToShopButtonStyle == null)
+            {
+                returnToShopButtonStyle = new GUIStyle(completionButtonStyle)
+                {
+                    alignment = TextAnchor.MiddleCenter,
+                    fontStyle = FontStyle.Bold,
+                    padding = new RectOffset(6, 6, 2, 2),
+                    border = new RectOffset(12, 12, 8, 8),
+                    wordWrap = false,
+                    clipping = TextClipping.Clip
+                };
+            }
+
+            returnToShopButtonStyle.fontSize = Mathf.RoundToInt(14f * scale);
+
+            var buttonWidth = Mathf.Min(300f, Screen.width - 32f);
             var buttonRect = new Rect(
                 Screen.width - buttonWidth - 16f,
                 172f * scale,
                 buttonWidth,
-                42f * scale);
+                44f * scale);
 
-            if (GUI.Button(buttonRect, "ВЕРНУТЬСЯ В ЛАВКУ", completionButtonStyle))
+            if (GUI.Button(buttonRect, "ВЕРНУТЬСЯ В ЛАВКУ", returnToShopButtonStyle))
                 LastGiftUIController.ReturnFromPackingMiniGame();
         }
 
