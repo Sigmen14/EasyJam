@@ -684,6 +684,7 @@ namespace TheLastGift.UI
             AddGoldOutline(optionObject, 2.5f);
 
             Button button = optionObject.GetComponent<Button>();
+            LastGiftButtonHover.Attach(button);
             button.targetGraphic = background;
             ColorBlock colors = button.colors;
             colors.normalColor = paleBlue;
