@@ -38,6 +38,7 @@ namespace TheLastGift.UI
         private Action completionCallback;
         private bool hasCompleted;
 
+        private Canvas introCanvas;
         private CanvasGroup canvasGroup;
         private CanvasGroup titleGroup;
         private CanvasGroup boyGroup;
@@ -247,6 +248,7 @@ namespace TheLastGift.UI
 
             canvasObject.transform.SetParent(transform, false);
             Canvas canvas = canvasObject.GetComponent<Canvas>();
+            introCanvas = canvas;
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 1000;
 
@@ -932,9 +934,8 @@ namespace TheLastGift.UI
             RectTransform rect = CreateRect(parent, objectName, position, size);
             Text label = rect.gameObject.AddComponent<Text>();
             label.font = GetIntroFont();
-            Canvas rootCanvas = label.canvas != null ? label.canvas.rootCanvas : null;
-            CanvasScaler scaler = rootCanvas != null ? rootCanvas.GetComponent<CanvasScaler>() : null;
-            float canvasScaleFactor = GetIntroCanvasScaleFactor(rootCanvas, scaler);
+            CanvasScaler scaler = introCanvas != null ? introCanvas.GetComponent<CanvasScaler>() : null;
+            float canvasScaleFactor = GetIntroCanvasScaleFactor(introCanvas, scaler);
             int minimumCanvasSize = Mathf.CeilToInt(25f / canvasScaleFactor);
             int preferredFontSize = fontSize < 40
                 ? Mathf.Max(25, fontSize + 3)
