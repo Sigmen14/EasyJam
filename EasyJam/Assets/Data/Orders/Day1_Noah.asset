@@ -23,10 +23,10 @@ MonoBehaviour:
   Day: 1
   PerfectPackingTip: 5
   SecretWish:
-    Clue: Мой сын всегда спит со своим плюшевым другом.
+    Clue: Моя сестра очень любит сладости.
     GiftOptions:
+    - ЛЕДЕНЕЦ
     - МИШКА
     - ПОДАРОК
-    - ЛЕДЕНЕЦ
-    CorrectGiftName: МИШКА
+    CorrectGiftName: ЛЕДЕНЕЦ
     BonusCoins: 10

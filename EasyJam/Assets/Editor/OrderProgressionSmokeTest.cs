@@ -232,21 +232,56 @@ public static class OrderProgressionSmokeTest
                     for (int optionIndex = 0; optionIndex < order.SecretWish.GiftOptions.Count; optionIndex++)
                     {
                         string option = order.SecretWish.GiftOptions[optionIndex];
-                        if (Array.IndexOf(availableGifts, option) < 0)
+                        if (string.IsNullOrWhiteSpace(option))
+                            return "Secret wish on " + order.name + " contains an empty gift option.";
+
+                        option = option.Trim();
+                        bool optionExistsInCatalog = false;
+                        for (int catalogIndex = 0; catalogIndex < availableGifts.Length; catalogIndex++)
+                        {
+                            if (string.Equals(option, availableGifts[catalogIndex], StringComparison.OrdinalIgnoreCase))
+                            {
+                                optionExistsInCatalog = true;
+                                break;
+                            }
+                        }
+
+                        if (!optionExistsInCatalog)
                             return "Secret wish on " + order.name + " contains an unknown shelf gift: " + option + ".";
 
                         for (int previousIndex = 0; previousIndex < optionIndex; previousIndex++)
                         {
-                            if (string.Equals(option, order.SecretWish.GiftOptions[previousIndex], StringComparison.Ordinal))
+                            if (string.Equals(option, order.SecretWish.GiftOptions[previousIndex]?.Trim(),
+                                StringComparison.OrdinalIgnoreCase))
                                 return "Secret wish on " + order.name + " contains duplicate gift options.";
                         }
 
-                        if (string.Equals(option, order.SecretWish.CorrectGiftName, StringComparison.Ordinal))
+                        if (string.Equals(option, order.SecretWish.CorrectGiftName?.Trim(),
+                            StringComparison.OrdinalIgnoreCase))
                             correctAnswerIncluded = true;
                     }
 
                     if (!correctAnswerIncluded)
                         return "Secret wish on " + order.name + " does not include its correct answer.";
+
+                    string correctGiftName = order.SecretWish.CorrectGiftName.Trim();
+                    bool correctGiftExistsInOrder = false;
+                    for (int giftIndex = 0; giftIndex < order.GiftNames.Count; giftIndex++)
+                    {
+                        if (string.Equals(order.GiftNames[giftIndex]?.Trim(), correctGiftName,
+                            StringComparison.OrdinalIgnoreCase))
+                        {
+                            correctGiftExistsInOrder = true;
+                            break;
+                        }
+                    }
+
+                    if (!correctGiftExistsInOrder)
+                    {
+                        return "Secret wish mismatch for customer '" + order.CustomerName
+                            + "' (order " + order.name + "): correct gift '" + correctGiftName
+                            + "' is missing from the main order GiftNames.";
+                    }
 
                     expectedCoins += Mathf.Max(0, order.SecretWish.BonusCoins);
                 }
