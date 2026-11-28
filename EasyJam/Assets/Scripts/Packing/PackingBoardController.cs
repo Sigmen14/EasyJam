@@ -164,8 +164,7 @@ namespace TheLastGift.Packing
             {
                 alignment = TextAnchor.MiddleCenter,
                 fontSize = Mathf.RoundToInt(19f * scale),
-                fontStyle = FontStyle.Bold,
-                letterSpacing = 1
+                fontStyle = FontStyle.Bold
             };
             hudTitleStyle.normal.textColor = new Color(0.78f, 0.91f, 1f, 1f);
 
@@ -190,8 +189,7 @@ namespace TheLastGift.Packing
             {
                 alignment = TextAnchor.MiddleCenter,
                 fontSize = Mathf.RoundToInt(16f * scale),
-                fontStyle = FontStyle.Bold,
-                letterSpacing = 2
+                fontStyle = FontStyle.Bold
             };
             completionKickerStyle.normal.textColor = new Color(0.58f, 0.89f, 0.83f, 1f);
 
