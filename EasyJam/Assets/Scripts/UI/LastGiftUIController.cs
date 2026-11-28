@@ -1080,8 +1080,8 @@ namespace TheLastGift.UI
             Label(currentOrder.Wish, 17, brown,
                 new Vector2(0.05f, 0.475f), new Vector2(0.24f, 0.645f), TextAnchor.MiddleCenter);
 
-            Label("В ЗАКАЗЕ НУЖНО", 17, green,
-                new Vector2(0.045f, 0.425f), new Vector2(0.245f, 0.465f), TextAnchor.MiddleCenter);
+            FestiveHeader(root.transform, "Метка состава заказа", "В ЗАКАЗЕ НУЖНО",
+                new Vector2(0.045f, 0.425f), new Vector2(0.245f, 0.465f), green, 13, false);
 
             float itemWidth = 0.06f;
             float itemGap = 0.006f;
@@ -1110,8 +1110,10 @@ namespace TheLastGift.UI
                 new Vector2(0.304f, 0.790f), new Vector2(0.696f, 0.834f), green);
             Label("КОРОБКА ДЛЯ УПАКОВКИ — " + GetBoxSizeLabel(currentOrder.BoxSize), 21, paper,
                 new Vector2(0.29f, 0.785f), new Vector2(0.71f, 0.84f), TextAnchor.MiddleCenter);
+            FestivePanel(root.transform, "Подсказка над коробкой",
+                new Vector2(0.29f, 0.745f), new Vector2(0.71f, 0.785f), cream);
             Label("Перетаскивай сюда подарки с полки справа", 16, brown,
-                new Vector2(0.29f, 0.745f), new Vector2(0.71f, 0.785f), TextAnchor.MiddleCenter);
+                new Vector2(0.30f, 0.748f), new Vector2(0.70f, 0.782f), TextAnchor.MiddleCenter);
 
             FestivePanel(root.transform, "Коробка — декоративная рамка",
                 new Vector2(0.300f, 0.280f), new Vector2(0.700f, 0.710f), paper);
