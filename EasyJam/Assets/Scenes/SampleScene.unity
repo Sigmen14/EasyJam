@@ -403,5 +403,9 @@ MonoBehaviour:
   trayGap: 0.65
   targetCamera: {fileID: 519420031}
   runDemoOnStart: 1
+  campaignOrders:
+  - {fileID: 11400000, guid: a1000000000000000000000000000001, type: 2}
+  - {fileID: 11400000, guid: a1000000000000000000000000000002, type: 2}
+  - {fileID: 11400000, guid: a1000000000000000000000000000003, type: 2}
   emptyCellColor: {r: 0.96, g: 0.89, b: 0.75, a: 1}
   boardBackgroundColor: {r: 0.08, g: 0.23, b: 0.14, a: 1}
