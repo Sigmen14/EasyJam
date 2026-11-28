@@ -529,7 +529,12 @@ namespace TheLastGift.UI
             Text text = textObject.GetComponent<Text>();
             text.font = font;
             text.text = value;
-            text.fontSize = size;
+            // Увеличенный размер шрифта для читаемости на обычных игровых разрешениях.
+            int readableSize = Mathf.RoundToInt(size * 1.28f);
+            text.fontSize = readableSize;
+            text.resizeTextForBestFit = true;
+            text.resizeTextMinSize = 16;
+            text.resizeTextMaxSize = readableSize;
             text.color = color;
             text.alignment = alignment;
             text.fontStyle = FontStyle.Bold;
