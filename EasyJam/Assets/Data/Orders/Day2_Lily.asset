@@ -13,12 +13,11 @@ MonoBehaviour:
   m_Name: Day2_Lily
   m_EditorClassIdentifier:
   CustomerName: Лили
-  CustomerWish: "Что-нибудь праздничное для всей семьи. Красивая упаковка будет как раз кстати."
+  CustomerWish: "Хочу порадовать семью. Упакуй мишку и красивый подарок."
   CustomerPortrait: {fileID: 0}
   GiftNames:
-  - Плюшевый олень
-  - Леденец-трость
-  - Ёлочный шар
+  - МИШКА
+  - ПОДАРОК
   BoxSize: 1
   RewardCoins: 40
   Day: 2
