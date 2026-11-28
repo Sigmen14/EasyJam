@@ -408,7 +408,8 @@ namespace TheLastGift.UI
             Build("Главное меню");
             Card(
                 "Добро пожаловать в «Последний подарок»",
-                "Ты открыла маленькую рождественскую лавку!\nСобирай подарки по пожеланиям покупателей.\nЗа выполненные заказы получай монеты.\nВыбирай подарки и перетаскивай их в коробку мышью.");
+                "Ты открыла маленькую рождественскую лавку!\nСобирай подарки по пожеланиям покупателей.\nЗа выполненные заказы получай монеты.\nВыбирай подарки и перетаскивай их в коробку мышью.",
+                true);
 
             ButtonAt("НАЧАТЬ ИГРУ", green, () =>
             {
@@ -1037,10 +1038,15 @@ namespace TheLastGift.UI
 
         private void BuildCustomerPanel()
         {
-            Panel(root.transform, "Карточка покупателя",
+            FestivePanel(root.transform, "Карточка покупателя",
                 new Vector2(0.025f, 0.205f), new Vector2(0.265f, 0.855f), paper);
 
-            Label("ВАШ ПОКУПАТЕЛЬ", 18, green,
+            Panel(root.transform, "Золотая основа заголовка покупателя",
+                new Vector2(0.038f, 0.792f), new Vector2(0.252f, 0.848f), gold);
+            Panel(root.transform, "Бордовая лента заголовка покупателя",
+                new Vector2(0.042f, 0.800f), new Vector2(0.248f, 0.840f), red);
+
+            Label("ВАШ ПОКУПАТЕЛЬ", 18, paper,
                 new Vector2(0.04f, 0.795f), new Vector2(0.25f, 0.845f), TextAnchor.MiddleCenter);
 
             Panel(root.transform, "Портрет покупателя",
@@ -1060,7 +1066,8 @@ namespace TheLastGift.UI
             Label(currentOrder.CustomerName, 18, brown,
                 new Vector2(0.135f, 0.69f), new Vector2(0.25f, 0.77f), TextAnchor.MiddleCenter);
 
-            Panel(root.transform, "Пожелание", new Vector2(0.045f, 0.47f), new Vector2(0.245f, 0.65f), cream);
+            FestivePanel(root.transform, "Пожелание покупателя",
+                new Vector2(0.045f, 0.47f), new Vector2(0.245f, 0.65f), cream);
             Label(currentOrder.Wish, 17, brown,
                 new Vector2(0.05f, 0.475f), new Vector2(0.24f, 0.645f), TextAnchor.MiddleCenter);
 
@@ -1084,14 +1091,21 @@ namespace TheLastGift.UI
 
         private void BuildPackingArea()
         {
-            Label("КОРОБКА ДЛЯ УПАКОВКИ — " + GetBoxSizeLabel(currentOrder.BoxSize), 21, green,
+            FestivePanel(root.transform, "Стол упаковки",
+                new Vector2(0.285f, 0.265f), new Vector2(0.715f, 0.725f),
+                new Color32(216, 190, 156, 255));
+
+            Panel(root.transform, "Золотая основа заголовка коробки",
+                new Vector2(0.298f, 0.782f), new Vector2(0.702f, 0.842f), gold);
+            Panel(root.transform, "Зелёная лента заголовка коробки",
+                new Vector2(0.304f, 0.790f), new Vector2(0.696f, 0.834f), green);
+            Label("КОРОБКА ДЛЯ УПАКОВКИ — " + GetBoxSizeLabel(currentOrder.BoxSize), 21, paper,
                 new Vector2(0.29f, 0.785f), new Vector2(0.71f, 0.84f), TextAnchor.MiddleCenter);
             Label("Перетаскивай сюда подарки с полки справа", 16, brown,
                 new Vector2(0.29f, 0.745f), new Vector2(0.71f, 0.785f), TextAnchor.MiddleCenter);
 
-            Panel(root.transform, "Стол упаковки",
-                new Vector2(0.285f, 0.265f), new Vector2(0.715f, 0.725f), new Color32(216, 190, 156, 255));
-
+            FestivePanel(root.transform, "Коробка — декоративная рамка",
+                new Vector2(0.300f, 0.280f), new Vector2(0.700f, 0.710f), paper);
             packingRect = Panel(root.transform, "Коробка",
                 new Vector2(0.315f, 0.295f), new Vector2(0.685f, 0.695f), paper);
 
@@ -1116,9 +1130,15 @@ namespace TheLastGift.UI
 
         private void BuildGiftShelf()
         {
-            Panel(root.transform, "Полка с подарками",
+            FestivePanel(root.transform, "Полка с подарками",
                 new Vector2(0.735f, 0.205f), new Vector2(0.975f, 0.855f), paper);
-            Label("ПОДАРКИ НА ПОЛКЕ", 18, green,
+
+            Panel(root.transform, "Золотая основа заголовка полки",
+                new Vector2(0.746f, 0.792f), new Vector2(0.964f, 0.848f), gold);
+            Panel(root.transform, "Зелёная лента заголовка полки",
+                new Vector2(0.750f, 0.800f), new Vector2(0.960f, 0.840f), green);
+
+            Label("ПОДАРКИ НА ПОЛКЕ", 18, paper,
                 new Vector2(0.75f, 0.795f), new Vector2(0.96f, 0.845f), TextAnchor.MiddleCenter);
             Label("Зажми предмет и перетащи его", 14, brown,
                 new Vector2(0.75f, 0.755f), new Vector2(0.96f, 0.795f), TextAnchor.MiddleCenter);
@@ -1853,7 +1873,29 @@ namespace TheLastGift.UI
             feedback.color = success ? green : red;
         }
 
-        private RectTransform Card(string title, string body)
+        private RectTransform FestivePanel(
+            Transform parent,
+            string objectName,
+            Vector2 min,
+            Vector2 max,
+            Color surface)
+        {
+            Color shadow = new Color32(43, 29, 23, 105);
+            Vector2 shadowOffset = new Vector2(8f, -7f);
+            Panel(parent, objectName + " — мягкая тень",
+                min, max, shadowOffset, shadowOffset, shadow);
+            Panel(parent, objectName + " — деревянная основа", min, max, wood);
+
+            Vector2 goldInset = new Vector2(0.005f, 0.005f);
+            Panel(parent, objectName + " — золотая окантовка",
+                min + goldInset, max - goldInset, gold);
+
+            Vector2 surfaceInset = new Vector2(0.012f, 0.012f);
+            return Panel(parent, objectName + " — внутренняя поверхность",
+                min + surfaceInset, max - surfaceInset, surface);
+        }
+
+        private RectTransform Card(string title, string body, bool isMainMenu = false)
         {
             bool isTutorial = title == "Как играть";
             bool isOrderSuccess = title == "Заказ выполнен!";
@@ -1863,6 +1905,40 @@ namespace TheLastGift.UI
             Vector2 cardMax = isTutorial
                 ? new Vector2(0.90f, 0.90f)
                 : isOrderSuccess ? new Vector2(0.88f, 0.92f) : new Vector2(0.88f, 0.88f);
+
+            if (isMainMenu)
+            {
+                RectTransform festiveCard = FestivePanel(
+                    root.transform, "Праздничная карточка главного меню",
+                    cardMin, cardMax, paper);
+
+                Panel(festiveCard, "Золотая основа заголовка",
+                    new Vector2(0.035f, 0.785f), new Vector2(0.965f, 0.975f), gold);
+                Panel(festiveCard, "Бордовая праздничная лента",
+                    new Vector2(0.045f, 0.800f), new Vector2(0.955f, 0.960f), red);
+                Panel(festiveCard, "Золотая линия ленты сверху",
+                    new Vector2(0.045f, 0.948f), new Vector2(0.955f, 0.960f), gold);
+                Panel(festiveCard, "Золотая линия ленты снизу",
+                    new Vector2(0.045f, 0.800f), new Vector2(0.955f, 0.812f), gold);
+
+                ChildLabel(festiveCard, "✦", 23, gold,
+                    new Vector2(0.055f, 0.825f), new Vector2(0.155f, 0.935f), TextAnchor.MiddleCenter);
+                ChildLabel(festiveCard, "✦", 23, gold,
+                    new Vector2(0.845f, 0.825f), new Vector2(0.945f, 0.935f), TextAnchor.MiddleCenter);
+                CreateText(festiveCard, title, 34, paper,
+                    new Vector2(0.15f, 0.815f), new Vector2(0.85f, 0.95f),
+                    TextAnchor.MiddleCenter, Vector2.zero);
+
+                Panel(festiveCard, "Золотая рамка приветственного текста",
+                    new Vector2(0.065f, 0.105f), new Vector2(0.935f, 0.755f), gold);
+                Panel(festiveCard, "Кремовая подложка приветственного текста",
+                    new Vector2(0.075f, 0.120f), new Vector2(0.925f, 0.740f), cream);
+                CreateText(festiveCard, body, 25, brown,
+                    new Vector2(0.105f, 0.16f), new Vector2(0.895f, 0.70f),
+                    TextAnchor.MiddleCenter, Vector2.zero);
+
+                return festiveCard;
+            }
 
             Panel(root.transform, "Тень карточки",
                 cardMin, cardMax, new Vector2(14, -12), new Vector2(14, -12), wood);
