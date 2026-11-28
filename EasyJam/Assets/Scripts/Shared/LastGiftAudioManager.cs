@@ -54,6 +54,32 @@ namespace TheLastGift.Audio
 
         public static void EnsureInstance() { Instance.ApplyVolumes(); }
 
+        /// <summary>
+        /// Guarantees exactly one enabled listener and keeps it attached to the active camera.
+        /// Call this when a scene supplies or creates its rendering camera.
+        /// </summary>
+        public static AudioListener EnsureSingleAudioListener(Camera targetCamera)
+        {
+            if (targetCamera == null)
+                return null;
+
+            AudioListener targetListener = targetCamera.GetComponent<AudioListener>();
+            if (targetListener == null)
+                targetListener = targetCamera.gameObject.AddComponent<AudioListener>();
+
+            targetListener.enabled = true;
+
+            AudioListener[] listeners = Object.FindObjectsByType<AudioListener>(FindObjectsSortMode.None);
+            for (int i = 0; i < listeners.Length; i++)
+            {
+                AudioListener listener = listeners[i];
+                if (listener != null && listener != targetListener)
+                    listener.enabled = false;
+            }
+
+            return targetListener;
+        }
+
         private void Awake()
         {
             if (instance != null && instance != this)

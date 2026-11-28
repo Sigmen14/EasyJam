@@ -20,6 +20,7 @@ namespace TheLastGift.UI
         private const string PackingMiniGameSceneName = "SampleScene";
         private static LastGiftUIController activeInstance;
         private Camera shopCamera;
+        private AudioListener shopAudioListener;
         private bool packingMiniGameOpen;
         private GameObject wrappingRoot;
         private bool wrappingSubmitted;
@@ -225,6 +226,7 @@ namespace TheLastGift.UI
             {
                 sceneCamera.enabled = true;
                 shopCamera = sceneCamera;
+                shopAudioListener = LastGiftAudioManager.EnsureSingleAudioListener(sceneCamera);
                 return;
             }
 
@@ -242,6 +244,7 @@ namespace TheLastGift.UI
             fallbackCamera.depth = -10f;
             fallbackCamera.enabled = true;
             shopCamera = fallbackCamera;
+            shopAudioListener = LastGiftAudioManager.EnsureSingleAudioListener(fallbackCamera);
         }
 
         private void LoadGiftSprites()
@@ -1075,6 +1078,8 @@ namespace TheLastGift.UI
             canvas.enabled = false;
             if (shopCamera != null)
                 shopCamera.enabled = false;
+            if (shopAudioListener != null)
+                shopAudioListener.enabled = false;
 
             StartCoroutine(LoadPackingMiniGame());
         }
@@ -1147,6 +1152,8 @@ namespace TheLastGift.UI
 
             if (shopCamera != null)
                 shopCamera.enabled = true;
+            if (shopAudioListener != null)
+                shopAudioListener.enabled = true;
             if (canvas != null)
                 canvas.enabled = true;
 

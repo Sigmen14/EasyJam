@@ -16,6 +16,7 @@ namespace TheLastGift.Packing
         [SerializeField] private Vector2 boardCenter = Vector2.zero;
         [SerializeField] private float trayGap = 0.65f;
         [SerializeField] private Camera targetCamera;
+        private AudioListener targetAudioListener;
 
         [Header("Prototype")]
         [SerializeField] private bool runDemoOnStart = true;
@@ -120,6 +121,7 @@ namespace TheLastGift.Packing
             {
                 targetCamera.clearFlags = CameraClearFlags.SolidColor;
                 targetCamera.backgroundColor = new Color(0.37f, 0.22f, 0.17f, 1f);
+                targetAudioListener = LastGiftAudioManager.EnsureSingleAudioListener(targetCamera);
                 return;
             }
 
@@ -138,6 +140,7 @@ namespace TheLastGift.Packing
             targetCamera.backgroundColor = new Color(0.37f, 0.22f, 0.17f, 1f);
             targetCamera.cullingMask = ~0;
             targetCamera.depth = 0f;
+            targetAudioListener = LastGiftAudioManager.EnsureSingleAudioListener(targetCamera);
 
             Debug.LogWarning("[Packing] No active camera was found. Created Packing Runtime Camera.", this);
         }
