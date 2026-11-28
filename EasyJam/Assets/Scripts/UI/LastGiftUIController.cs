@@ -464,7 +464,7 @@ namespace TheLastGift.UI
                     currentOrder.Definition.PreferredWrappingPaper,
                     currentOrder.Definition.PreferredWrappingRibbon,
                     currentOrder.Definition.PreferredWrappingCard)
-                : new GiftWrappingSelection(GiftWrappingPaper.Red, GiftWrappingRibbon.BigRed, GiftWrappingCard.MerryChristmas);
+                : new GiftWrappingSelection(GiftWrappingPaper.Blue, GiftWrappingRibbon.ThinBlue, GiftWrappingCard.WarmWishes);
 
             if (root == null || canvas == null || currentOrder == null)
             {
@@ -582,9 +582,7 @@ namespace TheLastGift.UI
 
         private void BackToGameplay()
         {
-            if (wrappingSubmitted)
-                return;
-
+            // Keep the escape route available even if completion could not be processed.
             if (wrappingRoot != null)
             {
                 Destroy(wrappingRoot);
