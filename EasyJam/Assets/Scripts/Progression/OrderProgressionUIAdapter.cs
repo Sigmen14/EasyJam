@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using TheLastGift.UI;
+using TheLastGift.Audio;
 
 /// <summary>Connects the playable order UI to progression and the short Christmas Eve story.</summary>
 [DisallowMultipleComponent]
@@ -161,6 +162,7 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
 
     private void HandleOrderStarted(GiftOrderDefinition order, bool showSecretWish)
     {
+        LastGiftAudioManager.PlaySfx(LastGiftSoundEffect.NewOrder);
         ApplyWorkshopDecorations();
         ApplyOrderAssignmentToUI(ui.SetProgressionOrder, order,
             progression.CurrentDay, progression.CurrentOrderNumber,
@@ -200,6 +202,7 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
     {
         if (!result.Success)
         {
+            LastGiftAudioManager.PlaySfx(LastGiftSoundEffect.Error);
             ui.PackingFeedback("Заказ не выполнен. Проверь подарки и попробуй ещё раз.", false);
             return;
         }

@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using TheLastGift.Audio;
 
 namespace TheLastGift.UI
 {
@@ -24,6 +25,7 @@ namespace TheLastGift.UI
             if (owner == null || sprite == null)
                 return;
 
+            LastGiftAudioManager.PlaySfx(LastGiftSoundEffect.GiftDrag);
             dragPreview = owner.CreateDragPreview(sprite, eventData.position);
         }
 

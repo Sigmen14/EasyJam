@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using TheLastGift.UI;
+using TheLastGift.Audio;
 
 namespace TheLastGift.Packing
 {
@@ -119,6 +120,7 @@ namespace TheLastGift.Packing
             {
                 targetCamera.clearFlags = CameraClearFlags.SolidColor;
                 targetCamera.backgroundColor = new Color(0.37f, 0.22f, 0.17f, 1f);
+                LastGiftAudioManager.EnsureSingleAudioListener(targetCamera);
                 return;
             }
 
@@ -137,6 +139,7 @@ namespace TheLastGift.Packing
             targetCamera.backgroundColor = new Color(0.37f, 0.22f, 0.17f, 1f);
             targetCamera.cullingMask = ~0;
             targetCamera.depth = 0f;
+            LastGiftAudioManager.EnsureSingleAudioListener(targetCamera);
 
             Debug.LogWarning("[Packing] No active camera was found. Created Packing Runtime Camera.", this);
         }
@@ -608,9 +611,15 @@ namespace TheLastGift.Packing
             showValidationMessage = true;
 
             if (valid && !wasCompleted)
+            {
+                LastGiftAudioManager.PlaySfx(LastGiftSoundEffect.GiftPacked);
                 Debug.Log($"[Packing] SUCCESS: {result.Message} ({result.PlacedCount}/{result.TotalCount})", this);
+            }
             else if (!valid)
+            {
+                LastGiftAudioManager.PlaySfx(LastGiftSoundEffect.Error);
                 Debug.LogWarning($"[Packing] NOT READY: {result.Message} ({result.PlacedCount}/{result.TotalCount})", this);
+            }
         }
 
         private void RefreshProgress()
@@ -1098,6 +1107,7 @@ namespace TheLastGift.Packing
             var candidate = FindPieceAtWorld(world);
             if (candidate == null) return;
 
+            LastGiftAudioManager.PlaySfx(LastGiftSoundEffect.GiftDrag);
             draggedPiece = candidate;
             dragOffset = (Vector2)candidate.transform.position - world;
             dragStartedPlaced = candidate.IsPlaced;
