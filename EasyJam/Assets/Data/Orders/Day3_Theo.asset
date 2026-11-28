@@ -23,3 +23,9 @@ MonoBehaviour:
   RewardCoins: 75
   Day: 3
   PerfectPackingTip: 20
+  PreferredWrappingPaper: 2
+  PreferredWrappingRibbon: 1
+  PreferredWrappingCard: 2
+  WrappingHint: "Обожает яркие цвета, весёлые пожелания и большие банты."
+  WrappingBonusCoins: 10
+  PerfectWrappingReputationBonus: 1

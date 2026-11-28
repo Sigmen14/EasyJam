@@ -22,3 +22,9 @@ MonoBehaviour:
   RewardCoins: 30
   Day: 1
   PerfectPackingTip: 5
+  PreferredWrappingPaper: 4
+  PreferredWrappingRibbon: 4
+  PreferredWrappingCard: 3
+  WrappingHint: "Любит нежные оттенки и открытки с тёплыми пожеланиями."
+  WrappingBonusCoins: 10
+  PerfectWrappingReputationBonus: 1

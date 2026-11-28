@@ -38,6 +38,7 @@ public class OrderProgressionManager : MonoBehaviour
     public int TotalOrdersCompleted { get; private set; }
     public int TotalCoinsEarned { get; private set; }
     public int TotalTipsEarned { get; private set; }
+    public int TotalReputationEarned { get; private set; }
 
     public OrderDayDefinition CurrentDayData { get; private set; }
 
@@ -75,6 +76,7 @@ public class OrderProgressionManager : MonoBehaviour
         TotalOrdersCompleted = 0;
         TotalCoinsEarned = 0;
         TotalTipsEarned = 0;
+        TotalReputationEarned = 0;
         awaitingResultContinue = false;
         dayIndex = 0;
         orderIndex = 0;
@@ -100,6 +102,12 @@ public class OrderProgressionManager : MonoBehaviour
     /// <summary>Called by the packing feature after a packing attempt has ended.</summary>
     public void CompleteCurrentOrder(PackingResult result)
     {
+        CompleteCurrentOrder(result, false, false);
+    }
+
+    /// <summary>Completes an order and applies optional wrapping rewards after the gift contents are valid.</summary>
+    public void CompleteCurrentOrder(PackingResult result, bool suitableWrapping, bool perfectWrapping)
+    {
         if (!campaignStarted || CurrentOrder == null || awaitingResultContinue)
             return;
 
@@ -115,7 +123,10 @@ public class OrderProgressionManager : MonoBehaviour
 
         int baseReward = success ? Mathf.Max(0, CurrentOrder.RewardCoins) : 0;
         int tip = success ? Mathf.Max(0, CurrentOrder.PerfectPackingTip) : 0;
-        int earned = baseReward + tip;
+        int wrappingBonus = success && suitableWrapping ? Mathf.Max(0, CurrentOrder.WrappingBonusCoins) : 0;
+        int reputationBonus = success && suitableWrapping && perfectWrapping
+            ? Mathf.Max(0, CurrentOrder.PerfectWrappingReputationBonus) : 0;
+        int earned = baseReward + tip + wrappingBonus;
 
         if (earned > 0)
             AddCoins(earned);
@@ -127,10 +138,13 @@ public class OrderProgressionManager : MonoBehaviour
             TotalOrdersCompleted++;
             TotalCoinsEarned += earned;
             TotalTipsEarned += tip;
+            TotalReputationEarned += reputationBonus;
         }
 
+        // Set this before invoking listeners so repeated clicks cannot award anything twice.
         awaitingResultContinue = true;
-        OrderCompleted?.Invoke(new OrderCompletionData(CurrentOrder, result, success, baseReward, tip, earned));
+        OrderCompleted?.Invoke(new OrderCompletionData(
+            CurrentOrder, result, success, baseReward, tip, wrappingBonus, reputationBonus, earned));
     }
 
     /// <summary>UI calls after showing the order-result panel.</summary>
@@ -192,7 +206,9 @@ public class OrderProgressionManager : MonoBehaviour
             CurrentOrder = null;
             CurrentDayData = null;
             IsCompleted = true;
-            GameCompleted?.Invoke(new GameSummaryData(CurrentCoins, TotalOrdersCompleted, TotalCoinsEarned, TotalTipsEarned, campaign.Days.Count));
+            GameCompleted?.Invoke(new GameSummaryData(
+                CurrentCoins, TotalOrdersCompleted, TotalCoinsEarned, TotalTipsEarned,
+                TotalReputationEarned, campaign.Days.Count));
             return;
         }
 
@@ -213,15 +229,20 @@ public sealed class OrderCompletionData
     public bool Success { get; }
     public int BaseReward { get; }
     public int Tip { get; }
+    public int WrappingBonus { get; }
+    public int ReputationBonus { get; }
     public int TotalEarned { get; }
 
-    public OrderCompletionData(GiftOrderDefinition order, PackingResult result, bool success, int baseReward, int tip, int totalEarned)
+    public OrderCompletionData(GiftOrderDefinition order, PackingResult result, bool success, int baseReward,
+        int tip, int wrappingBonus, int reputationBonus, int totalEarned)
     {
         Order = order;
         PackingResult = result;
         Success = success;
         BaseReward = baseReward;
         Tip = tip;
+        WrappingBonus = wrappingBonus;
+        ReputationBonus = reputationBonus;
         TotalEarned = totalEarned;
     }
 }
@@ -250,14 +271,17 @@ public sealed class GameSummaryData
     public int OrdersCompleted { get; }
     public int TotalCoinsEarned { get; }
     public int TipsEarned { get; }
+    public int ReputationEarned { get; }
     public int DaysPlayed { get; }
 
-    public GameSummaryData(int finalCoins, int ordersCompleted, int totalCoinsEarned, int tipsEarned, int daysPlayed)
+    public GameSummaryData(int finalCoins, int ordersCompleted, int totalCoinsEarned, int tipsEarned,
+        int reputationEarned, int daysPlayed)
     {
         FinalCoins = finalCoins;
         OrdersCompleted = ordersCompleted;
         TotalCoinsEarned = totalCoinsEarned;
         TipsEarned = tipsEarned;
+        ReputationEarned = reputationEarned;
         DaysPlayed = daysPlayed;
     }
 }
