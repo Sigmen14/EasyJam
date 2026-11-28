@@ -113,9 +113,9 @@ public sealed class OrderProgressionVisualDemo : MonoBehaviour
         scaler.referenceResolution = new Vector2(1600f, 900f);
         scaler.matchWidthOrHeight = 0.5f;
 
-        font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+        font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         if (font == null)
-            font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            font = Resources.GetBuiltinResource<Font>("Arial.ttf");
 
         CreateStretchPanel("Warm Background", canvas.transform, new Color32(244, 239, 229, 255));
 
