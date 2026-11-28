@@ -21,6 +21,16 @@ namespace TheLastGift.Packing
         [SerializeField] private bool runDemoOnStart = true;
         [SerializeField] private Color emptyCellColor = new Color(0.96f, 0.89f, 0.75f, 1f);
         [SerializeField] private Color boardBackgroundColor = new Color(0.08f, 0.23f, 0.14f, 1f);
+        [SerializeField] private PackingPuzzleOrderDefinition[] campaignOrders;
+
+        private PackingPuzzleOrderDefinition activeOrder;
+        private readonly List<PackingConstraintStatus> constraintStatuses = new List<PackingConstraintStatus>();
+        private int currentOrderIndex = -1;
+        private bool orderCardVisible;
+        private bool orderStarted;
+        private GUIStyle orderCardTitleStyle;
+        private GUIStyle orderCardBodyStyle;
+        private GUIStyle constraintStatusStyle;
 
         private readonly List<GiftPieceView> pieces = new List<GiftPieceView>();
         private readonly List<GameObject> boardVisuals = new List<GameObject>();
@@ -101,8 +111,12 @@ namespace TheLastGift.Packing
             BuildChristmasBackground();
             if (!hasBeenConfigured)
             {
-                if (runDemoOnStart) SetupBoard(defaultWidth, defaultHeight, CreateDemoGifts());
-                else SetupBoard(defaultWidth, defaultHeight, new List<GiftDefinition>());
+                if (campaignOrders != null && campaignOrders.Length > 0)
+                    StartCampaignOrder(0);
+                else if (runDemoOnStart)
+                    SetupBoard(defaultWidth, defaultHeight, CreateDemoGifts());
+                else
+                    SetupBoard(defaultWidth, defaultHeight, new List<GiftDefinition>());
             }
         }
 
@@ -148,6 +162,10 @@ namespace TheLastGift.Packing
         {
             UpdateSnowfall();
 
+            // The order card is a required briefing; no piece can move before it is read.
+            if (orderCardVisible || !orderStarted)
+                return;
+
             // Validation must work even on platforms without a mouse device.
             if (Keyboard.current != null && Keyboard.current.vKey.wasPressedThisFrame)
                 ValidateAndReport();
@@ -180,14 +198,19 @@ namespace TheLastGift.Packing
 
         private void OnGUI()
         {
-            if (pieces.Count == 0 || width <= 0 || height <= 0) return;
+            if (width <= 0 || height <= 0) return;
 
             EnsureGuiStyles();
-            DrawTopHud();
+            if (orderCardVisible)
+            {
+                DrawOrderCard();
+                return;
+            }
 
+            if (pieces.Count == 0) return;
+            DrawTopHud();
             if (puzzleCompleted)
                 DrawCompletionOverlay();
-
             DrawReturnToShopButton();
         }
 
@@ -221,6 +244,31 @@ namespace TheLastGift.Packing
                 wordWrap = true
             };
             controlStyle.normal.textColor = new Color32(82, 52, 36, 255);
+
+            orderCardTitleStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = Mathf.RoundToInt(27f * scale),
+                fontStyle = FontStyle.Bold,
+                wordWrap = true
+            };
+            orderCardTitleStyle.normal.textColor = new Color32(218, 166, 74, 255);
+
+            orderCardBodyStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = Mathf.RoundToInt(18f * scale),
+                wordWrap = true
+            };
+            orderCardBodyStyle.normal.textColor = new Color32(82, 52, 36, 255);
+
+            constraintStatusStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleLeft,
+                fontSize = Mathf.RoundToInt(14f * scale),
+                wordWrap = true
+            };
+            constraintStatusStyle.normal.textColor = new Color32(82, 52, 36, 255);
 
             completionKickerStyle = new GUIStyle(GUI.skin.label)
             {
@@ -427,7 +475,8 @@ namespace TheLastGift.Packing
         {
             var scale = Mathf.Clamp(Screen.height / 900f, 0.78f, 1.25f);
             var panelWidth = Mathf.Min(960f, Screen.width - 24f);
-            var panelHeight = 154f * scale;
+            var ruleRows = activeOrder == null ? 0 : activeOrder.Constraints.Count;
+            var panelHeight = (154f + ruleRows * 25f) * scale;
             var panel = new Rect((Screen.width - panelWidth) * 0.5f, 10f, panelWidth, panelHeight);
 
             GUI.DrawTexture(new Rect(panel.x + 8f, panel.y + 7f, panel.width, panel.height), hudPanelShadowTexture);
@@ -450,6 +499,87 @@ namespace TheLastGift.Packing
                 "ПОВОРОТ НА 90°:  R  /  ПРОБЕЛ  /  ПРАВАЯ КНОПКА МЫШИ", controlStyle);
             GUI.Label(new Rect(panel.x + 18f, panel.y + 103f * scale, panel.width - 36f, 25f * scale),
                 "ВЫНУТЬ ФИГУРУ: ПЕРЕТАЩИ ЗА КРАЙ КОРОБКИ     •     V — ПРОВЕРКА", controlStyle);
+
+            DrawConstraintStatus(panel, scale);
+        }
+
+        private void DrawConstraintStatus(Rect panel, float scale)
+        {
+            for (int i = 0; i < constraintStatuses.Count; i++)
+            {
+                PackingConstraintStatus status = constraintStatuses[i];
+                Color statusColor = status.State == PackingConstraintState.Satisfied
+                    ? new Color32(48, 130, 75, 255)
+                    : status.State == PackingConstraintState.Violated
+                        ? new Color32(184, 55, 48, 255)
+                        : new Color32(125, 100, 72, 255);
+                string symbol = status.State == PackingConstraintState.Satisfied ? "✓"
+                    : status.State == PackingConstraintState.Violated ? "✕" : "○";
+                string text = status.State == PackingConstraintState.Violated
+                    ? status.Message : status.Constraint.Description;
+                float rowY = panel.y + (132f + i * 25f) * scale;
+
+                GUI.color = statusColor;
+                GUI.Label(new Rect(panel.x + 22f, rowY, 26f, 23f * scale), symbol, hudTitleStyle);
+                GUI.color = Color.white;
+                GUI.Label(new Rect(panel.x + 50f, rowY, panel.width - 68f, 24f * scale),
+                    text, constraintStatusStyle);
+            }
+        }
+
+        private void DrawOrderCard()
+        {
+            if (activeOrder == null) return;
+
+            float scale = Mathf.Clamp(Screen.height / 900f, 0.78f, 1.15f);
+            float panelWidth = Mathf.Min(760f, Screen.width - 36f);
+            float panelHeight = Mathf.Min(Screen.height - 36f,
+                (230f + activeOrder.Constraints.Count * 64f) * scale);
+            var panel = new Rect((Screen.width - panelWidth) * 0.5f,
+                (Screen.height - panelHeight) * 0.5f, panelWidth, panelHeight);
+
+            GUI.color = new Color(0.015f, 0.055f, 0.035f, 0.82f);
+            GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), Texture2D.whiteTexture);
+            GUI.color = Color.white;
+            GUI.color = new Color32(218, 166, 74, 255);
+            GUI.DrawTexture(new Rect(panel.x - 4f, panel.y - 4f,
+                panel.width + 8f, panel.height + 8f), Texture2D.whiteTexture);
+            GUI.color = new Color32(250, 239, 215, 255);
+            GUI.DrawTexture(panel, Texture2D.whiteTexture);
+            GUI.color = Color.white;
+
+            GUI.Label(new Rect(panel.x + 22f, panel.y + 18f, panel.width - 44f, 42f * scale),
+                "ЗАКАЗ №" + activeOrder.OrderNumber + "  ·  " + activeOrder.OrderTitle,
+                orderCardTitleStyle);
+            GUI.Label(new Rect(panel.x + 34f, panel.y + 65f * scale,
+                panel.width - 68f, 55f * scale), activeOrder.CustomerWish, orderCardBodyStyle);
+
+            for (int i = 0; i < activeOrder.Constraints.Count; i++)
+            {
+                PackingConstraintDefinition rule = activeOrder.Constraints[i];
+                float rowY = panel.y + (124f + i * 55f) * scale;
+                var row = new Rect(panel.x + 34f, rowY, panel.width - 68f, 48f * scale);
+                GUI.color = new Color32(255, 249, 235, 255);
+                GUI.DrawTexture(row, Texture2D.whiteTexture);
+                GUI.color = new Color32(218, 166, 74, 255);
+                GUI.Label(new Rect(row.x + 12f, row.y, 36f, row.height),
+                    rule.Icon, orderCardTitleStyle);
+                GUI.color = new Color32(82, 52, 36, 255);
+                GUI.Label(new Rect(row.x + 54f, row.y + 2f, row.width - 66f, row.height - 4f),
+                    rule.Description, orderCardBodyStyle);
+                GUI.color = Color.white;
+            }
+
+            float buttonY = panel.y + panel.height - 58f * scale;
+            var button = new Rect(panel.x + panel.width * 0.24f, buttonY,
+                panel.width * 0.52f, 46f * scale);
+            if (GUI.Button(button, "НАЧАТЬ УПАКОВКУ", completionButtonStyle))
+            {
+                orderCardVisible = false;
+                orderStarted = true;
+                showValidationMessage = false;
+                feedbackMessage = "Перетащи подарки в коробку и соблюдай условия заказа.";
+            }
         }
 
         private void DrawReturnToShopButton()
@@ -471,9 +601,10 @@ namespace TheLastGift.Packing
             returnToShopButtonStyle.fontSize = Mathf.RoundToInt(14f * scale);
 
             var buttonWidth = Mathf.Min(300f, Screen.width - 32f);
+            int ruleRows = activeOrder == null ? 0 : activeOrder.Constraints.Count;
             var buttonRect = new Rect(
                 Screen.width - buttonWidth - 16f,
-                172f * scale,
+                (174f + ruleRows * 25f) * scale,
                 buttonWidth,
                 44f * scale);
 
@@ -521,28 +652,83 @@ namespace TheLastGift.Packing
             GUI.Label(new Rect(panel.x + 24f, panel.y + 76f * scale, panel.width - 48f, 58f * scale),
                 "ПОЗДРАВЛЯЕМ!", completionTitleStyle);
             GUI.Label(new Rect(panel.x + 28f, panel.y + 137f * scale, panel.width - 56f, 40f * scale),
-                "КОРОБКА ЗАПОЛНЕНА", completionSubtitleStyle);
+                activeOrder == null ? "КОРОБКА ЗАПОЛНЕНА" : "ВСЕ УСЛОВИЯ ВЫПОЛНЕНЫ", completionSubtitleStyle);
             GUI.Label(new Rect(panel.x + 42f, panel.y + 183f * scale, panel.width - 84f, 54f * scale),
-                "Все подарки аккуратно уложены.\nНи одной пустой клеточки!", completionBodyStyle);
+                activeOrder == null
+                    ? "Все подарки аккуратно уложены.\nНи одной пустой клеточки!"
+                    : "Заказ собран правильно.\nКаждое особое условие соблюдено!", completionBodyStyle);
 
             var badge = new Rect(panel.x + panel.width * 0.24f, panel.y + 242f * scale,
                 panel.width * 0.52f, 30f * scale);
-            GUI.Label(badge, $"ИДЕАЛЬНАЯ УПАКОВКА  •  {width * height}/{width * height}", completionKickerStyle);
+            GUI.Label(badge, activeOrder == null
+                ? $"ИДЕАЛЬНАЯ УПАКОВКА  •  {width * height}/{width * height}"
+                : $"УСЛОВИЯ СОБЛЮДЕНЫ  •  {width * height}/{width * height}",
+                completionKickerStyle);
 
             var button = new Rect(panel.x + panel.width * 0.18f, panel.y + 282f * scale,
                 panel.width * 0.64f, 44f * scale);
-            if (GUI.Button(button, "СЫГРАТЬ ЕЩЁ РАЗ", completionButtonStyle))
+            string buttonText = activeOrder != null && campaignOrders != null &&
+                currentOrderIndex < campaignOrders.Length - 1
+                    ? "СЛЕДУЮЩИЙ ЗАКАЗ"
+                    : "СЫГРАТЬ ЕЩЁ РАЗ";
+            if (GUI.Button(button, buttonText, completionButtonStyle))
                 RestartPuzzle();
         }
 
         private void RestartPuzzle()
         {
+            if (campaignOrders != null && campaignOrders.Length > 0)
+            {
+                int nextOrder = currentOrderIndex + 1;
+                if (nextOrder >= campaignOrders.Length) nextOrder = 0;
+                StartCampaignOrder(nextOrder);
+                return;
+            }
             SetupBoard(width, height, CreateDemoGifts());
+        }
+
+        private void StartCampaignOrder(int orderIndex)
+        {
+            if (campaignOrders == null || orderIndex < 0 ||
+                orderIndex >= campaignOrders.Length || campaignOrders[orderIndex] == null)
+            {
+                Debug.LogError("[Packing] Не удалось загрузить заказ упаковки №" +
+                    (orderIndex + 1) + ".", this);
+                SetupBoard(defaultWidth, defaultHeight, CreateDemoGifts());
+                return;
+            }
+
+            PackingPuzzleOrderDefinition order = campaignOrders[orderIndex];
+            if (!order.TryValidateConfiguration(4, 4, out string error) ||
+                !order.HasFeasibleSolution(4, 4))
+            {
+                if (string.IsNullOrEmpty(error))
+                    error = "Для заказа не найдено допустимой раскладки 4×4.";
+                Debug.LogError("[Packing] Заказ «" + order.OrderTitle +
+                    "» не прошёл проверку: " + error, order);
+                SetupBoard(defaultWidth, defaultHeight, CreateDemoGifts());
+                feedbackMessage = "Заказ не прошёл проверку данных. Загружена тренировочная головоломка.";
+                showValidationMessage = true;
+                return;
+            }
+
+            currentOrderIndex = orderIndex;
+            SetupBoard(4, 4, new List<GiftDefinition>(order.Gifts));
+            activeOrder = order;
+            orderCardVisible = true;
+            orderStarted = false;
+            feedbackMessage = "Прочитай особые условия заказа перед началом упаковки.";
+            constraintStatuses.AddRange(PackingConstraintEvaluator.Evaluate(
+                pieces, activeOrder.Constraints, width, height));
         }
 
         public void SetupBoard(int boardWidth, int boardHeight, List<GiftDefinition> gifts)
         {
             hasBeenConfigured = true;
+            activeOrder = null;
+            orderCardVisible = false;
+            orderStarted = true;
+            constraintStatuses.Clear();
             width = Mathf.Max(1, boardWidth);
             height = Mathf.Max(1, boardHeight);
             puzzleCompleted = false;
@@ -589,13 +775,25 @@ namespace TheLastGift.Packing
                 if (occupied[x, y]) filledCells++;
 
             var emptyCells = width * height - filledCells;
-            valid &= allPlaced && emptyCells == 0;
+            bool boardIsComplete = valid && allPlaced && emptyCells == 0;
+            constraintStatuses.Clear();
+            if (activeOrder != null)
+                constraintStatuses.AddRange(PackingConstraintEvaluator.Evaluate(
+                    pieces, activeOrder.Constraints, width, height));
 
+            var failedRules = new List<string>();
+            for (int i = 0; i < constraintStatuses.Count; i++)
+                if (constraintStatuses[i].State == PackingConstraintState.Violated)
+                    failedRules.Add(constraintStatuses[i].Message);
+
+            valid = boardIsComplete && failedRules.Count == 0;
             var message = pieces.Count == 0 ? "Нет фрагментов для упаковки." :
                 !allPlaced ? $"Размещено фрагментов: {placed}/{pieces.Count}." :
-                !valid && filledCells < width * height && emptyCells > 0
+                !boardIsComplete && emptyCells > 0
                     ? $"Коробка заполнена не полностью: осталось пустых ячеек — {emptyCells}."
-                    : !valid ? "Есть наложения или фрагмент выходит за границы коробки."
+                    : !boardIsComplete ? "Есть наложения или фрагмент выходит за границы коробки."
+                    : failedRules.Count > 0 ? string.Join(" ", failedRules.ToArray())
+                    : activeOrder != null ? "Коробка заполнена. Все условия заказа соблюдены!"
                     : "Все фрагменты помещены. Коробка заполнена!";
 
             result = new PackingResult(valid, allPlaced, placed, pieces.Count, message);
