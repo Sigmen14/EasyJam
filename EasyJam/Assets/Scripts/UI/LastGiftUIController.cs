@@ -473,6 +473,7 @@ namespace TheLastGift.UI
 
         public void MainMenu()
         {
+            LastGiftAudioManager.PlayMusic(LastGiftMusicTheme.MainMenu);
             Build("Главное меню");
             Card(
                 "Добро пожаловать в «Последний подарок»",
@@ -554,6 +555,8 @@ namespace TheLastGift.UI
                 SetStatus("Не удалось загрузить заказ. Вернись в меню и начни игру заново.", false);
                 return;
             }
+
+            LastGiftAudioManager.PlayMusic(LastGiftMusicTheme.Workshop);
 
             bool showSecretWish = DispatchGameplayScreen(
                 currentOrder.SecretWishAssigned,
@@ -1625,6 +1628,7 @@ namespace TheLastGift.UI
 
         public void ShowWorkshopScreen()
         {
+            LastGiftAudioManager.PlayMusic(LastGiftMusicTheme.Workshop);
             workshopReturnAction = RenderOrderSuccessScreen;
             Build("Улучшения мастерской");
             FestivePanel(root.transform, "Панель улучшений мастерской",
@@ -2646,15 +2650,16 @@ namespace TheLastGift.UI
             float top,
             Action<float> onValueChanged)
         {
+            // Keep the captions visually closer to their corresponding sliders.
             ChildLabel(parent, caption, 23, brown,
-                new Vector2(0.16f, top),
-                new Vector2(0.70f, top + 0.09f),
+                new Vector2(0.16f, top - 0.025f),
+                new Vector2(0.70f, top + 0.065f),
                 TextAnchor.MiddleLeft);
 
             Text valueLabel = ChildLabel(parent,
                 Mathf.RoundToInt(initialValue * 100f) + "%", 21, brown,
-                new Vector2(0.72f, top),
-                new Vector2(0.84f, top + 0.09f),
+                new Vector2(0.72f, top - 0.025f),
+                new Vector2(0.84f, top + 0.065f),
                 TextAnchor.MiddleRight);
 
             Slider slider = CreateVolumeSlider(parent, caption, top);
