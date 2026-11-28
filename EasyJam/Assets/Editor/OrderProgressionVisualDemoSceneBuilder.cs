@@ -26,6 +26,18 @@ public static class OrderProgressionVisualDemoSceneBuilder
             return;
         }
 
+        SceneAsset existingScene = AssetDatabase.LoadAssetAtPath<SceneAsset>(DemoScenePath);
+        if (existingScene != null)
+        {
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+                return;
+
+            EditorSceneManager.OpenScene(DemoScenePath, OpenSceneMode.Single);
+            EditorUtility.DisplayDialog("Visual Order Demo",
+                "The visual demo scene is open. Press Play to start the demonstration.", "OK");
+            return;
+        }
+
         if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
             return;
 
