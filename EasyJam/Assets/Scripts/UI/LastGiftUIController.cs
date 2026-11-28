@@ -93,7 +93,7 @@ namespace TheLastGift.UI
         {
             Camera sceneCamera = Camera.main;
             if (sceneCamera == null)
-                sceneCamera = FindObjectOfType<Camera>();
+                sceneCamera = FindFirstObjectByType<Camera>();
 
             if (sceneCamera != null)
             {
@@ -172,7 +172,7 @@ namespace TheLastGift.UI
                 scaler.matchWidthOrHeight = 0.5f;
             }
 
-            EventSystem eventSystem = FindObjectOfType<EventSystem>();
+            EventSystem eventSystem = FindFirstObjectByType<EventSystem>();
             if (eventSystem == null)
             {
                 new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
