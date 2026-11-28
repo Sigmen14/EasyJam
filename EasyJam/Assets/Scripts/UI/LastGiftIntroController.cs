@@ -41,6 +41,7 @@ namespace TheLastGift.UI
         private CanvasGroup titleGroup;
         private CanvasGroup boyGroup;
         private RectTransform worldRoot;
+        private Text[] worldSceneTexts;
         private RectTransform boyRoot;
         private RectTransform shopkeeperArm;
         private RectTransform doorLeaf;
@@ -98,6 +99,8 @@ namespace TheLastGift.UI
             CreateSprites();
             CreateCanvas();
             BuildTownAndShop();
+            // Keep background labels separate so they can be faded before the final title card.
+            worldSceneTexts = worldRoot.GetComponentsInChildren<Text>(true);
             BuildSnowfall();
             BuildTitleCard();
             BuildStoryCaptions();
@@ -655,9 +658,9 @@ namespace TheLastGift.UI
             AddImage(titleRoot, "Title soft shade", Vector2.zero, new Vector2(1920f, 1080f),
                 new Color(0.035f, 0.055f, 0.08f, 0.38f));
             AddImage(titleRoot, "Title gold outer frame", new Vector2(0f, 5f), new Vector2(1190f, 390f),
-                new Color32(202, 158, 85, 235));
+                new Color32(202, 158, 85, 255));
             AddImage(titleRoot, "Title dark wooden plaque", new Vector2(0f, 5f), new Vector2(1174f, 374f),
-                new Color32(48, 38, 35, 245));
+                new Color32(48, 38, 35, 255));
             AddText(titleRoot, "Title date", "24 ДЕКАБРЯ  ·  РОЖДЕСТВЕНСКИЙ ВЕЧЕР", 22,
                 new Vector2(0f, 137f), new Vector2(950f, 42f), new Color32(238, 204, 145, 255),
                 TextAnchor.MiddleCenter, FontStyle.Bold);
@@ -687,11 +690,11 @@ namespace TheLastGift.UI
             storyPanel = CreateRect(canvasRect, "Story dialogue panel",
                 new Vector2(0f, -322f), new Vector2(1320f, 142f));
             AddImage(storyPanel, "Story panel gold frame", Vector2.zero,
-                new Vector2(1320f, 142f), new Color32(208, 164, 91, 242));
+                new Vector2(1320f, 142f), new Color32(208, 164, 91, 255));
             AddImage(storyPanel, "Story panel wooden surface", Vector2.zero,
-                new Vector2(1308f, 130f), new Color32(48, 39, 36, 245));
+                new Vector2(1308f, 130f), new Color32(48, 39, 36, 255));
             AddImage(storyPanel, "Story panel inner surface", Vector2.zero,
-                new Vector2(1288f, 110f), new Color32(73, 58, 49, 248));
+                new Vector2(1288f, 110f), new Color32(73, 58, 49, 255));
 
             storyText = AddText(storyPanel, "Story dialogue text", string.Empty, 29,
                 Vector2.zero, new Vector2(1210f, 86f), new Color32(250, 239, 218, 255),
@@ -704,9 +707,9 @@ namespace TheLastGift.UI
             continuePromptRoot = CreateRect(transform.Find("Intro Canvas"),
                 "Space continue prompt", new Vector2(0f, -468f), new Vector2(500f, 54f));
             AddImage(continuePromptRoot, "Continue prompt gold frame", Vector2.zero,
-                new Vector2(500f, 54f), new Color32(208, 164, 91, 238));
+                new Vector2(500f, 54f), new Color32(208, 164, 91, 255));
             AddImage(continuePromptRoot, "Continue prompt wooden plaque", Vector2.zero,
-                new Vector2(492f, 46f), new Color32(55, 45, 41, 245));
+                new Vector2(492f, 46f), new Color32(55, 45, 41, 255));
             AddText(continuePromptRoot, "Continue prompt label", "ПРОБЕЛ — продолжить", 20,
                 Vector2.zero, new Vector2(470f, 40f), new Color32(250, 232, 199, 255),
                 TextAnchor.MiddleCenter, FontStyle.Bold);
@@ -816,8 +819,22 @@ namespace TheLastGift.UI
 
         private void UpdateTitle()
         {
+            float titleAlpha = Smooth01((elapsed - 17.4f) / 1.55f);
             if (titleGroup != null)
-                titleGroup.alpha = Smooth01((elapsed - 17.4f) / 1.55f);
+                titleGroup.alpha = titleAlpha;
+
+            // Background labels otherwise peek through the title plaque and its trim.
+            // Fade only labels created in the town scene; title and dialogue text stay intact.
+            if (worldSceneTexts == null)
+                return;
+
+            float backgroundTextAlpha = 1f - titleAlpha;
+            for (int i = 0; i < worldSceneTexts.Length; i++)
+            {
+                Text backgroundText = worldSceneTexts[i];
+                if (backgroundText != null && backgroundText.canvasRenderer != null)
+                    backgroundText.canvasRenderer.SetAlpha(backgroundTextAlpha);
+            }
         }
 
         private void ShowStoryBeat(int index)
