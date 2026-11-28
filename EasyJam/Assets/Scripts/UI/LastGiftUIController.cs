@@ -466,6 +466,7 @@ namespace TheLastGift.UI
 
         public void MainMenu()
         {
+            LastGiftAudioManager.PlayMusic(LastGiftMusicTheme.MainMenu);
             Build("Главное меню");
             Card(
                 "Добро пожаловать в «Последний подарок»",
@@ -547,6 +548,8 @@ namespace TheLastGift.UI
                 SetStatus("Не удалось загрузить заказ. Вернись в меню и начни игру заново.", false);
                 return;
             }
+
+            LastGiftAudioManager.PlayMusic(LastGiftMusicTheme.Workshop);
 
             bool showSecretWish = DispatchGameplayScreen(
                 currentOrder.SecretWishAssigned,
@@ -1412,6 +1415,7 @@ namespace TheLastGift.UI
 
         public void ShowWorkshopScreen()
         {
+            LastGiftAudioManager.PlayMusic(LastGiftMusicTheme.Workshop);
             workshopReturnAction = RenderOrderSuccessScreen;
             Build("Улучшения мастерской");
             FestivePanel(root.transform, "Панель улучшений мастерской",
