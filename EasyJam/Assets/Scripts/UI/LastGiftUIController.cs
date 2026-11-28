@@ -591,10 +591,12 @@ namespace TheLastGift.UI
             FestiveHeader(root.transform, "Заголовок очереди",
                 "ПОКУПАТЕЛИ ОЖИДАЮТ", new Vector2(0.12f, 0.83f),
                 new Vector2(0.88f, 0.93f), red, 27);
+            FestivePanel(root.transform, "Подложка описания очереди",
+                new Vector2(0.06f, 0.665f), new Vector2(0.94f, 0.82f), cream);
             Label("В мастерской ждут рождественские заказы", 21, brown,
-                new Vector2(0.10f, 0.75f), new Vector2(0.90f, 0.81f), TextAnchor.MiddleCenter);
-            Label("Выбери, какой заказ выполнить следующим. Остальные останутся в очереди.",
-                16, brown, new Vector2(0.08f, 0.69f), new Vector2(0.92f, 0.75f),
+                new Vector2(0.10f, 0.755f), new Vector2(0.90f, 0.81f), TextAnchor.MiddleCenter);
+            Label("Выбери, какой заказ выполнять следующим.\\nОстальные останутся в очереди.",
+                16, brown, new Vector2(0.09f, 0.675f), new Vector2(0.91f, 0.75f),
                 TextAnchor.MiddleCenter);
 
             if (entries == null || entries.Count == 0)
@@ -624,7 +626,7 @@ namespace TheLastGift.UI
             }
 
             Label("ЗАКАЗ НЕ ПРОПАДЁТ, ДАЖЕ ЕСЛИ БОНУС ЗА СРОЧНОСТЬ УЖЕ НЕДОСТУПЕН.",
-                14, green, new Vector2(0.08f, 0.145f), new Vector2(0.92f, 0.205f),
+                14, green, new Vector2(0.08f, 0.11f), new Vector2(0.92f, 0.165f),
                 TextAnchor.MiddleCenter);
         }
 
@@ -636,8 +638,8 @@ namespace TheLastGift.UI
             card.transform.SetParent(root.transform, false);
 
             RectTransform rect = card.GetComponent<RectTransform>();
-            rect.anchorMin = new Vector2(left, 0.235f);
-            rect.anchorMax = new Vector2(left + width, 0.675f);
+            rect.anchorMin = new Vector2(left, 0.195f);
+            rect.anchorMax = new Vector2(left + width, 0.64f);
             rect.offsetMin = Vector2.zero;
             rect.offsetMax = Vector2.zero;
 
