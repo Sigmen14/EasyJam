@@ -1,28 +1,45 @@
-# The Last Gift — Packing prototype
+# The Last Gift — 4×4 packing puzzle
 
-## Quick setup
-The **SampleScene** already contains a **Packing Board** object with `PackingBoardController`. Open the scene and press Play. Leave **Run Demo On Start** enabled to launch the built-in puzzle, or disable it and call `SetupBoard(width, height, gifts)` from your own code. Assign the Main Camera to **Target Camera** only if the scene camera is not tagged MainCamera.
+## Campaign
+The packing scene contains three authored 4×4 orders. Each card is shown before the board becomes interactive and lists every special rule with an icon and a Russian description.
 
-The prototype draws its own grid and gift cell visuals using generated runtime sprites, so it requires no new packages or imported art assets. The sample scene reuses the same procedural Christmas workshop background as the main shop UI, adds a light animated snowfall overlay, and decorates the 4×4 board with layered walnut wood, gold trim and an evergreen inset. Demo gift definitions are temporary ScriptableObjects created at runtime.
+1. **Бережная доставка** — one rule: fragile gifts may not touch heavy gifts (including diagonally).
+2. **Подарочный комплект** — two rules: fragile gifts stay away from heavy gifts, and the toy/accessory pair must touch.
+3. **Рождественский финал** — two rules: the main gift belongs entirely inside the central 2×2 cells, and the two companion shapes must touch.
 
-## Demo puzzle
-The default board is 4×4. It has four tetrominoes (two T pieces, one L piece, and one S piece), for exactly 16 cells total. Every cell must be covered by exactly one fragment. The initial arrangement is deliberately not solved; rotate and position the pieces to fill the whole box.
+All orders use four tetrominoes (16 cells in total). The order definitions are ScriptableObjects in `Assets/Data/PackingOrders`; reusable item shapes and weights live in `Assets/Gifts`. `PackingPuzzleOrderDefinition.HasFeasibleSolution` exhaustively searches rotations and integer grid anchors before an order is loaded. The Editor smoke test repeats that check across every authored order. The sequence is fixed, not random, and the main story campaign assets and their ~10-minute pacing are not changed.
 
 ## Controls
-- **Left mouse:** pick up, drag, and release a gift. Release on the board to place it.
-- **R / Space / right mouse while dragging:** rotate a rotatable gift clockwise by 90 degrees. The same hint is displayed in the game HUD.
-- **V:** manually validate the current arrangement.
+- **Left mouse:** pick up, drag, and release a gift.
+- **R / Space / right mouse while dragging:** rotate a rotatable gift clockwise by 90 degrees.
+- **V:** manually re-check the full board and every active condition.
 - To remove a placed gift, drag it beyond the edge of the box; it returns to its tray position.
-- Gifts can be picked up from the tray or from the board and moved again. An invalid move of an already placed piece restores its previous position; a piece dragged from the tray returns to the tray if the drop is invalid.
+- An invalid drop of a placed gift restores its previous position. A gift from the tray returns to the tray if its drop is invalid.
 
-The 4×4 puzzle now uses the same procedural Christmas workshop background as the shop UI, with a light animated snowfall overlay. Its board is built from layered walnut wood, gold trim and an evergreen inset; empty cells are warm parchment with wooden edges, and each draggable piece rests on a matching framed paper tray. The HUD, completion panel and buttons share the shop's evergreen, burgundy, cream and gold palette. The puzzle is validated automatically after each drop. When all fragments are placed without overlaps and all 16 cells are covered, the completion panel appears and offers a **Play Again** button.
+The grid still requires every 4×4 cell to be covered exactly once. Special conditions are checked separately after the regular overlap, bounds, and full-coverage checks. A failed rule blocks completion but never disables dragging: pick up the affected gifts and correct their positions. The HUD shows a green tick for a fulfilled rule, a red cross and a specific correction hint for a violated rule, and a neutral circle while the relevant pieces have not yet been placed.
 
-## Integration API
-- `SetupBoard(int width, int height, List<GiftDefinition> gifts)`: replaces the board and current gifts.
-- `TryValidate(out PackingResult result)`: returns true only when every gift is placed inside the board without overlaps and every board cell is covered.
-- `PackingResult`: `IsValid`, `AllItemsPlaced`, `PlacedCount`, `TotalCount`, `Message`.
+## Extension
+- Add handling metadata to a `GiftDefinition` with `PackingWeightCategory` (`Normal`, `Fragile`, `Heavy`).
+- Add a `PackingConstraintDefinition` to an order for `FragileAwayFromHeavy`, `KeepTogether`, or `MustBeInCenter`.
+- Use `PackingPuzzleOrderDefinition` assets to author a fixed sequence. The configuration validator checks item references, unique shapes, exact 16-cell area, rule targets and supported rule count. The feasibility search checks that at least one full, non-overlapping 4×4 layout satisfies every rule.
 
-## Create reusable gift assets
-In Unity, use **The Last Gift → Packing → Create Example Gift Assets** to generate sample `GiftDefinition` assets in `Assets/Gifts`. Or right-click in the Project window and choose **Create → The Last Gift → Packing → Gift Definition**. Edit name, shape cells, sprite, rotation permission and tint in the Inspector.
+## Existing API
+- `SetupBoard(int width, int height, List<GiftDefinition> gifts)` remains available for demos and external callers.
+- `TryValidate(out PackingResult result)` preserves the original full-board validation and includes active order constraints.
+- Gift dragging, rotations, removal to tray, and invalid-drop restoration are unchanged.
 
-Shape coordinates are integer cell offsets. A shape should use unique cells; negative or non-normalized coordinates are accepted and normalized for display and rotation.
+
+## Verification handoff
+
+The project declares Unity **6000.0.83f1** in `ProjectSettings/ProjectVersion.txt`.
+
+Before considering the change fully verified in the Editor:
+
+1. Open `Assets/Scenes/SampleScene.unity` in that Unity version and wait for asset import and script compilation to finish. Check the Console for compile/import errors.
+2. Run **Tools → The Last Gift → Run Packing Constraint Smoke Test**. The expected result is `PASSED` for all three orders.
+3. Enter Play Mode. The first order card should appear before the board accepts input. Start it and confirm the tray shows **ТЯЖЁЛЫЙ ПОЕЗД** and **ХРУПКИЙ ШАР**, with recognizable illustrations and readable labels.
+4. Test the fragile/heavy rule by placing them adjacent, including diagonally: the HUD should show a red cross and a correction hint. Move them apart: it should turn green. Confirm that a failed rule never prevents dragging.
+5. Complete order 1, then order 2 (fragile/heavy separation plus toy/accessory adjacency), then order 3 (main gift fully in the center 2×2 plus the two L-shaped parts touching). Each order must also fill all 16 cells without overlap.
+6. Confirm the final completion button loops to order 1 and **ВЕРНУТЬСЯ В ЛАВКУ** returns to the shop normally.
+
+Automated geometry search previously found valid solutions for all orders (8, 8, and 4 layouts respectively). The Editor smoke test and Play Mode have **not** yet been run in this environment; the checklist above is the remaining manual sign-off.
