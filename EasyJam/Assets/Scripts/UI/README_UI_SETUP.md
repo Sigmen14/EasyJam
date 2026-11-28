@@ -1,47 +1,55 @@
-# The Last Gift UI — Setup
+# The Last Gift — запуск игры
 
-## Project findings
-- Unity Editor version: **6000.0.83f1** (Unity 6, 2D URP).
-- Project is nested in `EasyJam/`; repository root is a wrapper.
-- `EasyJam/AGENTS.md` was reviewed. At the time of implementation, the tracked project did not contain the external packing/order progression managers.
-- The UI does not create a replacement order manager. Its callback API remains available for an adapter to the real game systems.
+## Что входит в текущую игровую версию
+- Главное меню и первое обучение на русском языке.
+- Игровой экран с карточкой покупателя, пожеланием, полкой подарков и коробкой.
+- Перетаскивание четырёх видов подарков: мишка, подарок, леденец и снежный шар.
+- Проверка точного состава заказа: лишние подарки и недостающие предметы не позволяют завершить заказ.
+- Кнопка очистки коробки позволяет исправить ошибочную сборку без перезапуска заказа.
+- Размер коробки зависит от заказа: маленькая — сетка 2×2, средняя — 3×2, большая — 3×3.
+- Кампания из трёх дней и девяти последовательных заказов.
+- Награда за каждый правильно собранный заказ и дополнительный бонус за полное выполнение.
+- Экран завершения дня и итоговый экран с количеством заказов и заработанными монетами.
+- Кнопка повторного прохождения сбрасывает кампанию.
 
-## Generate the prefab
-1. Open the project using Unity **6000.0.83f1**.
-2. Wait until script compilation and asset import complete.
-3. In the Unity menu select **The Last Gift → UI → Create UI Root Prefab**.
-4. The prefab is generated at `Assets/Prefabs/UI/LastGiftUI.prefab` and an instance is automatically added to the currently open scene.
-5. If the scene has no active camera, the command creates a basic 2D Main Camera. The UI controller also creates a fallback camera at runtime if needed.
-6. Save the open scene with **Ctrl+S**, then press Play. Do not drag a second UI prefab into the scene if the command has already added one.
+## Как открыть игру
+1. Открой проект в Unity **6000.0.83f1**.
+2. Дождись завершения импорта и компиляции.
+3. Открой сцену `Assets/Scenes/OrderProgressionDemo.unity`.
+4. В Hierarchy убедись, что в сцене есть объект `LastGiftUI` и `Main Camera`.
+5. Выбери **The Last Gift → UI → Create UI Root Prefab**. Команда обновит префаб с игровым интерфейсом и компонентами прогрессии; существующий экземпляр в открытой сцене останется на месте.
+6. Сохрани сцену через **Ctrl+S** и нажми **Play**.
+7. В главном меню нажми «НАЧАТЬ ИГРУ», пройди обучение, затем собирай подарки для клиентов.
 
-## Current UI and interaction
-- Russian main menu and a first-time tutorial with explicit mouse drag instructions.
-- Gameplay HUD with separate customer, packing box and gift shelf areas.
-- Four illustrated gift icons (teddy bear, present, candy cane and snow globe), loaded from `Assets/Resources/LastGift/GiftIconsBase64.txt`.
-- Drag a gift from the shelf and release it over the box. It snaps into the next available cell in a 3×3 visual grid.
-- The prototype includes **10 different customer orders**. Customer names, wishes and required gift combinations are shuffled; each order appears once before the set is shuffled again.
-- The shelf has four gifts: teddy bear, present, candy cane and snow globe. Each order asks for one to three of them.
-- The local prototype check validates the exact gift combination for the current customer and reports missing or extra gifts.
-- The **В МЕНЮ** button is at the lower left; **ПРОВЕРИТЬ ЗАКАЗ** is centered below the box.
-- Order success, day-end and final presentation screens remain available through public methods.
+## Как работает заказ
+1. Прочитай пожелание клиента и список нужных подарков.
+2. Перетаскивай подарки с правой полки в коробку по центру.
+3. Нажми «ПРОВЕРИТЬ ЗАКАЗ».
+4. Если набор не совпадает, интерфейс покажет, чего не хватает или что лишнее. Нажми «ОЧИСТИТЬ КОРОБКУ» и попробуй снова.
+5. Если набор точный, заказ завершится, начислится награда, а после нажатия «СЛЕДУЮЩИЙ ПОКУПАТЕЛЬ» откроется следующий заказ.
+6. После третьего заказа дня покажется сводка дня. После девятого заказа — финальный экран кампании.
 
-**Important prototype boundary:** drag-and-drop placement is still a simple 3×3 visual demonstration. It does not test overlaps, rotations, or fit constraints. The 10-order catalog and local validation are a UI prototype until connected to the main game progression and customer-order managers.
+## Данные кампании и интеграция
+- Кампания: `Assets/Data/Orders/ChristmasCampaign.asset`.
+- Заказы: `Assets/Data/Orders/Day1_*.asset`, `Day2_*.asset`, `Day3_*.asset`.
+- Резервный runtime-ресурс: `Assets/Resources/ChristmasCampaign.asset`.
+- Логика переходов и наград: `Assets/Scripts/Progression/OrderProgressionManager.cs`.
+- Связь реального интерфейса с логикой кампании: `Assets/Scripts/Progression/OrderProgressionUIAdapter.cs`.
+- Игровой интерфейс и drag-and-drop: `Assets/Scripts/UI/LastGiftUIController.cs` и `LastGiftDraggableGift.cs`.
+- UI-префаб включает `LastGiftUIController`, `OrderProgressionManager` и `OrderProgressionUIAdapter`. Адаптер загружает кампанию из Resources и связывает события интерфейса с менеджером.
 
-## Integration API
-UI class: `TheLastGift.UI.LastGiftUIController`.
-- Public callback Actions: `ConfirmPacking`, `Continue`, `StartGame` (wire via an adapter; these are not Inspector-serializable).
-- Methods: `PackingFeedback(string,bool)`, `OrderSuccess(int earnedCoins)`, `DayEnd(int orders,int earnings)`, `FinalScreen()`, `Gameplay()`, `MainMenu()`, `ShowTutorial()`.
-- Assign `ui.ConfirmPacking = ValidatePacking;`, `ui.Continue = progression.ContinueAfterResult;` and `ui.StartGame = progression.StartGame;` after verifying the actual external APIs.
-- On failed validation call `ui.PackingFeedback(reason,false)`; on success call `ui.OrderSuccess(reward)`; for end-of-day call `ui.DayEnd(orderCount,dayCoins)`; on game end call `ui.FinalScreen()`.
+## Настройка текста
+На компоненте `LastGiftUIController` доступны параметры:
+- `Ui Font Scale` — основной масштаб шрифта.
+- `Minimum Font Scale` — нижний предел автоподгонки.
+- `Custom Font` — собственный шрифт (необязательно).
 
-## Manual test checklist
-- Generate the prefab and check Console for compile/import errors.
-- Add the prefab to a test scene and press Play.
-- Navigate main menu → tutorial → gameplay.
-- Drag each of the four gift pictures from the right shelf into the central box; drop outside the box and confirm the feedback message.
-- Fill all nine cells and confirm that the box-full message appears.
-- Press **ПРОВЕРИТЬ ЗАКАЗ** with an empty box and with items in the box.
-- Test widescreen and narrow aspect ratios.
-- After the external game managers are available, wire the adapter and test the actual packing rules and order progression.
+Настройки можно поменять у компонента в Inspector на префабе `Assets/Prefabs/UI/LastGiftUI.prefab`, затем применить изменения к сцене через Prefab Overrides.
 
-**Unity Editor compilation and play-mode testing have not been run by the implementation environment.**
+## Проверка
+- В Unity выбери **Tools → The Last Gift → Run Order Progression Smoke Test** — редакторский тест проверяет три дня, девять заказов, отсутствие награды за провал и итоговые переходы.
+- В Play Mode проверь, что правильная комбинация подарков проходит, неправильная не проходит, очистка коробки работает, награда отображается, после третьего заказа начинается следующий день, а после девятого появляется финальный экран.
+- Проверь кнопку «ИГРАТЬ СНОВА»: она должна сбросить баланс и вернуть кампанию к первому клиенту.
+
+## Границы текущей механики
+Перетаскивание подарков и точная проверка состава работают как игровой прототип. Укладка пока визуальная: предметы занимают свободные ячейки сетки; столкновения, поворот предметов и физическое ограничение объёма коробки не моделируются. Размер коробки задаёт доступную сетку 2×2, 3×2 или 3×3.
