@@ -452,7 +452,7 @@ namespace TheLastGift.UI
 
         private void CreateFullscreenControl(Transform parent)
         {
-            ChildLabel(parent, "ПОЛНОЭКРАННЫЙ РЕЖИМ", 18, brown,
+            Text fullscreenLabel = ChildLabel(parent, "ПОЛНОЭКРАННЫЙ РЕЖИМ", 18, brown,
                 new Vector2(0.14f, 0.225f), new Vector2(0.70f, 0.315f),
                 TextAnchor.MiddleLeft);
 
@@ -461,8 +461,19 @@ namespace TheLastGift.UI
             toggleObject.transform.SetParent(parent, false);
 
             RectTransform toggleRect = toggleObject.GetComponent<RectTransform>();
-            toggleRect.anchorMin = new Vector2(0.78f, 0.235f);
-            toggleRect.anchorMax = new Vector2(0.86f, 0.32f);
+
+            // Measure the visible caption so the toggle sits just after the text,
+            // not at the far edge of the caption's much wider layout rectangle.
+            RectTransform parentRect = parent as RectTransform;
+            float parentWidth = parentRect != null ? parentRect.rect.width : 0f;
+            float captionWidth = fullscreenLabel != null ? fullscreenLabel.preferredWidth : 0f;
+            float toggleLeft = parentWidth > 0f
+                ? 0.14f + (captionWidth + 10f) / parentWidth
+                : 0.36f;
+            toggleLeft = Mathf.Clamp(toggleLeft, 0.28f, 0.70f);
+
+            toggleRect.anchorMin = new Vector2(toggleLeft, 0.235f);
+            toggleRect.anchorMax = new Vector2(toggleLeft + 0.08f, 0.32f);
             toggleRect.offsetMin = Vector2.zero;
             toggleRect.offsetMax = Vector2.zero;
 

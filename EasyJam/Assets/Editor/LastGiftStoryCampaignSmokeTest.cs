@@ -194,4 +194,192 @@ public static class LastGiftStoryCampaignSmokeTest
         public override string ToString() => string.Join("\n", lines);
     }
 }
+
+/// <summary>
+/// Exercises the optional customer queue against the existing short story campaign.
+/// Run from Tools/The Last Gift/Run Order Queue Smoke Test.
+/// </summary>
+public static class LastGiftOrderQueueSmokeTest
+{
+    private const string CampaignAssetPath = "Assets/Resources/StoryCampaign.asset";
+    private const int ExpectedUrgencyBonus = 8;
+
+    [MenuItem("Tools/The Last Gift/Run Order Queue Smoke Test")]
+    private static void Run()
+    {
+        OrderCampaignDefinition campaign =
+            AssetDatabase.LoadAssetAtPath<OrderCampaignDefinition>(CampaignAssetPath);
+        if (campaign == null)
+        {
+            ShowFailure("StoryCampaign asset was not found at: " + CampaignAssetPath);
+            return;
+        }
+
+        GameObject testObject = new GameObject("LastGiftOrderQueueSmokeTest_Temporary");
+        testObject.hideFlags = HideFlags.HideAndDontSave;
+
+        try
+        {
+            OrderProgressionManager manager = testObject.AddComponent<OrderProgressionManager>();
+            manager.ConfigureCampaign(campaign);
+            manager.ConfigureOrderQueue(true, 3, 120f, ExpectedUrgencyBonus);
+
+            List<GiftOrderDefinition> startedOrders = new List<GiftOrderDefinition>();
+            List<OrderCompletionData> completionResults = new List<OrderCompletionData>();
+            GameSummaryData gameSummary = null;
+            int daySummaries = 0;
+
+            manager.OrderStarted += (order, showSecretWish) =>
+            {
+                startedOrders.Add(order);
+                Require(!showSecretWish, "The compact story campaign should not add optional secret-wish popups.");
+            };
+            manager.OrderCompleted += result => completionResults.Add(result);
+            manager.DayCompleted += summary => daySummaries++;
+            manager.GameCompleted += summary => gameSummary = summary;
+
+            manager.StartGame();
+            Require(manager.OrderQueueEnabled, "The queue was not enabled.");
+            Require(manager.CurrentOrder == null, "A queued campaign must wait for a player selection.");
+            Require(manager.WaitingOrders.Count == 3, "The workshop should initially show three waiting customers.");
+
+            for (int i = 0; i < manager.WaitingOrders.Count; i++)
+            {
+                Require(manager.WaitingOrders[i] != null && manager.WaitingOrders[i].Order != null,
+                    "The queue contains an empty customer entry.");
+                Require(!manager.WaitingOrders[i].Order.IsStoryFinaleOrder,
+                    "The scarf finale appeared before the three regular orders were completed.");
+            }
+
+            Require(manager.WaitingOrders[0].WaitedSeconds != manager.WaitingOrders[1].WaitedSeconds
+                && manager.WaitingOrders[1].WaitedSeconds != manager.WaitingOrders[2].WaitedSeconds,
+                "Waiting customers should have distinct displayed waiting times.");
+
+            OrderQueueEntry urgentEntry = null;
+            for (int i = 0; i < manager.WaitingOrders.Count; i++)
+            {
+                if (manager.WaitingOrders[i].IsUrgent)
+                {
+                    urgentEntry = manager.WaitingOrders[i];
+                    break;
+                }
+            }
+            Require(urgentEntry != null, "The opening queue should include one urgent customer.");
+
+            int expectedEarnings = 0;
+            GiftOrderDefinition urgentOrder = urgentEntry.Order;
+            Require(manager.SelectQueuedOrder(urgentOrder), "The urgent customer could not be selected.");
+            Require(manager.CurrentOrder == urgentOrder, "The selected urgent order did not become active.");
+            CompleteSelectedOrder(manager, completionResults, urgentOrder, ref expectedEarnings);
+            Require(completionResults[0].UrgencyBonus == ExpectedUrgencyBonus,
+                "A timely urgent order did not award its full bonus.");
+
+            int balanceAfterUrgentCompletion = manager.CurrentCoins;
+            manager.CompleteCurrentOrder(
+                new PackingResult(true, true, urgentOrder.GiftNames.Count, urgentOrder.GiftNames.Count));
+            Require(manager.CurrentCoins == balanceAfterUrgentCompletion,
+                "Repeating completion awarded coins more than once.");
+            Require(completionResults.Count == 1, "Repeating completion raised a second result event.");
+
+            manager.ContinueAfterResult();
+            Require(manager.CurrentOrder == null, "The queue should return to customer selection after a result.");
+
+            int regularOrdersCompleted = 1;
+            while (regularOrdersCompleted < 3)
+            {
+                GiftOrderDefinition nextRegularOrder = null;
+                for (int i = 0; i < manager.WaitingOrders.Count; i++)
+                {
+                    OrderQueueEntry entry = manager.WaitingOrders[i];
+                    if (entry != null && entry.Order != null && !entry.Order.IsStoryFinaleOrder)
+                    {
+                        nextRegularOrder = entry.Order;
+                        break;
+                    }
+                }
+
+                Require(nextRegularOrder != null, "A regular order disappeared before completion.");
+                Require(manager.SelectQueuedOrder(nextRegularOrder), "A waiting regular order could not be selected.");
+                CompleteSelectedOrder(manager, completionResults, nextRegularOrder, ref expectedEarnings);
+                manager.ContinueAfterResult();
+                regularOrdersCompleted++;
+            }
+
+            Require(manager.WaitingOrders.Count == 1,
+                "The scarf finale should be the only order shown after all regular orders are complete.");
+            OrderQueueEntry finaleEntry = manager.WaitingOrders[0];
+            Require(finaleEntry.Order != null && finaleEntry.Order.IsStoryFinaleOrder,
+                "The scarf finale did not appear at the expected point.");
+            Require(finaleEntry.Order.GiftNames.Count == 1
+                && string.Equals(finaleEntry.Order.GiftNames[0], "ШАРФ", StringComparison.OrdinalIgnoreCase),
+                "The final story order must contain only the scarf.");
+
+            Require(manager.SelectQueuedOrder(finaleEntry.Order), "The scarf finale could not be selected.");
+            CompleteSelectedOrder(manager, completionResults, finaleEntry.Order, ref expectedEarnings);
+            manager.ContinueAfterResult();
+
+            Require(manager.IsCompleted, "The queued campaign did not reach its completed state.");
+            Require(manager.WaitingOrders.Count == 0, "A completed order remained in the queue.");
+            Require(startedOrders.Count == 4, "Expected exactly four selected orders.");
+            Require(completionResults.Count == 4, "Expected exactly four completion results.");
+            Require(daySummaries == 1, "The short story campaign should contain exactly one day.");
+            Require(manager.TotalOrdersCompleted == 4, "The successful order count is incorrect.");
+            Require(manager.TotalCoinsEarned == expectedEarnings,
+                "The campaign total does not include the existing and urgency rewards exactly once.");
+            Require(manager.CurrentCoins == expectedEarnings, "The final balance is incorrect.");
+            Require(gameSummary != null && gameSummary.OrdersCompleted == 4,
+                "The final game summary has an incorrect order count.");
+            Require(gameSummary.FinalCoins == expectedEarnings, "The final game summary balance is incorrect.");
+
+            EditorUtility.DisplayDialog(
+                "Last Gift Order Queue Smoke Test",
+                "PASSED\n\nThree customers can wait together and be selected in any order.\n"
+                + "The urgent bonus is awarded once when completed in time.\n"
+                + "Regular orders remain available; the scarf finale appears after them.\n"
+                + "All four orders complete through the existing progression and reward system.",
+                "OK");
+            Debug.Log("[Last Gift Order Queue Smoke Test] PASSED");
+        }
+        catch (Exception exception)
+        {
+            Debug.LogException(exception);
+            ShowFailure(exception.Message);
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(testObject);
+        }
+    }
+
+    private static void CompleteSelectedOrder(OrderProgressionManager manager,
+        List<OrderCompletionData> completionResults, GiftOrderDefinition order, ref int expectedEarnings)
+    {
+        Require(order != null && order.GiftNames != null && order.GiftNames.Count > 0,
+            "The selected order has no required gifts.");
+
+        int previousCount = completionResults.Count;
+        manager.CompleteCurrentOrder(
+            new PackingResult(true, true, order.GiftNames.Count, order.GiftNames.Count));
+
+        Require(completionResults.Count == previousCount + 1,
+            "A selected order did not produce exactly one completion event.");
+        OrderCompletionData result = completionResults[completionResults.Count - 1];
+        Require(result.Success, "A valid simulated order did not complete successfully.");
+        Require(result.Order == order, "The completion event belongs to a different customer.");
+        expectedEarnings += result.TotalEarned;
+    }
+
+    private static void Require(bool condition, string message)
+    {
+        if (!condition)
+            throw new InvalidOperationException(message);
+    }
+
+    private static void ShowFailure(string message)
+    {
+        Debug.LogError("[Last Gift Order Queue Smoke Test] FAILED: " + message);
+        EditorUtility.DisplayDialog("Last Gift Order Queue Smoke Test", "FAILED\n\n" + message, "OK");
+    }
+}
+
 #endif
