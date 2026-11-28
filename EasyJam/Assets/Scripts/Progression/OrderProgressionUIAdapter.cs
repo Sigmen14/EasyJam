@@ -83,12 +83,12 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
             progression.StartGame();
     }
 
-    private int AwardSecretWishBonus(int amount)
+    private int AwardSecretWishBonus(bool correctAnswer, int amount)
     {
         if (progression == null)
             return 0;
 
-        int awarded = progression.AwardSecretWishBonus(amount);
+        int awarded = progression.AwardSecretWishBonus(correctAnswer, amount);
         if (ui != null)
             ui.SetProgressionBalance(progression.CurrentCoins);
 

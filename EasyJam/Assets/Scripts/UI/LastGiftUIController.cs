@@ -12,7 +12,7 @@ namespace TheLastGift.UI
     public sealed class LastGiftUIController : MonoBehaviour
     {
         public Action ConfirmPacking, Continue, StartGame;
-        public Func<int, int> AwardSecretWishBonus;
+        public Func<bool, int, int> AwardSecretWishBonus;
 
         private const string PackingMiniGameSceneName = "SampleScene";
         private static LastGiftUIController activeInstance;
@@ -584,7 +584,7 @@ namespace TheLastGift.UI
             {
                 if (AwardSecretWishBonus != null)
                 {
-                    awarded = AwardSecretWishBonus(currentOrder.SecretWishBonusCoins);
+                    awarded = AwardSecretWishBonus(correct, currentOrder.SecretWishBonusCoins);
                 }
                 else
                 {

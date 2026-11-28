@@ -63,10 +63,16 @@ public static class OrderProgressionSmokeTest
                 if (currentOrder.SecretWish != null && !string.IsNullOrWhiteSpace(currentOrder.SecretWish.Clue))
                 {
                     int expectedBonus = Mathf.Max(0, currentOrder.SecretWish.BonusCoins);
-                    int awardedBonus = manager.AwardSecretWishBonus(currentOrder.SecretWish.BonusCoins);
+                    int balanceBeforeWrongAnswer = manager.CurrentCoins;
+                    Require(manager.AwardSecretWishBonus(false, currentOrder.SecretWish.BonusCoins) == 0,
+                        "An incorrect secret-wish answer awarded coins for " + currentOrder.name + ".");
+                    Require(manager.CurrentCoins == balanceBeforeWrongAnswer,
+                        "An incorrect secret-wish answer changed the coin balance for " + currentOrder.name + ".");
+
+                    int awardedBonus = manager.AwardSecretWishBonus(true, currentOrder.SecretWish.BonusCoins);
                     Require(awardedBonus == expectedBonus,
                         "Secret-wish bonus is incorrect for " + currentOrder.name + ".");
-                    Require(manager.AwardSecretWishBonus(currentOrder.SecretWish.BonusCoins) == 0,
+                    Require(manager.AwardSecretWishBonus(true, currentOrder.SecretWish.BonusCoins) == 0,
                         "Secret-wish bonus was awarded more than once for " + currentOrder.name + ".");
                 }
 

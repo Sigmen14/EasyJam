@@ -138,9 +138,10 @@ public class OrderProgressionManager : MonoBehaviour
     /// Awards the optional secret-wish bonus without completing or changing the active order.
     /// The UI calls this only after the player selects the configured correct gift.
     /// </summary>
-    public int AwardSecretWishBonus(int amount)
+    public int AwardSecretWishBonus(bool correctAnswer, int amount)
     {
-        if (!campaignStarted || CurrentOrder == null || awaitingResultContinue || secretWishBonusAwarded)
+        if (!correctAnswer || !campaignStarted || CurrentOrder == null
+            || awaitingResultContinue || secretWishBonusAwarded)
             return 0;
 
         secretWishBonusAwarded = true;
