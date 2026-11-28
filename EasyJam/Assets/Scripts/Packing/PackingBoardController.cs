@@ -18,7 +18,7 @@ namespace TheLastGift.Packing
 
         [Header("Prototype")]
         [SerializeField] private bool runDemoOnStart = true;
-        [SerializeField] private Color emptyCellColor = new Color(0.88f, 0.9f, 0.95f, 1f);
+        [SerializeField] private Color emptyCellColor = new Color(0.96f, 0.89f, 0.75f, 1f);
         [SerializeField] private Color boardBackgroundColor = new Color(0.045f, 0.12f, 0.2f, 1f);
 
         private readonly List<GiftPieceView> pieces = new List<GiftPieceView>();
@@ -561,8 +561,8 @@ namespace TheLastGift.Packing
             const int pixels = 32;
             var texture = new Texture2D(pixels, pixels, TextureFormat.RGBA32, false);
             texture.filterMode = FilterMode.Point;
-            var fill = new Color32(255, 255, 255, 255);
-            var border = new Color32(90, 100, 110, 255);
+            var fill = new Color32(250, 239, 215, 255);
+            var border = new Color32(125, 82, 52, 255);
             var data = new Color32[pixels * pixels];
             for (var y = 0; y < pixels; y++)
             for (var x = 0; x < pixels; x++)
