@@ -42,9 +42,24 @@ public sealed class OrderProgressionVisualDemo : MonoBehaviour
         if (progression == null)
             progression = GetComponent<OrderProgressionManager>();
 
+        // Recover missing scene references instead of failing at startup.
+        if (campaign == null && progression != null)
+            campaign = progression.Campaign;
+
+        if (campaign == null)
+            campaign = Resources.Load<OrderCampaignDefinition>("ChristmasCampaign");
+
+        if (progression == null)
+            progression = gameObject.AddComponent<OrderProgressionManager>();
+
+        if (campaign != null && progression != null)
+            progression.ConfigureCampaign(campaign);
+
         if (progression == null || campaign == null)
         {
-            Debug.LogError("OrderProgressionVisualDemo: Assign the campaign and OrderProgressionManager.", this);
+            Debug.LogError(
+                "OrderProgressionVisualDemo: Campaign asset was not found. Ensure Assets/Resources/ChristmasCampaign.asset exists.",
+                this);
             enabled = false;
             return;
         }
