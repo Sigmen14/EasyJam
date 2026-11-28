@@ -95,15 +95,19 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
         return awarded;
     }
 
-    private void HandleOrderStarted(GiftOrderDefinition order)
+    private void HandleOrderStarted(GiftOrderDefinition order, bool showSecretWish)
     {
+        Debug.Log(
+            $"[SecretWishFlow] Adapter received {order.CustomerName}: showSecretWish={showSecretWish}.",
+            this);
+
         ui.SetProgressionOrder(
             order,
             progression.CurrentDay,
             progression.CurrentOrderNumber,
             progression.CurrentCoins,
             progression.TotalReputationEarned,
-            progression.IsSecretWishAssignedForCurrentOrder);
+            showSecretWish);
     }
 
     private void ConfirmPacking()

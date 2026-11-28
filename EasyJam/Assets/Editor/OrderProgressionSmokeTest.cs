@@ -42,11 +42,18 @@ public static class OrderProgressionSmokeTest
             serializedManager.ApplyModifiedPropertiesWithoutUndo();
 
             List<GiftOrderDefinition> startedOrders = new List<GiftOrderDefinition>();
+            List<bool> uiReceivedAssignments = new List<bool>();
             List<OrderCompletionData> completedOrders = new List<OrderCompletionData>();
+            int secretWishScreenCalls = 0;
+            int regularGameplayScreenCalls = 0;
             List<DaySummaryData> completedDays = new List<DaySummaryData>();
             GameSummaryData gameSummary = null;
 
-            manager.OrderStarted += order => startedOrders.Add(order);
+            manager.OrderStarted += (order, showSecretWish) =>
+            {
+                startedOrders.Add(order);
+                uiReceivedAssignments.Add(showSecretWish);
+            };
             manager.OrderCompleted += result => completedOrders.Add(result);
             manager.DayCompleted += summary => completedDays.Add(summary);
             manager.GameCompleted += summary => gameSummary = summary;
@@ -78,8 +85,34 @@ public static class OrderProgressionSmokeTest
                     "The current order's secret-wish assignment does not match the fixed campaign sequence.");
                 Require(SequenceKey(manager.GetSecretWishAssignments()) == initialSequenceKey,
                     "The secret-wish sequence changed during campaign progression.");
+                Require(uiReceivedAssignments.Count == attemptIndex + 1,
+                    "OrderStarted did not deliver an assignment for the current order.");
 
-                manager.MarkCurrentSecretWishShown();
+                bool uiAssignment = uiReceivedAssignments[attemptIndex];
+                Require(uiAssignment == assignedWish,
+                    "The assignment delivered to the UI differs from the manager's current assignment.");
+
+                SecretCustomerWishDefinition uiWishData = currentOrder.SecretWish;
+                bool hasValidUiWishData = uiWishData != null
+                    && !string.IsNullOrWhiteSpace(uiWishData.Clue)
+                    && uiWishData.GiftOptions != null
+                    && uiWishData.GiftOptions.Count >= 2
+                    && uiWishData.GiftOptions.Count <= 3
+                    && !string.IsNullOrWhiteSpace(uiWishData.CorrectGiftName);
+
+                bool uiSelectedSecretWishScreen = LastGiftUIController.DispatchGameplayScreen(
+                    uiAssignment,
+                    hasValidUiWishData,
+                    false,
+                    () =>
+                    {
+                        secretWishScreenCalls++;
+                        manager.MarkCurrentSecretWishShown();
+                    },
+                    () => regularGameplayScreenCalls++);
+
+                Require(uiSelectedSecretWishScreen == assignedWish,
+                    "Gameplay selected the wrong screen for customer " + currentOrder.CustomerName + ".");
                 int balanceBeforeSecretWish = manager.CurrentCoins;
                 if (assignedWish)
                 {
@@ -158,6 +191,16 @@ public static class OrderProgressionSmokeTest
             Require(attemptIndex == totalOrders, "The test did not process every configured order.");
             Require(startedOrders.Count == totalOrders, "OrderStarted fired " + startedOrders.Count
                 + " times instead of " + totalOrders + ".");
+            Require(uiReceivedAssignments.Count == totalOrders,
+                "The UI did not receive an assignment for every order.");
+            Require(CountSecretWishes(uiReceivedAssignments) == 4,
+                "The UI must receive exactly four true assignments across the nine orders.");
+            Require(totalOrders - CountSecretWishes(uiReceivedAssignments) == 5,
+                "The UI must receive exactly five false assignments across the nine orders.");
+            Require(secretWishScreenCalls == 4,
+                "The shared Gameplay route must call ShowSecretWish exactly four times.");
+            Require(regularGameplayScreenCalls == 5,
+                "The shared Gameplay route must select ordinary gameplay exactly five times.");
             Require(completedOrders.Count == totalOrders, "Not all orders produced a completion result.");
             Require(completedDays.Count == campaign.Days.Count, "DayCompleted did not fire once per campaign day.");
             Require(gameSummary != null, "GameCompleted did not fire after the final day.");
@@ -224,8 +267,10 @@ public static class OrderProgressionSmokeTest
             report.AppendLine("Suitable wrapping awards coins; perfect wrapping awards reputation: OK");
             report.AppendLine("Repeated completion does not duplicate rewards: OK");
             report.AppendLine("Day transitions and campaign completion: OK");
+            report.AppendLine("Manager -> OrderStarted -> UI assignment: 4 true, 5 false across all 9 orders: OK");
+            report.AppendLine("Gameplay dispatch: ShowSecretWish 4 calls; ordinary gameplay 5 calls: OK");
             report.AppendLine("Secret wishes: exactly 4 per run, at least 1 each day, max 2 consecutive: OK");
-            report.AppendLine("Secret-wish assignments remain fixed during the run: OK");
+            report.AppendLine("Secret-wish assignments remain fixed during the run and across day transitions: OK");
             report.AppendLine("Different seeds produce different valid sequences: OK");
             report.AppendLine("Restart selects a new secret-wish sequence: OK");
             report.AppendLine("Only displayed, assigned wishes can award a one-time bonus: OK");

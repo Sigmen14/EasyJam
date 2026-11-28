@@ -63,9 +63,10 @@ namespace TheLastGift.UI
             public readonly string[] RequiredGifts;
             public readonly GiftBoxSize BoxSize;
             public readonly GiftOrderDefinition Definition;
-            public readonly bool HasSecretWish;
+            public readonly bool SecretWishAssigned;
+            public readonly bool HasValidSecretWishData;
 
-            public CustomerOrderData(GiftOrderDefinition definition, bool showSecretWish, params string[] requiredGifts)
+            public CustomerOrderData(GiftOrderDefinition definition, bool secretWishAssigned, params string[] requiredGifts)
             {
                 Definition = definition;
                 CustomerName = definition.CustomerName;
@@ -73,9 +74,9 @@ namespace TheLastGift.UI
                 BoxSize = definition.BoxSize;
                 RequiredGifts = requiredGifts;
 
+                SecretWishAssigned = secretWishAssigned;
                 SecretCustomerWishDefinition secretWish = definition.SecretWish;
-                HasSecretWish = showSecretWish
-                    && secretWish != null
+                HasValidSecretWishData = secretWish != null
                     && !string.IsNullOrWhiteSpace(secretWish.Clue)
                     && secretWish.GiftOptions != null
                     && secretWish.GiftOptions.Count >= 2
@@ -88,6 +89,29 @@ namespace TheLastGift.UI
         {
             "МИШКА", "ПОДАРОК", "ЛЕДЕНЕЦ", "СНЕЖНЫЙ ШАР"
         };
+
+        /// <summary>
+        /// Shared by Gameplay and the editor smoke test: saved wish data alone never
+        /// requests the question screen; this decision requires this run's assignment.
+        /// </summary>
+        public static bool DispatchGameplayScreen(
+            bool secretWishAssigned,
+            bool hasValidSecretWishData,
+            bool secretWishAnswered,
+            Action showSecretWishScreen,
+            Action showRegularGameplayScreen)
+        {
+            bool shouldShowSecretWish = secretWishAssigned
+                && hasValidSecretWishData
+                && !secretWishAnswered;
+
+            if (shouldShowSecretWish)
+                showSecretWishScreen?.Invoke();
+            else
+                showRegularGameplayScreen?.Invoke();
+
+            return shouldShowSecretWish;
+        }
 
         private CustomerOrderData currentOrder;
 
@@ -433,12 +457,24 @@ namespace TheLastGift.UI
                 return;
             }
 
-            if (currentOrder.HasSecretWish && !secretWishAnswered)
-            {
-                ShowSecretWish();
-                return;
-            }
+            bool showSecretWish = DispatchGameplayScreen(
+                currentOrder.SecretWishAssigned,
+                currentOrder.HasValidSecretWishData,
+                secretWishAnswered,
+                ShowSecretWish,
+                BuildGameplayScreen);
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.Log(
+                $"[SecretWishFlow] Gameplay decision for {currentOrder.CustomerName}: " +
+                $"assigned={currentOrder.SecretWishAssigned}, answered={secretWishAnswered}, " +
+                $"showSecretWish={showSecretWish}.",
+                this);
+#endif
+        }
+
+        private void BuildGameplayScreen()
+        {
             Build("Игровой экран");
             placedGiftCount = 0;
             placedGiftNames.Clear();
@@ -477,14 +513,21 @@ namespace TheLastGift.UI
 
         private void ShowSecretWish()
         {
-            SecretCustomerWishDefinition wish = currentOrder.Definition.SecretWish;
-            if (wish == null || !currentOrder.HasSecretWish)
+            if (currentOrder == null)
+                return;
+
+            if (!currentOrder.SecretWishAssigned || !currentOrder.HasValidSecretWishData)
             {
+                Debug.LogError(
+                    $"[SecretWishFlow] Refusing to show an unassigned or invalid wish for {currentOrder.CustomerName}.",
+                    this);
                 secretWishAnswered = true;
-                Gameplay();
+                BuildGameplayScreen();
                 return;
             }
 
+            SecretCustomerWishDefinition wish = currentOrder.Definition.SecretWish;
+            Debug.Log($"[SecretWishFlow] ShowSecretWish invoked for {currentOrder.CustomerName}.", this);
             Build("Тайное желание покупателя");
             Panel(root.transform, "Карточка тайного желания",
                 new Vector2(0.10f, 0.14f), new Vector2(0.90f, 0.90f), paper);
@@ -566,7 +609,8 @@ namespace TheLastGift.UI
 
         private void SelectSecretWish(string selectedGift)
         {
-            if (currentOrder == null || !currentOrder.HasSecretWish || secretWishAnswered)
+            if (currentOrder == null || !currentOrder.SecretWishAssigned
+                || !currentOrder.HasValidSecretWishData || secretWishAnswered)
                 return;
 
             secretWishAnswered = true;
@@ -1183,6 +1227,11 @@ namespace TheLastGift.UI
 
             currentOrder = new CustomerOrderData(orderData, showSecretWish, requiredGifts.ToArray());
             secretWishAnswered = false;
+
+            Debug.Log(
+                $"[SecretWishFlow] UI received {orderData.CustomerName}: " +
+                $"showSecretWish={showSecretWish}, hasValidSecretWishData={currentOrder.HasValidSecretWishData}.",
+                this);
 
             day = currentDay;
             order = currentOrderNumber;

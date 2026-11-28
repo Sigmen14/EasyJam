@@ -43,7 +43,7 @@ public class OrderProgressionManager : MonoBehaviour
 
     public OrderDayDefinition CurrentDayData { get; private set; }
 
-    public event Action<GiftOrderDefinition> OrderStarted;
+    public event Action<GiftOrderDefinition, bool> OrderStarted;
     public event Action<OrderCompletionData> OrderCompleted;
     public event Action<DaySummaryData> DayCompleted;
     public event Action<GameSummaryData> GameCompleted;
@@ -375,7 +375,8 @@ public class OrderProgressionManager : MonoBehaviour
             return;
         }
 
-        OrderStarted?.Invoke(CurrentOrder);
+        bool showSecretWish = IsSecretWishAssignedForCurrentOrder;
+        OrderStarted?.Invoke(CurrentOrder, showSecretWish);
     }
 
     private void FinishCurrentDay()
