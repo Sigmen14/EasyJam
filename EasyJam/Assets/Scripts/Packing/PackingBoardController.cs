@@ -47,6 +47,7 @@ namespace TheLastGift.Packing
         private int width, height;
         private bool hasBeenConfigured;
         private bool puzzleCompleted;
+        private bool qualityCheckQueued;
         private bool showValidationMessage;
         private string feedbackMessage = "Перетащите фрагменты в коробку.";
         private Vector2Int dragStartGridPosition;
@@ -537,6 +538,7 @@ namespace TheLastGift.Packing
 
         private void RestartPuzzle()
         {
+            LastGiftUIController.CancelQueuedQualityCheckFromPackingMiniGame();
             SetupBoard(width, height, CreateDemoGifts());
         }
 
@@ -546,6 +548,7 @@ namespace TheLastGift.Packing
             width = Mathf.Max(1, boardWidth);
             height = Mathf.Max(1, boardHeight);
             puzzleCompleted = false;
+            qualityCheckQueued = false;
             showValidationMessage = false;
             feedbackMessage = "Перетащите все фрагменты в коробку.";
             ClearBoard();
@@ -612,6 +615,7 @@ namespace TheLastGift.Packing
 
             if (valid && !wasCompleted)
             {
+                QueueQualityCheckAfterPuzzle();
                 LastGiftAudioManager.PlaySfx(LastGiftSoundEffect.GiftPacked);
                 Debug.Log($"[Packing] SUCCESS: {result.Message} ({result.PlacedCount}/{result.TotalCount})", this);
             }
@@ -633,7 +637,19 @@ namespace TheLastGift.Packing
             if (showValidationMessage) feedbackMessage = result.Message;
 
             if (valid && !wasCompleted)
+            {
+                QueueQualityCheckAfterPuzzle();
                 Debug.Log($"[Packing] SUCCESS: {result.Message}", this);
+            }
+        }
+
+        private void QueueQualityCheckAfterPuzzle()
+        {
+            if (qualityCheckQueued)
+                return;
+
+            qualityCheckQueued = true;
+            LastGiftUIController.QueueQualityCheckFromPackingMiniGame();
         }
 
         private int CountPlacedPieces()
