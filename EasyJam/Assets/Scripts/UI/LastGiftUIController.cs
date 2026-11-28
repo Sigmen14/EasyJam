@@ -33,9 +33,9 @@ namespace TheLastGift.UI
         [Tooltip("Общий размер шрифта игрового интерфейса. Увеличен для комфортного чтения.")]
         private float uiFontScale = 1.6f;
 
-        [SerializeField, Range(1f, 1.15f)]
-        [Tooltip("Минимальный масштаб текста. Не позволяет мелким подписям становиться меньше исходного размера.")]
-        private float minimumFontScale = 1.15f;
+        [SerializeField, Range(1f, 1.2f)]
+        [Tooltip("Минимальный масштаб текста перед учётом фактического разрешения экрана.")]
+        private float minimumFontScale = 1.2f;
 
         [SerializeField]
         [Tooltip("Необязательно: собственный шрифт. Если поле пустое, используется встроенный шрифт Unity.")]
@@ -2594,6 +2594,29 @@ namespace TheLastGift.UI
             return CreateText(parent, value, size, color, min, max, alignment, Vector2.zero);
         }
 
+        private float GetUiCanvasScaleFactor()
+        {
+            if (canvas == null)
+                return 1f;
+
+            CanvasScaler scaler = canvas.GetComponent<CanvasScaler>();
+            if (scaler == null || scaler.uiScaleMode != CanvasScaler.ScaleMode.ScaleWithScreenSize)
+                return Mathf.Max(0.01f, canvas.scaleFactor);
+
+            float referenceWidth = Mathf.Max(1f, scaler.referenceResolution.x);
+            float referenceHeight = Mathf.Max(1f, scaler.referenceResolution.y);
+            float widthScale = Mathf.Max(0.01f, Screen.width / referenceWidth);
+            float heightScale = Mathf.Max(0.01f, Screen.height / referenceHeight);
+
+            if (scaler.screenMatchMode == CanvasScaler.ScreenMatchMode.Expand)
+                return Mathf.Min(widthScale, heightScale);
+            if (scaler.screenMatchMode == CanvasScaler.ScreenMatchMode.Shrink)
+                return Mathf.Max(widthScale, heightScale);
+
+            float match = Mathf.Clamp01(scaler.matchWidthOrHeight);
+            return Mathf.Max(0.01f, Mathf.Pow(widthScale, 1f - match) * Mathf.Pow(heightScale, match));
+        }
+
         private Text CreateText(Transform parent, string value, int size, Color color, Vector2 min, Vector2 max, TextAnchor alignment, Vector2 sizeDelta)
         {
             GameObject textObject = new GameObject("Текст", typeof(RectTransform), typeof(Text));
@@ -2607,9 +2630,14 @@ namespace TheLastGift.UI
             Text text = textObject.GetComponent<Text>();
             text.font = font;
             text.text = value;
-            int readableSize = Mathf.Max(21, Mathf.RoundToInt(size * Mathf.Max(1.6f, uiFontScale)));
+            float canvasScaleFactor = GetUiCanvasScaleFactor();
+            int minimumPixelSize = Mathf.Max(25,
+                Mathf.RoundToInt(size * Mathf.Max(1.2f, minimumFontScale)));
+            int minimumCanvasSize = Mathf.CeilToInt(25f / canvasScaleFactor);
+            int readableSize = Mathf.Max(minimumCanvasSize,
+                Mathf.RoundToInt(size * Mathf.Max(1.6f, uiFontScale)));
             int minimumReadableSize = Mathf.Min(readableSize,
-                Mathf.Max(21, Mathf.RoundToInt(size * Mathf.Max(1.15f, minimumFontScale))));
+                Mathf.Max(minimumCanvasSize, minimumPixelSize));
             text.fontSize = readableSize;
             text.resizeTextForBestFit = true;
             text.resizeTextMinSize = minimumReadableSize;
