@@ -104,6 +104,9 @@ namespace TheLastGift.Packing
             if (snowflakeTexture != null) Destroy(snowflakeTexture);
             if (cellSprite != null) Destroy(cellSprite);
             if (cellTexture != null) Destroy(cellTexture);
+
+            // Gift illustrations are runtime-generated and cached by the factory.
+            GiftIllustrationFactory.Release();
         }
 
         private void Start()

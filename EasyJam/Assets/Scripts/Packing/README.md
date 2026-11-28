@@ -27,3 +27,19 @@ The grid still requires every 4×4 cell to be covered exactly once. Special cond
 - `SetupBoard(int width, int height, List<GiftDefinition> gifts)` remains available for demos and external callers.
 - `TryValidate(out PackingResult result)` preserves the original full-board validation and includes active order constraints.
 - Gift dragging, rotations, removal to tray, and invalid-drop restoration are unchanged.
+
+
+## Verification handoff
+
+The project declares Unity **6000.0.83f1** in `ProjectSettings/ProjectVersion.txt`.
+
+Before considering the change fully verified in the Editor:
+
+1. Open `Assets/Scenes/SampleScene.unity` in that Unity version and wait for asset import and script compilation to finish. Check the Console for compile/import errors.
+2. Run **Tools → The Last Gift → Run Packing Constraint Smoke Test**. The expected result is `PASSED` for all three orders.
+3. Enter Play Mode. The first order card should appear before the board accepts input. Start it and confirm the tray shows **ТЯЖЁЛЫЙ ПОЕЗД** and **ХРУПКИЙ ШАР**, with recognizable illustrations and readable labels.
+4. Test the fragile/heavy rule by placing them adjacent, including diagonally: the HUD should show a red cross and a correction hint. Move them apart: it should turn green. Confirm that a failed rule never prevents dragging.
+5. Complete order 1, then order 2 (fragile/heavy separation plus toy/accessory adjacency), then order 3 (main gift fully in the center 2×2 plus the two L-shaped parts touching). Each order must also fill all 16 cells without overlap.
+6. Confirm the final completion button loops to order 1 and **ВЕРНУТЬСЯ В ЛАВКУ** returns to the shop normally.
+
+Automated geometry search previously found valid solutions for all orders (8, 8, and 4 layouts respectively). The Editor smoke test and Play Mode have **not** yet been run in this environment; the checklist above is the remaining manual sign-off.

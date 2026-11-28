@@ -285,5 +285,21 @@ namespace TheLastGift.Packing
             if (x >= 0 && x < t.width && y >= 0 && y < t.height)
                 t.SetPixel(x, y, color);
         }
+
+        public static void Release()
+        {
+            ReleaseSprite(ref trainSprite);
+            ReleaseSprite(ref snowGlobeSprite);
+        }
+
+        private static void ReleaseSprite(ref Sprite sprite)
+        {
+            if (sprite == null) return;
+
+            Texture2D texture = sprite.texture;
+            UnityEngine.Object.Destroy(sprite);
+            if (texture != null) UnityEngine.Object.Destroy(texture);
+            sprite = null;
+        }
     }
 }
