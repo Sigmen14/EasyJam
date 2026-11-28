@@ -40,6 +40,7 @@ namespace TheLastGift.UI
         private readonly List<string> placedGiftNames = new List<string>();
         private bool tutorialShown = false;
         private bool packingBoardMode;
+        private string packingBoardDimensions = string.Empty;
 
         private sealed class CustomerOrderData
         {
@@ -281,6 +282,11 @@ namespace TheLastGift.UI
             packingBoardMode = enabled;
         }
 
+        public void SetPackingBoardDimensions(int width, int height)
+        {
+            packingBoardDimensions = width + "×" + height;
+        }
+
         public Sprite GetPackingGiftSprite(string giftName)
         {
             return string.IsNullOrWhiteSpace(giftName)
@@ -392,7 +398,7 @@ namespace TheLastGift.UI
             Build("Обучение");
             Card(
                 "Как играть",
-                "1. Прочитай заказ покупателя.\n2. Перетаскивай фигуры с подноса в коробку.\n3. Нажми R, ПРОБЕЛ или правую кнопку мыши, чтобы повернуть фигуру.\n4. Не допускай наложений и заполни коробку полностью.\n5. Нажми «ПРОВЕРИТЬ УПАКОВКУ».\n\nФигуру можно вернуть на поднос, перетащив её за край коробки.");
+                "1. Прочитай заказ покупателя.\n2. Перетаскивай фигуры с подноса в коробку.\n3. Нажми R, ПРОБЕЛ или правую кнопку мыши, чтобы повернуть фигуру.\n4. Не допускай наложений и выхода за границы коробки.\n5. Нажми «ПРОВЕРИТЬ УПАКОВКУ».\n\nФигуру можно вернуть на поднос, перетащив её за край коробки.");
 
             ButtonAt("ПОНЯТНО, НАЧИНАЕМ!", green, () =>
             {
@@ -495,7 +501,10 @@ namespace TheLastGift.UI
         {
             if (packingBoardMode)
             {
-                Label("КОРОБКА ДЛЯ УПАКОВКИ — " + GetBoxSizeLabel(currentOrder.BoxSize), 21, green,
+                string boxDimensions = string.IsNullOrEmpty(packingBoardDimensions)
+                    ? GetBoxSizeLabel(currentOrder.BoxSize)
+                    : packingBoardDimensions;
+                Label("КОРОБКА ДЛЯ УПАКОВКИ — " + boxDimensions, 21, green,
                     new Vector2(0.29f, 0.785f), new Vector2(0.71f, 0.84f), TextAnchor.MiddleCenter);
                 Label("Перетаскивай фигуры к центру. Поворот: R / ПРОБЕЛ / правая кнопка",
                     15, brown, new Vector2(0.29f, 0.745f), new Vector2(0.71f, 0.785f), TextAnchor.MiddleCenter);

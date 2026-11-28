@@ -19,7 +19,6 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
     private OrderProgressionManager progression;
     private LastGiftUIController ui;
     private PackingBoardController packingBoard;
-    private readonly List<GiftDefinition> runtimeGiftDefinitions = new List<GiftDefinition>();
 
     private void Awake()
     {
@@ -82,7 +81,6 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
             ui.StartGame = null;
         }
 
-        DestroyRuntimeGiftDefinitions();
         if (packingBoard != null)
             Destroy(packingBoard.gameObject);
     }
@@ -126,14 +124,9 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
         }
 
         GetBoardDimensions(order.BoxSize, out int width, out int height);
-        int giftCount = order.GiftNames == null ? 0 : order.GiftNames.Count;
-        int totalCells = width * height;
-
-        if (giftCount <= 0 || totalCells % giftCount != 0)
+        List<GiftDefinition> gifts = ResolveOrderGifts(order);
+        if (gifts == null)
         {
-            ui.PackingFeedback(
-                "Не удалось создать головоломку: количество подарков не подходит для размера коробки.",
-                false);
             DisablePackingInput();
             return;
         }
@@ -145,112 +138,68 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
             packingBoard.ConfigureForCampaign(Camera.main, CampaignCellSize, Vector2.zero);
         }
 
-        DestroyRuntimeGiftDefinitions();
-        List<GiftDefinition> gifts = new List<GiftDefinition>(giftCount);
-        int cellsPerGift = totalCells / giftCount;
-
-        for (int i = 0; i < giftCount; i++)
-        {
-            string giftName = order.GiftNames[i];
-            Vector2Int[] footprint = CreateFootprint(cellsPerGift, width, height, i);
-            GiftDefinition definition = GiftDefinition.CreateRuntime(
-                giftName,
-                footprint,
-                GetGiftTint(giftName),
-                true,
-                ui.GetPackingGiftSprite(giftName));
-
-            gifts.Add(definition);
-            runtimeGiftDefinitions.Add(definition);
-        }
-
+        ui.SetPackingBoardDimensions(width, height);
         packingBoard.SetupBoard(width, height, gifts);
         packingBoard.SetInputEnabled(true);
+    }
+
+    private List<GiftDefinition> ResolveOrderGifts(GiftOrderDefinition order)
+    {
+        if (order.GiftNames == null || order.GiftNames.Count == 0)
+        {
+            ui.PackingFeedback("В заказе нет подарков.", false);
+            return null;
+        }
+
+        List<GiftDefinition> catalog = progression.Campaign != null
+            ? progression.Campaign.GiftCatalog
+            : null;
+
+        if (catalog == null || catalog.Count == 0)
+        {
+            ui.PackingFeedback("В кампании не настроен каталог фигур подарков.", false);
+            return null;
+        }
+
+        List<GiftDefinition> gifts = new List<GiftDefinition>(order.GiftNames.Count);
+        foreach (string giftName in order.GiftNames)
+        {
+            string normalizedName = (giftName ?? string.Empty).Trim();
+            GiftDefinition match = null;
+
+            foreach (GiftDefinition candidate in catalog)
+            {
+                if (candidate == null || string.IsNullOrWhiteSpace(candidate.GiftName))
+                    continue;
+
+                if (string.Equals(candidate.GiftName.Trim(), normalizedName,
+                    System.StringComparison.OrdinalIgnoreCase))
+                {
+                    match = candidate;
+                    break;
+                }
+            }
+
+            if (match == null)
+            {
+                ui.PackingFeedback($"Для подарка «{giftName}» не найдена фигура в каталоге.", false);
+                return null;
+            }
+
+            gifts.Add(match);
+        }
+
+        return gifts;
     }
 
     private static void GetBoardDimensions(GiftBoxSize size, out int width, out int height)
     {
         switch (size)
         {
-            case GiftBoxSize.Small:
-                width = 2;
-                height = 2;
-                break;
-            case GiftBoxSize.Medium:
-                width = 3;
-                height = 2;
-                break;
-            default:
-                width = 3;
-                height = 3;
-                break;
+            case GiftBoxSize.Small: width = 3; height = 2; break;
+            case GiftBoxSize.Medium: width = 4; height = 3; break;
+            default: width = 4; height = 4; break;
         }
-    }
-
-    private static Vector2Int[] CreateFootprint(int cellCount, int boardWidth, int boardHeight, int giftIndex)
-    {
-        if (cellCount == 2)
-            return new[] { Vector2Int.zero, Vector2Int.right };
-
-        if (cellCount == 3)
-        {
-            // Two L-triominoes tile a 3x2 box. A line plus two L pieces
-            // tile a 3x3 box, giving the last day a less repetitive layout.
-            if (boardWidth == 3 && boardHeight == 3 && giftIndex == 0)
-                return new[] { Vector2Int.zero, Vector2Int.right, Vector2Int.right * 2 };
-
-            return new[]
-            {
-                Vector2Int.zero,
-                Vector2Int.right,
-                Vector2Int.up
-            };
-        }
-
-        if (cellCount == 4)
-        {
-            return new[]
-            {
-                Vector2Int.zero,
-                Vector2Int.right,
-                Vector2Int.up,
-                Vector2Int.one
-            };
-        }
-
-        // Safe fallback for future order assets with a different box size.
-        Vector2Int[] cells = new Vector2Int[cellCount];
-        for (int i = 0; i < cellCount; i++)
-            cells[i] = new Vector2Int(i, 0);
-        return cells;
-    }
-
-    private static Color GetGiftTint(string giftName)
-    {
-        switch ((giftName ?? string.Empty).Trim().ToUpperInvariant())
-        {
-            case "МИШКА":
-                return new Color(0.70f, 0.43f, 0.27f, 1f);
-            case "ПОДАРОК":
-                return new Color(0.78f, 0.20f, 0.22f, 1f);
-            case "ЛЕДЕНЕЦ":
-                return new Color(0.90f, 0.72f, 0.47f, 1f);
-            case "СНЕЖНЫЙ ШАР":
-                return new Color(0.42f, 0.72f, 0.88f, 1f);
-            default:
-                return new Color(0.72f, 0.58f, 0.35f, 1f);
-        }
-    }
-
-    private void DestroyRuntimeGiftDefinitions()
-    {
-        foreach (GiftDefinition definition in runtimeGiftDefinitions)
-        {
-            if (definition != null)
-                Destroy(definition);
-        }
-
-        runtimeGiftDefinitions.Clear();
     }
 
     private void ResetPackingBoard()

@@ -18,7 +18,7 @@ MonoBehaviour:
   GiftNames:
   - ПОДАРОК
   - ЛЕДЕНЕЦ
-  BoxSize: 0
+  BoxSize: 1
   RewardCoins: 25
   Day: 1
   PerfectPackingTip: 5

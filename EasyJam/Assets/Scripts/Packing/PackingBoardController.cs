@@ -42,6 +42,7 @@ namespace TheLastGift.Packing
         private bool hasBeenConfigured;
         private bool campaignMode;
         private bool inputEnabled = true;
+        private bool requireFullBox = true;
         private bool puzzleCompleted;
         private bool showValidationMessage;
         private string feedbackMessage = "Перетащите фрагменты в коробку.";
@@ -74,6 +75,7 @@ namespace TheLastGift.Packing
             cellSize = Mathf.Max(0.1f, boardCellSize);
             boardCenter = center;
             inputEnabled = true;
+            requireFullBox = false;
         }
 
         public void SetInputEnabled(bool enabled)
@@ -470,14 +472,15 @@ namespace TheLastGift.Packing
                 if (occupied[x, y]) filledCells++;
 
             var emptyCells = width * height - filledCells;
-            valid &= allPlaced && emptyCells == 0;
+            valid &= allPlaced && (!requireFullBox || emptyCells == 0);
 
             var message = pieces.Count == 0 ? "Нет фрагментов для упаковки." :
                 !allPlaced ? $"Размещено фрагментов: {placed}/{pieces.Count}." :
-                !valid && filledCells < width * height && emptyCells > 0
+                requireFullBox && !valid && emptyCells > 0
                     ? $"Коробка заполнена не полностью: осталось пустых ячеек — {emptyCells}."
                     : !valid ? "Есть наложения или фрагмент выходит за границы коробки."
-                    : "Все фрагменты помещены. Коробка заполнена!";
+                    : requireFullBox ? "Все фрагменты помещены. Коробка заполнена!"
+                    : "Все подарки размещены без наложений!";
 
             result = new PackingResult(valid, allPlaced, placed, pieces.Count, message);
             return valid;
@@ -1141,31 +1144,29 @@ namespace TheLastGift.Packing
 
         private List<GiftDefinition> CreateDemoGifts()
         {
-            // Four tetrominoes have exactly 16 cells total, so a valid solution fills the 4x4 box.
-            // Two T pieces, one L piece, and one S piece require rotation and spatial planning.
-            return new List<GiftDefinition>
+            // The standalone puzzle and campaign load the same canonical gift shapes.
+            var resourcePaths = new[]
             {
-                GiftDefinition.CreateRuntime("Tangerine T", new[]
-                {
-                    new Vector2Int(0,0), new Vector2Int(1,0),
-                    new Vector2Int(2,0), new Vector2Int(1,1)
-                }, new Color(0.78f, 0.43f, 0.27f)),
-                GiftDefinition.CreateRuntime("Golden T", new[]
-                {
-                    new Vector2Int(0,0), new Vector2Int(1,0),
-                    new Vector2Int(2,0), new Vector2Int(1,1)
-                }, new Color(0.95f, 0.78f, 0.28f)),
-                GiftDefinition.CreateRuntime("Red L", new[]
-                {
-                    new Vector2Int(0,0), new Vector2Int(0,1),
-                    new Vector2Int(0,2), new Vector2Int(1,0)
-                }, new Color(0.88f, 0.25f, 0.31f)),
-                GiftDefinition.CreateRuntime("Pink S", new[]
-                {
-                    new Vector2Int(1,0), new Vector2Int(2,0),
-                    new Vector2Int(0,1), new Vector2Int(1,1)
-                }, new Color(0.82f, 0.25f, 0.52f))
+                "Packing/Gifts/Gift_Mishka",
+                "Packing/Gifts/Gift_Podarok",
+                "Packing/Gifts/Gift_Ledenets",
+                "Packing/Gifts/Gift_SnowGlobe"
             };
+
+            var gifts = new List<GiftDefinition>(resourcePaths.Length);
+            foreach (var resourcePath in resourcePaths)
+            {
+                var definition = Resources.Load<GiftDefinition>(resourcePath);
+                if (definition == null)
+                {
+                    Debug.LogError($"[Packing] Missing gift shape resource: {resourcePath}", this);
+                    return new List<GiftDefinition>();
+                }
+
+                gifts.Add(definition);
+            }
+
+            return gifts;
         }
     }
 }
