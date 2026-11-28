@@ -12,6 +12,10 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
     private const string StoryCampaignResourcePath = "StoryCampaign";
     private const string FallbackCampaignResourcePath = "ChristmasCampaign";
     private const int SortingEventReward = 10;
+    private const int RushOrderBonus = 8;
+    private const int HappyCustomerBonus = 6;
+    private const int ChristmasSurpriseBonus = 10;
+    private const int FestiveMoodBonus = 5;
 
     private OrderProgressionManager progression;
     private LastGiftUIController ui;
@@ -21,6 +25,10 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
     private bool storyCampaignActive;
     private bool boyReturnShown;
     private bool endingSequencePending;
+    private bool urgentWrappingBonusActive;
+    private bool urgentWrappingQualified;
+    private bool ribbonShortageActive;
+    private bool festiveMoodBonusActive;
 
     public static void ApplyOrderAssignmentToUI(
         Action<GiftOrderDefinition, int, int, int, int, bool> setProgressionOrder,
@@ -106,22 +114,25 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
 
     private void StartOrRestartGame()
     {
+        bool restart = progression.IsCompleted;
+        if (restart)
+            ResetRandomEventState();
+
         if (!storyCampaignActive || story == null)
         {
-            if (progression.IsCompleted) progression.RestartGame();
+            if (restart) progression.RestartGame();
             else progression.StartGame();
-            ui.Gameplay();
+            if (progression.CurrentOrder != null)
+                ui.Gameplay();
             return;
         }
 
         // The opening story is already told inside LastGiftIntroController:
         // its captions appear during the cinematic. Do not replay the same
         // exposition as a second dialogue after the intro/tutorial.
-        bool restart = progression.IsCompleted;
         if (restart)
         {
             workshopUpgrades.ResetForNewGame();
-            eventSchedule.Reset();
             boyReturnShown = false;
             endingSequencePending = false;
         }
@@ -193,9 +204,12 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
         if (selection.Ribbon == order.PreferredWrappingRibbon) matchingChoices++;
         if (selection.Card == order.PreferredWrappingCard) matchingChoices++;
 
+        bool suitableWrapping = matchingChoices >= (ribbonShortageActive ? 3 : 2);
+        urgentWrappingQualified = urgentWrappingBonusActive && matchingChoices == 3;
+
         progression.CompleteCurrentOrder(
             new PackingResult(true, true, ui.PlacedGiftCount, order.GiftNames == null ? 0 : order.GiftNames.Count),
-            matchingChoices >= 2, matchingChoices == 3);
+            suitableWrapping, matchingChoices == 3);
     }
 
     private void HandleOrderCompleted(OrderCompletionData result)
@@ -207,21 +221,35 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
             return;
         }
 
+        int eventBonus = 0;
+        if (urgentWrappingBonusActive)
+        {
+            if (urgentWrappingQualified)
+                eventBonus += RushOrderBonus;
+            urgentWrappingBonusActive = false;
+            urgentWrappingQualified = false;
+        }
+
+        if (festiveMoodBonusActive)
+        {
+            eventBonus += FestiveMoodBonus;
+            festiveMoodBonusActive = false;
+        }
+
+        ribbonShortageActive = false;
+        if (eventBonus > 0)
+            progression.AwardBonusCoins(eventBonus);
+
         bool allowWorkshop = !storyCampaignActive || result.Order == null || !result.Order.IsStoryFinaleOrder;
-        ui.OrderSuccess(result.TotalEarned, result.WrappingBonus, result.ReputationBonus, allowWorkshop);
+        ui.OrderSuccess(result.TotalEarned + eventBonus, result.WrappingBonus, result.ReputationBonus, allowWorkshop);
         ui.SetProgressionBalance(progression.CurrentCoins, progression.TotalReputationEarned);
     }
 
     private void ContinueAfterOrderResult()
     {
-        if (!storyCampaignActive || story == null)
-        {
-            AdvanceToNextOrder();
-            return;
-        }
-
         GiftOrderDefinition completedOrder = progression.CurrentOrder;
-        if (completedOrder != null && completedOrder.IsStoryFinaleOrder)
+        if (storyCampaignActive && story != null
+            && completedOrder != null && completedOrder.IsStoryFinaleOrder)
         {
             if (endingSequencePending) return;
             endingSequencePending = true;
@@ -234,7 +262,8 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
         }
 
         int completedOrders = progression.TotalOrdersCompleted;
-        if (completedOrders == 3 && !boyReturnShown)
+        if (storyCampaignActive && story != null
+            && completedOrders == 3 && !boyReturnShown)
         {
             boyReturnShown = true;
             story.PlayBoyReturnAndDiscount(AdvanceToNextOrder);
@@ -246,12 +275,19 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
             bool hasAnotherOrder = progression.CurrentDayData != null
                 && progression.CurrentDayData.Orders != null
                 && progression.CurrentOrderNumber < progression.CurrentDayData.Orders.Count;
+
             if (eventSchedule.TryQueue(progression.TotalOrdersCompleted, hasAnotherOrder)
                 && eventSchedule.TryConsume(out ScheduledChristmasShopEvent scheduledEvent))
-                ShowSortingEvent(scheduledEvent);
+                ShowScheduledEvent(scheduledEvent);
             else
                 AdvanceToNextOrder();
         };
+
+        if (!storyCampaignActive || story == null)
+        {
+            afterDialogue();
+            return;
+        }
 
         if (completedOrders == 1 || completedOrders == 2)
             story.PlayDuringProgression(completedOrders, afterDialogue);
@@ -263,6 +299,80 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
     {
         progression.ContinueAfterResult();
         if (progression.CurrentOrder != null) ui.Gameplay();
+    }
+
+    private void ShowScheduledEvent(ScheduledChristmasShopEvent scheduledEvent)
+    {
+        switch (scheduledEvent.Type)
+        {
+            case ChristmasShopEventType.MixedGifts:
+                ShowSortingEvent(scheduledEvent);
+                break;
+
+            case ChristmasShopEventType.RushOrder:
+                urgentWrappingBonusActive = true;
+                urgentWrappingQualified = false;
+                ui.ShowRandomChristmasEvent(
+                    "СРОЧНЫЙ ЗАКАЗ",
+                    "Следующему покупателю нужен подарок к празднику без промедления. Подготовь красивую упаковку и учти вкусы покупателя.",
+                    "ЗАДАЧА: совпади со всеми 3 предпочтениями в оформлении. НАГРАДА: +8 монет за идеальную упаковку.",
+                    AdvanceToNextOrder);
+                break;
+
+            case ChristmasShopEventType.HappyCustomer:
+                ShowImmediateBonusEvent(
+                    "СЧАСТЛИВЫЙ ПОКУПАТЕЛЬ",
+                    "Покупатель улыбнулся: «Такой красивый подарок — настоящее рождественское чудо. Спасибо!»",
+                    HappyCustomerBonus);
+                break;
+
+            case ChristmasShopEventType.RibbonShortage:
+                ribbonShortageActive = true;
+                ui.ShowRandomChristmasEvent(
+                    "ЗАКАНЧИВАЕТСЯ ЛЕНТА",
+                    "Запас упаковочной ленты почти закончился. На один заказ её хватит только на самый аккуратный вариант.",
+                    "ЭФФЕКТ НА 1 ЗАКАЗ: бонус за оформление будет начислен только при совпадении всех 3 предпочтений. Основная награда за заказ не меняется.",
+                    AdvanceToNextOrder);
+                break;
+
+            case ChristmasShopEventType.ChristmasSurprise:
+                ShowImmediateBonusEvent(
+                    "РОЖДЕСТВЕНСКИЙ СЮРПРИЗ",
+                    "Под прилавком нашлась маленькая коробочка с монетами. Похоже, Рождество приготовило приятный подарок для мастерской!",
+                    ChristmasSurpriseBonus);
+                break;
+
+            case ChristmasShopEventType.FestiveMood:
+                festiveMoodBonusActive = true;
+                ui.ShowRandomChristmasEvent(
+                    "ПРАЗДНИЧНОЕ НАСТРОЕНИЕ",
+                    "Покупатели напевают рождественскую песню, а в мастерской становится особенно уютно. Кажется, впереди ещё один удачный заказ.",
+                    "БОНУС: +5 монет к следующему успешно выполненному заказу.",
+                    AdvanceToNextOrder);
+                break;
+
+            default:
+                AdvanceToNextOrder();
+                break;
+        }
+    }
+
+    private void ShowImmediateBonusEvent(string title, string description, int reward)
+    {
+        progression.AwardBonusCoins(reward);
+        ui.SetProgressionBalance(progression.CurrentCoins, progression.TotalReputationEarned);
+        ui.ShowRandomChristmasEvent(
+            title, description, "БОНУС В КАССУ: +" + reward + " МОНЕТ ✦",
+            AdvanceToNextOrder);
+    }
+
+    private void ResetRandomEventState()
+    {
+        eventSchedule.Reset();
+        urgentWrappingBonusActive = false;
+        urgentWrappingQualified = false;
+        ribbonShortageActive = false;
+        festiveMoodBonusActive = false;
     }
 
     private void ShowSortingEvent(ScheduledChristmasShopEvent scheduledEvent)

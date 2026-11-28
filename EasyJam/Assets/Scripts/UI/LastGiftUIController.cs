@@ -91,6 +91,7 @@ namespace TheLastGift.UI
         private int sortingEventPlacedCount;
         private int sortingEventSecondsRemaining;
         private bool sortingEventSolved;
+        private bool randomEventClosing;
 
         private sealed class CustomerOrderData
         {
@@ -1641,6 +1642,114 @@ namespace TheLastGift.UI
             SetStatus(message, success);
             if (success && feedback != null)
                 StartCoroutine(Pop(feedback.transform));
+        }
+
+        /// <summary>
+        /// Shows a short randomized workshop event without interrupting an active order.
+        /// The caller resumes progression only after the player closes this card.
+        /// </summary>
+        public void ShowRandomChristmasEvent(string title, string description, string effect, Action onContinue)
+        {
+            randomEventClosing = false;
+            Build("Рождественское событие");
+
+            RectTransform card = FestivePanel(root.transform, "Карточка случайного события",
+                new Vector2(0.085f, 0.12f), new Vector2(0.915f, 0.91f), paper);
+
+            FestiveHeader(card, "Заголовок случайного события", title,
+                new Vector2(0.055f, 0.80f), new Vector2(0.945f, 0.96f), red, 30);
+
+            FestivePanel(card, "Описание случайного события",
+                new Vector2(0.085f, 0.47f), new Vector2(0.915f, 0.74f), cream);
+            ChildLabel(card, description, 23, brown,
+                new Vector2(0.115f, 0.49f), new Vector2(0.885f, 0.72f),
+                TextAnchor.MiddleCenter);
+
+            FestivePanel(card, "Эффект случайного события",
+                new Vector2(0.12f, 0.285f), new Vector2(0.88f, 0.43f),
+                new Color32(246, 232, 195, 255));
+            ChildLabel(card, effect, 21, green,
+                new Vector2(0.15f, 0.30f), new Vector2(0.85f, 0.415f),
+                TextAnchor.MiddleCenter);
+
+            ChildLabel(card, "✦       ❄       ✦       ❄       ✦", 18, gold,
+                new Vector2(0.20f, 0.205f), new Vector2(0.80f, 0.265f),
+                TextAnchor.MiddleCenter);
+
+            ButtonAt("ПРОДОЛЖИТЬ", green,
+                () => BeginRandomEventDismiss(card, onContinue),
+                new Vector2(0.34f, 0.145f), new Vector2(0.66f, 0.235f));
+
+            CanvasGroup transition = root.AddComponent<CanvasGroup>();
+            transition.alpha = 0f;
+            transition.interactable = false;
+            transition.blocksRaycasts = false;
+            card.localScale = Vector3.one * 0.92f;
+
+            StartCoroutine(AnimateRandomEventIn(card, transition));
+            LastGiftAudioManager.PlayChristmasEventChime();
+        }
+
+        private IEnumerator AnimateRandomEventIn(RectTransform card, CanvasGroup transition)
+        {
+            const float duration = 0.24f;
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float progress = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / duration));
+                if (card != null)
+                    card.localScale = Vector3.Lerp(Vector3.one * 0.92f, Vector3.one, progress);
+                if (transition != null)
+                    transition.alpha = progress;
+                yield return null;
+            }
+
+            if (card != null)
+                card.localScale = Vector3.one;
+            if (transition != null)
+            {
+                transition.alpha = 1f;
+                transition.interactable = true;
+                transition.blocksRaycasts = true;
+            }
+        }
+
+        private void BeginRandomEventDismiss(RectTransform card, Action onContinue)
+        {
+            if (randomEventClosing)
+                return;
+
+            randomEventClosing = true;
+            CanvasGroup transition = root != null ? root.GetComponent<CanvasGroup>() : null;
+            if (transition != null)
+            {
+                transition.interactable = false;
+                transition.blocksRaycasts = false;
+            }
+
+            StartCoroutine(AnimateRandomEventOut(card, transition, onContinue));
+        }
+
+        private IEnumerator AnimateRandomEventOut(
+            RectTransform card, CanvasGroup transition, Action onContinue)
+        {
+            const float duration = 0.18f;
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float progress = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / duration));
+                if (card != null)
+                    card.localScale = Vector3.Lerp(Vector3.one, Vector3.one * 0.94f, progress);
+                if (transition != null)
+                    transition.alpha = 1f - progress;
+                yield return null;
+            }
+
+            if (transition != null)
+                transition.alpha = 0f;
+            onContinue?.Invoke();
         }
 
         /// <summary>
