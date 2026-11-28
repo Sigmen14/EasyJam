@@ -23,6 +23,7 @@ namespace TheLastGift.Packing
 
         private readonly List<GiftPieceView> pieces = new List<GiftPieceView>();
         private readonly List<GameObject> boardVisuals = new List<GameObject>();
+        private readonly List<GameObject> boardDecorationVisuals = new List<GameObject>();
         private readonly List<GameObject> christmasVisuals = new List<GameObject>();
         private readonly List<Transform> snowflakeTransforms = new List<Transform>();
         private readonly List<float> snowflakeSpeeds = new List<float>();
@@ -563,6 +564,10 @@ namespace TheLastGift.Packing
                 if (visual != null) Destroy(visual);
             boardVisuals.Clear();
 
+            foreach (var visual in boardDecorationVisuals)
+                if (visual != null) Destroy(visual);
+            boardDecorationVisuals.Clear();
+
             foreach (var piece in pieces)
                 if (piece != null) Destroy(piece.gameObject);
             pieces.Clear();
@@ -867,23 +872,20 @@ namespace TheLastGift.Packing
             var boardSize = new Vector2(width * cellSize, height * cellSize);
 
             // Layered board: soft shadow, walnut wood, gold trim and evergreen inset.
-            var shadow = CreateSpriteObject("BoardShadow",
+            var shadow = CreateDecorationSpriteObject("BoardShadow",
                 new Color(0.13f, 0.075f, 0.045f, 0.55f),
-                new Vector3(boardCenter.x, boardCenter.y - 0.08f, 0.30f));
+                new Vector3(boardCenter.x, boardCenter.y - 0.08f, 0.30f), -16);
             shadow.transform.localScale = new Vector3(boardSize.x + 0.58f, boardSize.y + 0.58f, 1f);
-            shadow.GetComponent<SpriteRenderer>().sortingOrder = -16;
 
-            var woodenFrame = CreateSpriteObject("BoardWalnutFrame",
+            var woodenFrame = CreateDecorationSpriteObject("BoardWalnutFrame",
                 new Color32(82, 52, 36, 255),
-                new Vector3(boardCenter.x, boardCenter.y, 0.25f));
+                new Vector3(boardCenter.x, boardCenter.y, 0.25f), -15);
             woodenFrame.transform.localScale = new Vector3(boardSize.x + 0.42f, boardSize.y + 0.42f, 1f);
-            woodenFrame.GetComponent<SpriteRenderer>().sortingOrder = -15;
 
-            var goldTrim = CreateSpriteObject("BoardGoldTrim",
+            var goldTrim = CreateDecorationSpriteObject("BoardGoldTrim",
                 new Color32(218, 166, 74, 255),
-                new Vector3(boardCenter.x, boardCenter.y, 0.22f));
+                new Vector3(boardCenter.x, boardCenter.y, 0.22f), -14);
             goldTrim.transform.localScale = new Vector3(boardSize.x + 0.28f, boardSize.y + 0.28f, 1f);
-            goldTrim.GetComponent<SpriteRenderer>().sortingOrder = -14;
 
             var background = CreateSpriteObject("BoardEvergreenInset", boardBackgroundColor,
                 new Vector3(boardCenter.x, boardCenter.y, 0.2f));
@@ -911,6 +913,20 @@ namespace TheLastGift.Packing
             renderer.color = color;
             renderer.sortingOrder = -10;
             boardVisuals.Add(obj);
+            return obj;
+        }
+
+        private GameObject CreateDecorationSpriteObject(
+            string objectName, Color color, Vector3 position, int sortingOrder)
+        {
+            var obj = new GameObject(objectName);
+            obj.transform.SetParent(transform, false);
+            obj.transform.position = position;
+            var renderer = obj.AddComponent<SpriteRenderer>();
+            renderer.sprite = cellSprite;
+            renderer.color = color;
+            renderer.sortingOrder = sortingOrder;
+            boardDecorationVisuals.Add(obj);
             return obj;
         }
 
@@ -952,20 +968,17 @@ namespace TheLastGift.Packing
                 Mathf.Max(1.35f, (maxY - minY + 1) * cellSize + 0.34f));
             var position = new Vector3(center.x, center.y, 0.1f);
 
-            var woodCard = CreateSpriteObject(definition.GiftName + "_TrayWood",
-                new Color32(82, 52, 36, 255), position + new Vector3(0f, -0.035f, 0f));
+            var woodCard = CreateDecorationSpriteObject(definition.GiftName + "_TrayWood",
+                new Color32(82, 52, 36, 255), position + new Vector3(0f, -0.035f, 0f), -9);
             woodCard.transform.localScale = new Vector3(size.x + 0.16f, size.y + 0.16f, 1f);
-            woodCard.GetComponent<SpriteRenderer>().sortingOrder = -9;
 
-            var goldCard = CreateSpriteObject(definition.GiftName + "_TrayGold",
-                new Color32(218, 166, 74, 255), position);
+            var goldCard = CreateDecorationSpriteObject(definition.GiftName + "_TrayGold",
+                new Color32(218, 166, 74, 255), position, -8);
             goldCard.transform.localScale = new Vector3(size.x + 0.07f, size.y + 0.07f, 1f);
-            goldCard.GetComponent<SpriteRenderer>().sortingOrder = -8;
 
-            var paperCard = CreateSpriteObject(definition.GiftName + "_TrayPaper",
-                new Color32(250, 239, 215, 255), position + new Vector3(0f, 0f, -0.01f));
+            var paperCard = CreateDecorationSpriteObject(definition.GiftName + "_TrayPaper",
+                new Color32(250, 239, 215, 255), position + new Vector3(0f, 0f, -0.01f), -7);
             paperCard.transform.localScale = new Vector3(size.x, size.y, 1f);
-            paperCard.GetComponent<SpriteRenderer>().sortingOrder = -7;
         }
 
         private Vector2 GetTrayPosition(int index, GiftDefinition definition)
