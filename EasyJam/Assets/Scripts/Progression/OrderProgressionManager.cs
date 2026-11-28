@@ -10,6 +10,24 @@ public class OrderProgressionManager : MonoBehaviour
     [SerializeField] private OrderCampaignDefinition campaign;
     [SerializeField] private int startingCoins;
 
+    /// <summary>The campaign currently configured for this manager.</summary>
+    public OrderCampaignDefinition Campaign => campaign;
+
+    /// <summary>
+    /// Supplies campaign data before StartGame. Used by the visual demo as a recovery path
+    /// when a scene was saved before its serialized references were assigned.
+    /// </summary>
+    public void ConfigureCampaign(OrderCampaignDefinition campaignDefinition)
+    {
+        if (campaignStarted)
+        {
+            Debug.LogWarning("OrderProgressionManager: Cannot replace the campaign after the game has started.", this);
+            return;
+        }
+
+        campaign = campaignDefinition;
+    }
+
     public GiftOrderDefinition CurrentOrder { get; private set; }
     public int CurrentCoins { get; private set; }
     public int CurrentDay { get; private set; }
