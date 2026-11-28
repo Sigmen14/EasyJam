@@ -52,6 +52,8 @@ public class OrderProgressionManager : MonoBehaviour
     private bool awaitingResultContinue;
     private bool campaignStarted;
 
+    public bool IsCompleted { get; private set; }
+
     public void StartGame()
     {
         if (campaignStarted)
@@ -64,11 +66,35 @@ public class OrderProgressionManager : MonoBehaviour
         }
 
         campaignStarted = true;
+        IsCompleted = false;
         CurrentCoins = startingCoins;
+        CurrentDay = 0;
+        CurrentOrderNumber = 0;
+        DayOrdersCompleted = 0;
+        DayCoinsEarned = 0;
+        TotalOrdersCompleted = 0;
+        TotalCoinsEarned = 0;
+        TotalTipsEarned = 0;
+        awaitingResultContinue = false;
         dayIndex = 0;
         orderIndex = 0;
-        CurrentDay = campaign.Days[dayIndex].DayNumber;
         StartCurrentDay();
+    }
+
+    /// <summary>Starts a fresh campaign after the previous run has ended.</summary>
+    public void RestartGame()
+    {
+        if (campaign == null || campaign.Days == null || campaign.Days.Count == 0)
+        {
+            Debug.LogError("OrderProgressionManager: Cannot restart because the campaign is missing.", this);
+            return;
+        }
+
+        campaignStarted = false;
+        CurrentOrder = null;
+        CurrentDayData = null;
+        IsCompleted = false;
+        StartGame();
     }
 
     /// <summary>Called by the packing feature after a packing attempt has ended.</summary>
@@ -165,6 +191,7 @@ public class OrderProgressionManager : MonoBehaviour
         {
             CurrentOrder = null;
             CurrentDayData = null;
+            IsCompleted = true;
             GameCompleted?.Invoke(new GameSummaryData(CurrentCoins, TotalOrdersCompleted, TotalCoinsEarned, TotalTipsEarned, campaign.Days.Count));
             return;
         }
