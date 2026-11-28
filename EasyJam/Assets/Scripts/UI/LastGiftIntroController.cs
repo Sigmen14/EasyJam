@@ -35,6 +35,8 @@ namespace TheLastGift.UI
         private Sprite softCircleSprite;
         private Texture2D whiteTexture;
         private Texture2D softCircleTexture;
+        private Font introFont;
+        private bool ownsIntroFont;
         private readonly List<SnowParticle> snowParticles = new List<SnowParticle>();
 
         private float elapsed;
@@ -122,6 +124,8 @@ namespace TheLastGift.UI
                 Destroy(whiteTexture);
             if (softCircleTexture != null)
                 Destroy(softCircleTexture);
+            if (ownsIntroFont && introFont != null)
+                Destroy(introFont);
         }
 
         private void CreateSprites()
@@ -715,17 +719,44 @@ namespace TheLastGift.UI
             return image;
         }
 
+        private Font GetIntroFont()
+        {
+            if (introFont != null)
+                return introFont;
+
+            introFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            if (introFont == null || !introFont.HasCharacter('Ё') || !introFont.HasCharacter('ё'))
+            {
+                introFont = Font.CreateDynamicFontFromOSFont(
+                    new[] { "Arial", "Liberation Sans", "DejaVu Sans", "Noto Sans" },
+                    28);
+                ownsIntroFont = introFont != null;
+            }
+
+            if (introFont == null)
+            {
+                Debug.LogError("Не удалось создать шрифт для русской заставки.", this);
+                return null;
+            }
+
+            if (!introFont.HasCharacter('Ё') || !introFont.HasCharacter('ё'))
+                Debug.LogError("Выбранный шрифт не содержит букву Ё/ё. Проверьте установленные системные шрифты.", this);
+
+            return introFont;
+        }
+
         private Text AddText(Transform parent, string objectName, string value, int fontSize,
             Vector2 position, Vector2 size, Color color, TextAnchor alignment, FontStyle style)
         {
             RectTransform rect = CreateRect(parent, objectName, position, size);
             Text label = rect.gameObject.AddComponent<Text>();
-            label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            label.font = GetIntroFont();
             // Request the complete Russian alphabet, including Ё/ё, before setting the label text.
-            label.font.RequestCharactersInTexture(
-                "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя" + value,
-                fontSize,
-                style);
+            if (label.font != null)
+                label.font.RequestCharactersInTexture(
+                    "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя" + value,
+                    fontSize,
+                    style);
             label.text = value;
             label.fontSize = fontSize;
             label.color = color;
