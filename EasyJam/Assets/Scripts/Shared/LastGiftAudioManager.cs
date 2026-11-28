@@ -303,6 +303,15 @@ namespace TheLastGift.Audio
             if (clip != null) Instance.sfxSource.PlayOneShot(clip);
         }
 
+        /// <summary>
+        /// Plays the standard new-order chime for randomized Christmas workshop events.
+        /// This uses the existing SFX resource and volume channel.
+        /// </summary>
+        public static void PlayChristmasEventChime()
+        {
+            PlaySfx(LastGiftSoundEffect.NewOrder);
+        }
+
         private string GetSfxResourcePath(LastGiftSoundEffect effect)
         {
             switch (effect)
