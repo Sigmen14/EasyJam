@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering.Universal;
 
 namespace TheLastGift.Packing
 {
@@ -99,6 +100,7 @@ namespace TheLastGift.Packing
         private void Start()
         {
             EnsureCamera();
+            EnsureCampaignLight();
             BuildChristmasBackground();
             if (!hasBeenConfigured)
             {
@@ -141,6 +143,18 @@ namespace TheLastGift.Packing
             targetCamera.depth = 0f;
 
             Debug.LogWarning("[Packing] No active camera was found. Created Packing Runtime Camera.", this);
+        }
+
+        private void EnsureCampaignLight()
+        {
+            if (FindFirstObjectByType<Light2D>() != null)
+                return;
+
+            GameObject lightObject = new GameObject("Campaign Global Light 2D");
+            Light2D globalLight = lightObject.AddComponent<Light2D>();
+            globalLight.lightType = Light2D.LightType.Global;
+            globalLight.intensity = 1f;
+            globalLight.color = Color.white;
         }
 
         private void Update()
