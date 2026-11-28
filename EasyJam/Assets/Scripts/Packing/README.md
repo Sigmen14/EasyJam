@@ -3,7 +3,7 @@
 ## Quick setup
 The **SampleScene** already contains a **Packing Board** object with `PackingBoardController`. Open the scene and press Play. Leave **Run Demo On Start** enabled to launch the built-in puzzle, or disable it and call `SetupBoard(width, height, gifts)` from your own code. Assign the Main Camera to **Target Camera** only if the scene camera is not tagged MainCamera.
 
-The prototype draws its own grid and gift cell visuals using generated runtime sprites, so it requires no new packages or imported art assets. The sample scene also builds a procedural Christmas night backdrop at runtime: teal aurora, falling snow, snow-covered fir trees, snowy ground and a colorful holiday garland. Demo gift definitions are temporary ScriptableObjects created at runtime.
+The prototype draws its own grid and gift cell visuals using generated runtime sprites, so it requires no new packages or imported art assets. The sample scene reuses the same procedural Christmas workshop background as the main shop UI, adds a light animated snowfall overlay, and decorates the 4×4 board with layered walnut wood, gold trim and an evergreen inset. Demo gift definitions are temporary ScriptableObjects created at runtime.
 
 ## Demo puzzle
 The default board is 4×4. It has four tetrominoes (two T pieces, one L piece, and one S piece), for exactly 16 cells total. Every cell must be covered by exactly one fragment. The initial arrangement is deliberately not solved; rotate and position the pieces to fill the whole box.
