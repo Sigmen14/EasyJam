@@ -17,7 +17,7 @@ public sealed class OrderProgressionVisualDemo : MonoBehaviour
 
     // Applied centrally so every label, heading, button and status message
     // remains visually consistent when the demo UI is generated.
-    private const float UiFontScale = 1.5f;
+    private const float UiFontScale = 1.15f;
 
     private readonly List<DaySummaryData> completedDays = new List<DaySummaryData>();
 
@@ -183,7 +183,7 @@ public sealed class OrderProgressionVisualDemo : MonoBehaviour
             new Vector2(-205f, -5f), new Vector2(400f, 30f), 16,
             new Color32(140, 112, 82, 255), TextAnchor.MiddleLeft, FontStyle.Bold);
         giftListText = CreateText(orderCard, "Gift List", "",
-            new Vector2(-205f, -104f), new Vector2(400f, 165f), 22,
+            new Vector2(-205f, -130f), new Vector2(400f, 220f), 18,
             new Color32(42, 54, 68, 255), TextAnchor.UpperLeft, FontStyle.Normal);
 
         CreatePanel(orderCard, "Gift Box Backdrop", new Vector2(275f, -110f),
@@ -217,13 +217,13 @@ public sealed class OrderProgressionVisualDemo : MonoBehaviour
             new Vector2(0f, 170f), new Vector2(360f, 30f), 18,
             new Color32(86, 97, 108, 255), TextAnchor.MiddleCenter, FontStyle.Bold);
 
-        CreatePanel(progressCard, "Coins Panel", new Vector2(0f, 112f),
-            new Vector2(350f, 54f), new Color32(247, 244, 237, 255));
+        CreatePanel(progressCard, "Coins Panel", new Vector2(0f, 110f),
+            new Vector2(350f, 70f), new Color32(247, 244, 237, 255));
         CreateText(progressCard, "Coins Label", "ТЕКУЩИЙ БАЛАНС",
-            new Vector2(0f, 124f), new Vector2(320f, 22f), 12,
+            new Vector2(0f, 128f), new Vector2(320f, 26f), 12,
             new Color32(140, 112, 82, 255), TextAnchor.MiddleCenter, FontStyle.Bold);
         CreateText(progressCard, "Coins Hint", "Монеты за выполненные заказы",
-            new Vector2(0f, 100f), new Vector2(320f, 22f), 14,
+            new Vector2(0f, 94f), new Vector2(320f, 26f), 13,
             new Color32(75, 85, 95, 255), TextAnchor.MiddleCenter, FontStyle.Normal);
 
         CreateText(progressCard, "Timeline Caption", "ТРИ ДНЯ КАМПАНИИ",
@@ -344,9 +344,9 @@ public sealed class OrderProgressionVisualDemo : MonoBehaviour
         text.alignment = alignment;
         text.fontStyle = style;
         text.horizontalOverflow = HorizontalWrapMode.Wrap;
-        text.verticalOverflow = VerticalWrapMode.Overflow;
+        text.verticalOverflow = VerticalWrapMode.Truncate;
         text.resizeTextForBestFit = true;
-        text.resizeTextMinSize = Mathf.Max(10, Mathf.RoundToInt(fontSize * 0.75f));
+        text.resizeTextMinSize = Mathf.Max(10, Mathf.RoundToInt(fontSize * 0.65f));
         text.resizeTextMaxSize = Mathf.Max(text.fontSize, Mathf.RoundToInt(fontSize * UiFontScale));
         text.supportRichText = false;
         text.raycastTarget = false;
@@ -507,19 +507,19 @@ public sealed class OrderProgressionVisualDemo : MonoBehaviour
 
             if (summary != null)
             {
-                builder.Append("ГОТОВО  День ").Append(day.DayNumber)
-                    .Append("  •  ").Append(summary.OrdersCompleted).Append("/")
+                builder.Append("✓  ДЕНЬ ").Append(day.DayNumber)
+                    .Append(" — ").Append(summary.OrdersCompleted).Append("/")
                     .Append(summary.OrdersTotal).AppendLine(" заказов");
             }
             else if (finalSummary == null && progression.CurrentDay == day.DayNumber)
             {
-                builder.Append("СЕЙЧАС  День ").Append(day.DayNumber)
-                    .Append("  •  заказ ").Append(progression.CurrentOrderNumber)
+                builder.Append("▶  ДЕНЬ ").Append(day.DayNumber)
+                    .Append(" — заказ ").Append(progression.CurrentOrderNumber)
                     .Append("/").Append(day.Orders.Count).AppendLine();
             }
             else
             {
-                builder.Append("ДАЛЕЕ  День ").Append(day.DayNumber).AppendLine();
+                builder.Append("○  ДЕНЬ ").Append(day.DayNumber).AppendLine();
             }
         }
 
