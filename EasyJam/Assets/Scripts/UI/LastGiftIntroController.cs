@@ -740,11 +740,30 @@ namespace TheLastGift.UI
 
         private void UpdateCamera()
         {
-            float pushIn = Smooth01((elapsed - 0.6f) / 8.6f);
-            float scale = Mathf.Lerp(0.88f, 1.045f, pushIn);
-            float settle = Mathf.Sin(elapsed * 0.48f) * 3.5f;
-            worldRoot.localScale = Vector3.one * scale;
-            worldRoot.anchoredPosition = new Vector2(0f, -18f + pushIn * 23f + settle);
+            if (worldRoot == null)
+                return;
+
+            // Keep the establishing shot fixed. Scale only to cover the viewport so
+            // different aspect ratios never reveal empty edges around the background.
+            RectTransform viewport = worldRoot.parent as RectTransform;
+            if (viewport == null)
+            {
+                worldRoot.localScale = Vector3.one;
+                worldRoot.anchoredPosition = Vector2.zero;
+                return;
+            }
+
+            float contentWidth = Mathf.Max(1f, worldRoot.rect.width);
+            float contentHeight = Mathf.Max(1f, worldRoot.rect.height);
+            float coverScale = Mathf.Max(
+                viewport.rect.width / contentWidth,
+                viewport.rect.height / contentHeight);
+
+            if (float.IsNaN(coverScale) || float.IsInfinity(coverScale) || coverScale <= 0f)
+                coverScale = 1f;
+
+            worldRoot.localScale = Vector3.one * coverScale;
+            worldRoot.anchoredPosition = Vector2.zero;
         }
 
         private void UpdateSnowfall()
