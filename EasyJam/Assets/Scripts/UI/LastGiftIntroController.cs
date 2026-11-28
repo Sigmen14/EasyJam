@@ -17,6 +17,22 @@ namespace TheLastGift.UI
         private const float IntroDuration = 25.5f;
         private const float FadeOutDuration = 1.3f;
 
+        // Each story beat pauses the cinematic until the player presses Space.
+        private static readonly float[] StoryBeatTimes =
+        {
+            0.7f, 5.2f, 10.8f, 13.4f, 17.2f, 21.2f
+        };
+
+        private static readonly string[] StoryBeats =
+        {
+            "24 декабря. В городе тихо падает снег.",
+            "В маленькой рождественской лавке хозяин готовится закрыться.",
+            "К двери подходит мальчик. Он пришёл не просто за подарком.",
+            "Его мама — медсестра. Этой ночью она снова будет на смене.",
+            "Мальчик мечтает подарить ей тёплый шарф — такой, каким мама укрывает его.",
+            "Но ему не хватает денег. Хозяин решает помочь."
+        };
+
         private static LastGiftIntroController activeIntro;
         private Action completionCallback;
         private bool hasCompleted;
@@ -41,6 +57,11 @@ namespace TheLastGift.UI
 
         private float elapsed;
         private bool exiting;
+        private bool awaitingStoryAdvance;
+        private int storyBeatIndex;
+        private RectTransform storyPanel;
+        private Text storyText;
+        private RectTransform continuePromptRoot;
 
         private sealed class SnowParticle
         {
@@ -77,8 +98,10 @@ namespace TheLastGift.UI
             BuildTownAndShop();
             BuildSnowfall();
             BuildTitleCard();
+            BuildStoryCaptions();
             BuildFadeCurtain();
             BuildSkipPrompt();
+            BuildSkipButton();
         }
 
         private void Update()
@@ -87,9 +110,12 @@ namespace TheLastGift.UI
                 return;
 
             Keyboard keyboard = Keyboard.current;
-            if (keyboard != null && keyboard.spaceKey.wasPressedThisFrame)
+            if (awaitingStoryAdvance)
             {
-                SkipIntro();
+                if (keyboard != null && keyboard.spaceKey.wasPressedThisFrame)
+                    ContinueStory();
+
+                // Keep the current shot and its line on screen until the player is ready.
                 return;
             }
 
@@ -108,6 +134,14 @@ namespace TheLastGift.UI
                 Color curtainColor = fadeCurtain.color;
                 curtainColor.a = 1f - fadeIn;
                 fadeCurtain.color = curtainColor;
+            }
+
+            if (storyBeatIndex < StoryBeatTimes.Length &&
+                elapsed >= StoryBeatTimes[storyBeatIndex])
+            {
+                ShowStoryBeat(storyBeatIndex);
+                awaitingStoryAdvance = true;
+                return;
             }
 
             if (elapsed >= IntroDuration)
@@ -187,7 +221,7 @@ namespace TheLastGift.UI
 
             canvasGroup = canvasObject.GetComponent<CanvasGroup>();
             canvasGroup.alpha = 1f;
-            canvasGroup.interactable = false;
+            canvasGroup.interactable = true;
             canvasGroup.blocksRaycasts = true;
 
             // This transparent graphic prevents clicks from reaching the game menu below the cinematic.
@@ -557,7 +591,7 @@ namespace TheLastGift.UI
                 TextAnchor.MiddleCenter, FontStyle.Bold);
             AddImage(titleRoot, "Title gold divider", new Vector2(0f, -33f), new Vector2(490f, 3f),
                 new Color32(205, 157, 83, 255));
-            AddText(titleRoot, "Story subtitle", "ЕГО МАМА — МЕДСЕСТРА. ЭТОЙ НОЧЬЮ ОНА НА СМЕНЕ.\nМАЛЬЧИК ИЩЕТ ДЛЯ НЕЁ ОСОБЕННЫЙ ПОДАРОК.", 25,
+            AddText(titleRoot, "Story subtitle", "ОДНА ПРОСТАЯ ПРОСЬБА МОЖЕТ ИЗМЕНИТЬ ЭТОТ ВЕЧЕР.", 25,
                 new Vector2(0f, -110f), new Vector2(980f, 90f), new Color32(244, 235, 216, 255),
                 TextAnchor.MiddleCenter, FontStyle.Normal);
             AddText(titleRoot, "Title ornament", "✦     ❄     ✦", 25,
@@ -572,18 +606,60 @@ namespace TheLastGift.UI
             fadeCurtain.raycastTarget = false;
         }
 
+        private void BuildStoryCaptions()
+        {
+            RectTransform canvasRect = transform.Find("Intro Canvas") as RectTransform;
+            storyPanel = CreateRect(canvasRect, "Story dialogue panel",
+                new Vector2(0f, -322f), new Vector2(1320f, 142f));
+            AddImage(storyPanel, "Story panel gold frame", Vector2.zero,
+                new Vector2(1320f, 142f), new Color32(208, 164, 91, 242));
+            AddImage(storyPanel, "Story panel wooden surface", Vector2.zero,
+                new Vector2(1308f, 130f), new Color32(48, 39, 36, 245));
+            AddImage(storyPanel, "Story panel inner surface", Vector2.zero,
+                new Vector2(1288f, 110f), new Color32(73, 58, 49, 248));
+
+            storyText = AddText(storyPanel, "Story dialogue text", string.Empty, 29,
+                Vector2.zero, new Vector2(1210f, 86f), new Color32(250, 239, 218, 255),
+                TextAnchor.MiddleCenter, FontStyle.Bold);
+            storyPanel.gameObject.SetActive(false);
+        }
+
         private void BuildSkipPrompt()
         {
-            RectTransform prompt = CreateRect(transform.Find("Intro Canvas"),
-                "Space skip prompt", new Vector2(0f, -474f), new Vector2(470f, 62f));
-            AddImage(prompt, "Prompt gold frame", Vector2.zero, new Vector2(470f, 62f),
-                new Color32(208, 164, 91, 238));
-            AddImage(prompt, "Prompt wooden plaque", Vector2.zero, new Vector2(462f, 54f),
-                new Color32(55, 45, 41, 245));
-            AddImage(prompt, "Prompt red accent", new Vector2(-224f, 0f), new Vector2(5f, 48f),
-                new Color32(169, 54, 49, 255));
-            AddText(prompt, "Prompt label", "ПРОБЕЛ — пропустить заставку", 21,
-                Vector2.zero, new Vector2(438f, 48f), new Color32(250, 232, 199, 255),
+            continuePromptRoot = CreateRect(transform.Find("Intro Canvas"),
+                "Space continue prompt", new Vector2(0f, -468f), new Vector2(500f, 54f));
+            AddImage(continuePromptRoot, "Continue prompt gold frame", Vector2.zero,
+                new Vector2(500f, 54f), new Color32(208, 164, 91, 238));
+            AddImage(continuePromptRoot, "Continue prompt wooden plaque", Vector2.zero,
+                new Vector2(492f, 46f), new Color32(55, 45, 41, 245));
+            AddText(continuePromptRoot, "Continue prompt label", "ПРОБЕЛ — продолжить", 20,
+                Vector2.zero, new Vector2(470f, 40f), new Color32(250, 232, 199, 255),
+                TextAnchor.MiddleCenter, FontStyle.Bold);
+            continuePromptRoot.gameObject.SetActive(false);
+        }
+
+        private void BuildSkipButton()
+        {
+            RectTransform canvasRect = transform.Find("Intro Canvas") as RectTransform;
+            RectTransform buttonRoot = CreateRect(canvasRect, "Skip intro button",
+                new Vector2(820f, 470f), new Vector2(230f, 68f));
+
+            Image background = AddImage(buttonRoot, "Skip button background",
+                Vector2.zero, new Vector2(230f, 68f), new Color32(153, 45, 43, 250));
+            background.raycastTarget = true;
+
+            Button button = buttonRoot.gameObject.AddComponent<Button>();
+            button.targetGraphic = background;
+            ColorBlock colors = button.colors;
+            colors.normalColor = new Color32(153, 45, 43, 250);
+            colors.highlightedColor = new Color32(184, 62, 54, 255);
+            colors.pressedColor = new Color32(112, 34, 34, 255);
+            colors.selectedColor = new Color32(184, 62, 54, 255);
+            button.colors = colors;
+            button.onClick.AddListener(SkipIntro);
+
+            AddText(buttonRoot, "Skip button label", "ПРОПУСТИТЬ", 20,
+                Vector2.zero, new Vector2(210f, 52f), new Color32(255, 242, 220, 255),
                 TextAnchor.MiddleCenter, FontStyle.Bold);
         }
 
@@ -648,6 +724,32 @@ namespace TheLastGift.UI
         {
             if (titleGroup != null)
                 titleGroup.alpha = Smooth01((elapsed - 17.4f) / 1.55f);
+        }
+
+        private void ShowStoryBeat(int index)
+        {
+            if (storyText == null || index < 0 || index >= StoryBeats.Length)
+                return;
+
+            storyText.text = StoryBeats[index];
+            if (storyPanel != null)
+                storyPanel.gameObject.SetActive(true);
+            if (continuePromptRoot != null)
+                continuePromptRoot.gameObject.SetActive(true);
+        }
+
+        private void ContinueStory()
+        {
+            if (!awaitingStoryAdvance || exiting)
+                return;
+
+            awaitingStoryAdvance = false;
+            storyBeatIndex++;
+
+            if (storyPanel != null)
+                storyPanel.gameObject.SetActive(false);
+            if (continuePromptRoot != null)
+                continuePromptRoot.gameObject.SetActive(false);
         }
 
         private void SkipIntro()
