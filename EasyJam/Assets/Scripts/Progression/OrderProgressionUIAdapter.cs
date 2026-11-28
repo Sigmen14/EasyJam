@@ -224,8 +224,9 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
             bool hasAnotherOrder = progression.CurrentDayData != null
                 && progression.CurrentDayData.Orders != null
                 && progression.CurrentOrderNumber < progression.CurrentDayData.Orders.Count;
-            if (eventSchedule.TryQueue(progression.TotalOrdersCompleted, hasAnotherOrder))
-                ShowSortingEvent();
+            if (eventSchedule.TryQueue(progression.TotalOrdersCompleted, hasAnotherOrder)
+                && eventSchedule.TryConsume(out ScheduledChristmasShopEvent scheduledEvent))
+                ShowSortingEvent(scheduledEvent);
             else
                 AdvanceToNextOrder();
         };
@@ -242,8 +243,10 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
         if (progression.CurrentOrder != null) ui.Gameplay();
     }
 
-    private void ShowSortingEvent()
+    private void ShowSortingEvent(ScheduledChristmasShopEvent scheduledEvent)
     {
+        // The schedule entry is consumed before presenting the event, so one milestone
+        // cannot be queued twice if the UI is interrupted or rebuilt.
         ui.ShowMixedGiftSortingEvent(() =>
         {
             progression.AwardBonusCoins(SortingEventReward);
