@@ -66,6 +66,17 @@ namespace TheLastGift.Packing
         public int Height => height;
         public IReadOnlyList<GiftPieceView> Gifts => pieces;
 
+        private void OnDestroy()
+        {
+            // These textures are generated for the IMGUI panels and are owned by this controller.
+            if (hudPanelTexture != null) Destroy(hudPanelTexture);
+            if (hudRibbonTexture != null) Destroy(hudRibbonTexture);
+            if (completionPanelTexture != null) Destroy(completionPanelTexture);
+            if (completionRibbonTexture != null) Destroy(completionRibbonTexture);
+            if (completionButtonTexture != null) Destroy(completionButtonTexture);
+            if (completionButtonHoverTexture != null) Destroy(completionButtonHoverTexture);
+        }
+
         private void Start()
         {
             EnsureCamera();
