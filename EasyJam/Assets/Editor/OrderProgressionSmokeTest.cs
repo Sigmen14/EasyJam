@@ -52,8 +52,19 @@ public static class OrderProgressionSmokeTest
 
             manager.OrderStarted += (order, showSecretWish) =>
             {
-                startedOrders.Add(order);
-                uiReceivedAssignments.Add(showSecretWish);
+                // Use the same forwarding method as OrderProgressionUIAdapter.HandleOrderStarted.
+                OrderProgressionUIAdapter.ApplyOrderAssignmentToUI(
+                    (uiOrder, day, orderNumber, balance, reputation, uiShowSecretWish) =>
+                    {
+                        startedOrders.Add(uiOrder);
+                        uiReceivedAssignments.Add(uiShowSecretWish);
+                    },
+                    order,
+                    manager.CurrentDay,
+                    manager.CurrentOrderNumber,
+                    manager.CurrentCoins,
+                    manager.TotalReputationEarned,
+                    showSecretWish);
             };
             manager.OrderCompleted += result => completedOrders.Add(result);
             manager.DayCompleted += summary => completedDays.Add(summary);
