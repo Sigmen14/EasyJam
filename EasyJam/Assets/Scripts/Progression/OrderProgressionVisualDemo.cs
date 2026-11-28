@@ -17,7 +17,7 @@ public sealed class OrderProgressionVisualDemo : MonoBehaviour
 
     // Applied centrally so every label, heading, button and status message
     // remains visually consistent when the demo UI is generated.
-    private const float UiFontScale = 1.8f;
+    private const float UiFontScale = 1.5f;
 
     private readonly List<DaySummaryData> completedDays = new List<DaySummaryData>();
 
@@ -345,6 +345,9 @@ public sealed class OrderProgressionVisualDemo : MonoBehaviour
         text.fontStyle = style;
         text.horizontalOverflow = HorizontalWrapMode.Wrap;
         text.verticalOverflow = VerticalWrapMode.Overflow;
+        text.resizeTextForBestFit = true;
+        text.resizeTextMinSize = Mathf.Max(10, Mathf.RoundToInt(fontSize * 0.75f));
+        text.resizeTextMaxSize = Mathf.Max(text.fontSize, Mathf.RoundToInt(fontSize * UiFontScale));
         text.supportRichText = false;
         text.raycastTarget = false;
         return text;
@@ -421,7 +424,7 @@ public sealed class OrderProgressionVisualDemo : MonoBehaviour
 
         if (finalSummary != null)
         {
-            headerDayText.text = "КАМПАНИЯ ЗАВЕРШЕНА";
+            headerDayText.text = "ФИНАЛ КАМПАНИИ";
             dayTitleText.text = "ФИНАЛ";
             orderProgressText.text = "ВСЕ " + finalSummary.DaysPlayed + " ДНЯ ПРОЙДЕНЫ";
             orderLabelText.text = "РОЖДЕСТВЕНСКАЯ КАМПАНИЯ ЗАВЕРШЕНА";
