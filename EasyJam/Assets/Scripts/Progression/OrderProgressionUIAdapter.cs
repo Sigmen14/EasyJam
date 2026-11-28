@@ -14,7 +14,7 @@ using TheLastGift.UI;
 public sealed class OrderProgressionUIAdapter : MonoBehaviour
 {
     private const string CampaignResourcePath = "ChristmasCampaign";
-    private const float CampaignCellSize = 0.55f;
+    private const float CampaignCellSize = 0.9f;
 
     private OrderProgressionManager progression;
     private LastGiftUIController ui;
