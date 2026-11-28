@@ -3,8 +3,8 @@ using UnityEngine;
 namespace TheLastGift.Packing
 {
     /// <summary>
-    /// Safety net for prototype scenes: guarantees that a camera and packing board
-    /// exist after a scene loads. This does not depend on scene objects being present.
+    /// Safety net for scenes without an active camera.
+    /// Scene-specific gameplay objects are intentionally not spawned here.
     /// </summary>
     public static class RuntimeCameraBootstrap
     {
@@ -12,7 +12,6 @@ namespace TheLastGift.Packing
         private static void EnsurePrototypeIsVisible()
         {
             EnsureCamera();
-            EnsurePackingBoard();
         }
 
         private static void EnsureCamera()
@@ -40,17 +39,5 @@ namespace TheLastGift.Packing
                 "[Packing] No active cameras were found after scene load. An Emergency Main Camera was created.");
         }
 
-        private static void EnsurePackingBoard()
-        {
-            var existingBoard = Object.FindFirstObjectByType<PackingBoardController>();
-            if (existingBoard != null)
-                return;
-
-            var boardObject = new GameObject("Packing Board (Auto Created)");
-            boardObject.AddComponent<PackingBoardController>();
-
-            Debug.LogWarning(
-                "[Packing] No PackingBoardController was found in the loaded scene. A demo packing board was created.");
-        }
     }
 }
