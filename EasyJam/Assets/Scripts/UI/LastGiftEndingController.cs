@@ -245,11 +245,11 @@ namespace TheLastGift.UI
             // The opaque backing prevents any letters from showing through house gaps.
             bool portrait = safePixels.height > safePixels.width;
             Vector2 storyMin = portrait
-                ? new Vector2(0.035f, 0.18f)
-                : new Vector2(0.035f, 0.20f);
+                ? new Vector2(0.035f, 0.10f)
+                : new Vector2(0.035f, 0.085f);
             Vector2 storyMax = portrait
-                ? new Vector2(0.965f, 0.43f)
-                : new Vector2(0.965f, 0.40f);
+                ? new Vector2(0.965f, 0.28f)
+                : new Vector2(0.965f, 0.255f);
 
             captionPanel = CreateRect(
                 captionUiRoot,
@@ -260,6 +260,10 @@ namespace TheLastGift.UI
             backing.sprite = whiteSprite;
             backing.color = new Color32(29, 42, 42, 255);
             backing.raycastTarget = false;
+
+            // Clip the caption to its panel so long lines cannot bleed through
+            // the shop illustration, window gaps, or other scene details.
+            captionPanel.gameObject.AddComponent<RectMask2D>();
 
             RectTransform storyAccent = CreateRect(
                 captionPanel,
@@ -272,19 +276,21 @@ namespace TheLastGift.UI
                 captionPanel,
                 "Текст сюжетной реплики",
                 string.Empty,
-                27,
+                20,
                 WarmCream,
                 new Vector2(0.04f, 0.07f),
                 new Vector2(0.96f, 0.93f),
                 TextAnchor.MiddleCenter);
-            captionText.resizeTextMinSize = 16;
+            captionText.resizeTextMinSize = 12;
+            captionText.resizeTextMaxSize = 20;
+            captionText.verticalOverflow = VerticalWrapMode.Truncate;
 
             // The continue hint has its own bottom panel, with a clear gap from dialogue.
             RectTransform hintPanel = CreateRect(
                 captionUiRoot,
                 "Нижняя подсказка продолжения",
-                new Vector2(0.16f, 0.07f),
-                new Vector2(0.84f, 0.13f));
+                new Vector2(0.16f, 0.015f),
+                new Vector2(0.84f, 0.065f));
             Image hintBacking = hintPanel.gameObject.AddComponent<Image>();
             hintBacking.sprite = whiteSprite;
             hintBacking.color = new Color32(29, 42, 42, 232);
