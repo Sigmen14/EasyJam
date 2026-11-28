@@ -17,7 +17,7 @@ public sealed class OrderProgressionVisualDemo : MonoBehaviour
 
     // Applied centrally so every label, heading, button and status message
     // remains visually consistent when the demo UI is generated.
-    private const float UiFontScale = 1.25f;
+    private const float UiFontScale = 1.4f;
 
     private readonly List<DaySummaryData> completedDays = new List<DaySummaryData>();
 
@@ -145,11 +145,11 @@ public sealed class OrderProgressionVisualDemo : MonoBehaviour
         Image headerImage = header.gameObject.AddComponent<Image>();
         headerImage.color = new Color32(34, 48, 69, 255);
 
-        CreateText(header, "Game Title", "THE LAST GIFT",
-            new Vector2(-575f, -33f), new Vector2(520f, 42f), 32,
+        CreateText(header, "Game Title", "ПОСЛЕДНИЙ ПОДАРОК",
+            new Vector2(-390f, -33f), new Vector2(740f, 48f), 30,
             Color.white, TextAnchor.MiddleLeft, FontStyle.Bold);
         CreateText(header, "Demo Subtitle", "МАСТЕРСКАЯ ПОДАРКОВ  •  ДЕМОНСТРАЦИЯ ПРОГРЕССИИ",
-            new Vector2(-570f, -76f), new Vector2(650f, 24f), 14,
+            new Vector2(-390f, -78f), new Vector2(780f, 28f), 14,
             new Color32(207, 216, 226, 255), TextAnchor.MiddleLeft, FontStyle.Normal);
         headerDayText = CreateText(header, "Header Day", "ДЕНЬ 1 / 3",
             new Vector2(420f, -34f), new Vector2(230f, 34f), 20,
@@ -222,7 +222,7 @@ public sealed class OrderProgressionVisualDemo : MonoBehaviour
         CreateText(progressCard, "Coins Label", "ТЕКУЩИЙ БАЛАНС",
             new Vector2(0f, 124f), new Vector2(320f, 22f), 12,
             new Color32(140, 112, 82, 255), TextAnchor.MiddleCenter, FontStyle.Bold);
-        CreateText(progressCard, "Coins Hint", "монеты за выполненные заказы",
+        CreateText(progressCard, "Coins Hint", "Монеты за выполненные заказы",
             new Vector2(0f, 100f), new Vector2(320f, 22f), 14,
             new Color32(75, 85, 95, 255), TextAnchor.MiddleCenter, FontStyle.Normal);
 
@@ -426,7 +426,7 @@ public sealed class OrderProgressionVisualDemo : MonoBehaviour
             orderProgressText.text = "ВСЕ " + finalSummary.DaysPlayed + " ДНЯ ПРОЙДЕНЫ";
             orderLabelText.text = "РОЖДЕСТВЕНСКАЯ КАМПАНИЯ ЗАВЕРШЕНА";
             customerNameText.text = "Все подарки готовы!";
-            customerWishText.text = "Вы прошли все дни кампании и обработали заказы клиентов. Отличная работа!";
+            customerWishText.text = "Вы прошли все дни и выполнили заказы клиентов. Отличная работа!";
             giftListText.text = "УСПЕШНЫЕ ЗАКАЗЫ: " + finalSummary.OrdersCompleted + "\nЗАРАБОТАНО МОНЕТ: " + finalSummary.TotalCoinsEarned;
             boxSizeText.text = "ИТОГ: " + finalSummary.FinalCoins + " МОНЕТ";
             rewardText.text = "КАМПАНИЯ ПРОЙДЕНА";
