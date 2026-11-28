@@ -285,8 +285,8 @@ namespace TheLastGift.UI
                 TextAnchor.MiddleCenter);
             // Keep the original dialogue font size; the panel is sized to fit the wrapped lines.
             captionText.resizeTextForBestFit = false;
-            captionText.resizeTextMinSize = 27;
-            captionText.resizeTextMaxSize = 27;
+            captionText.resizeTextMinSize = captionText.fontSize;
+            captionText.resizeTextMaxSize = captionText.fontSize;
             captionText.verticalOverflow = VerticalWrapMode.Truncate;
 
             // The continue hint has its own bottom panel, with a clear gap from dialogue.
@@ -316,7 +316,7 @@ namespace TheLastGift.UI
                 new Vector2(0.03f, 0.06f),
                 new Vector2(0.97f, 0.86f),
                 TextAnchor.MiddleCenter);
-            hintText.resizeTextMinSize = 21;
+            hintText.resizeTextMinSize = GetEndingMinimumFontSize();
         }
 
         private void CreateSnow()
@@ -628,7 +628,7 @@ namespace TheLastGift.UI
                 Vector2.zero,
                 Vector2.one,
                 TextAnchor.MiddleCenter);
-            label.resizeTextMinSize = 21;
+            label.resizeTextMinSize = GetEndingMinimumFontSize();
 
             return frame.gameObject;
         }
@@ -927,6 +927,32 @@ namespace TheLastGift.UI
             return image;
         }
 
+        private float GetEndingCanvasScaleFactor()
+        {
+            if (canvas == null)
+                return 1f;
+
+            CanvasScaler scaler = canvas.GetComponent<CanvasScaler>();
+            if (scaler == null || scaler.uiScaleMode != CanvasScaler.ScaleMode.ScaleWithScreenSize)
+                return Mathf.Max(0.01f, canvas.scaleFactor);
+
+            float widthScale = Mathf.Max(0.01f, Screen.width / Mathf.Max(1f, scaler.referenceResolution.x));
+            float heightScale = Mathf.Max(0.01f, Screen.height / Mathf.Max(1f, scaler.referenceResolution.y));
+
+            if (scaler.screenMatchMode == CanvasScaler.ScreenMatchMode.Expand)
+                return Mathf.Min(widthScale, heightScale);
+            if (scaler.screenMatchMode == CanvasScaler.ScreenMatchMode.Shrink)
+                return Mathf.Max(widthScale, heightScale);
+
+            float match = Mathf.Clamp01(scaler.matchWidthOrHeight);
+            return Mathf.Max(0.01f, Mathf.Pow(widthScale, 1f - match) * Mathf.Pow(heightScale, match));
+        }
+
+        private int GetEndingMinimumFontSize()
+        {
+            return Mathf.CeilToInt(25f / GetEndingCanvasScaleFactor());
+        }
+
         private Text CreateText(
             Transform parent,
             string objectName,
@@ -941,14 +967,16 @@ namespace TheLastGift.UI
             Text text = rect.gameObject.AddComponent<Text>();
             text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             text.text = value;
-            int readableFontSize = Mathf.Max(21, fontSize);
+            float canvasScaleFactor = GetEndingCanvasScaleFactor();
+            int minimumCanvasSize = Mathf.CeilToInt(25f / canvasScaleFactor);
+            int readableFontSize = Mathf.Max(minimumCanvasSize, Mathf.Max(25, fontSize));
             text.fontSize = readableFontSize;
             text.color = color;
             text.alignment = alignment;
             text.horizontalOverflow = HorizontalWrapMode.Wrap;
             text.verticalOverflow = VerticalWrapMode.Overflow;
             text.resizeTextForBestFit = true;
-            text.resizeTextMinSize = Mathf.Min(readableFontSize, Mathf.Max(21, readableFontSize - 4));
+            text.resizeTextMinSize = Mathf.Min(readableFontSize, minimumCanvasSize);
             text.resizeTextMaxSize = readableFontSize;
             text.raycastTarget = false;
             text.supportRichText = true;
