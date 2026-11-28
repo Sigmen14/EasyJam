@@ -725,6 +725,7 @@ namespace TheLastGift.UI
             background.raycastTarget = true;
 
             Button button = buttonRoot.gameObject.AddComponent<Button>();
+            LastGiftButtonHover.Attach(button);
             button.targetGraphic = background;
             ColorBlock colors = button.colors;
             colors.normalColor = new Color32(153, 45, 43, 250);
