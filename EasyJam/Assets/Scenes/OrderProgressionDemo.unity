@@ -150,7 +150,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   progression: {fileID: 596194498}
-  campaign: {fileID: 0}
+  campaign: {fileID: 11400000, guid: 32f35ed57cec5010d13cb35aca3efebf, type: 2}
 --- !u!114 &596194498
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -163,7 +163,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3a2b3c4d5e6f7890a1b2c3d4e5f67890, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  campaign: {fileID: 0}
+  campaign: {fileID: 11400000, guid: 32f35ed57cec5010d13cb35aca3efebf, type: 2}
   startingCoins: 0
 --- !u!4 &596194499
 Transform:
