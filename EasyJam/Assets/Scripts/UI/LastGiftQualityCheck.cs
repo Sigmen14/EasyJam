@@ -396,11 +396,11 @@ namespace TheLastGift.UI
                     qualityTaskHint.text = "ЗАКЛЕЙ УПАКОВКУ";
                     qualityTaskDescription.text = "Нажми на золотую отметку или проведи по ней.";
                     Vector2 targetMin = qualityCompactLayout
-                        ? (qualitySmallScreen ? new Vector2(0.43f, 0.405f) : new Vector2(0.485f, 0.415f))
-                        : (qualitySmallScreen ? new Vector2(0.65f, 0.435f) : new Vector2(0.685f, 0.445f));
+                        ? (qualitySmallScreen ? new Vector2(0.43f, 0.405f) : new Vector2(0.44f, 0.415f))
+                        : new Vector2(0.65f, qualitySmallScreen ? 0.435f : 0.445f);
                     Vector2 targetMax = qualityCompactLayout
-                        ? (qualitySmallScreen ? new Vector2(0.57f, 0.475f) : new Vector2(0.515f, 0.455f))
-                        : (qualitySmallScreen ? new Vector2(0.76f, 0.505f) : new Vector2(0.725f, 0.485f));
+                        ? (qualitySmallScreen ? new Vector2(0.57f, 0.475f) : new Vector2(0.56f, 0.455f))
+                        : new Vector2(0.76f, qualitySmallScreen ? 0.505f : 0.485f);
                     qualityTaskTarget = Panel(qualityCheckRoot.transform, "Отмеченный участок для скотча",
                         targetMin, targetMax, new Color(1f, 0.78f, 0.28f, 0.80f));
                     qualityTaskTargetImage = qualityTaskTarget.GetComponent<Image>();
@@ -408,7 +408,7 @@ namespace TheLastGift.UI
                     qualityTaskHandle = qualityTaskTarget.gameObject.AddComponent<LastGiftQualityDragHandle>();
                     qualityTaskHandle.Initialize(this, GiftQualityTask.Ribbon, true);
                     qualityTaskItem = qualityTaskTarget;
-                    ChildLabel(qualityTaskTarget, "СКОТЧ", 20, brown,
+                    ChildLabel(qualityTaskTarget, "СКОТЧ", 18, brown,
                         Vector2.zero, Vector2.one, TextAnchor.MiddleCenter).raycastTarget = false;
                     break;
                 }
