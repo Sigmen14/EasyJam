@@ -59,8 +59,8 @@ public class OrderProgressionManager : MonoBehaviour
         if (!campaignStarted || CurrentOrder == null || awaitingResultContinue)
             return;
 
-        bool success = result != null && result.IsValid && result.AllItemsPlaced
-            && result.PlacedCount >= result.TotalCount;
+        bool success = result.IsValid && result.AllItemsPlaced
+            && result.PlacedCount == result.TotalCount;
 
         int baseReward = success ? Mathf.Max(0, CurrentOrder.RewardCoins) : 0;
         int tip = success ? Mathf.Max(0, CurrentOrder.PerfectPackingTip) : 0;
