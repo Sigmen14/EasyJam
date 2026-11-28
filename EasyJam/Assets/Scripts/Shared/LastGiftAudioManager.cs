@@ -100,7 +100,6 @@ namespace TheLastGift.Audio
 
             // Music and SFX are 2D, so their listener must not depend on a scene camera.
             // This persistent listener survives additive puzzle-scene transitions.
-            persistentAudioListener = gameObject.AddComponent<AudioListener>();
             EnsurePersistentAudioListener();
 
             masterVolume = Mathf.Clamp01(PlayerPrefs.GetFloat(MasterVolumeKey, 1f));
