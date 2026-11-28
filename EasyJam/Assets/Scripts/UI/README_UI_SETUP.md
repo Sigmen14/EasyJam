@@ -10,9 +10,9 @@
 1. Open the project using Unity **6000.0.83f1**.
 2. Wait until script compilation and asset import complete.
 3. In the Unity menu select **The Last Gift → UI → Create UI Root Prefab**.
-4. The prefab is generated at `Assets/Prefabs/UI/LastGiftUI.prefab`.
-5. Drag the prefab into the gameplay scene. The controller creates a screen-space Canvas and an EventSystem if the scene does not already have one.
-6. Press Play.
+4. The prefab is generated at `Assets/Prefabs/UI/LastGiftUI.prefab` and an instance is automatically added to the currently open scene.
+5. If the scene has no active camera, the command creates a basic 2D Main Camera. The UI controller also creates a fallback camera at runtime if needed.
+6. Save the open scene with **Ctrl+S**, then press Play. Do not drag a second UI prefab into the scene if the command has already added one.
 
 ## Current UI and interaction
 - Russian main menu and a first-time tutorial with explicit mouse drag instructions.
@@ -22,7 +22,7 @@
 - The **В МЕНЮ** button is at the lower left; **ПРОВЕРИТЬ ЗАКАЗ** is centered below the box.
 - Order success, day-end and final presentation screens remain available through public methods.
 
-**Important prototype boundary:** the drag-and-drop visuals work independently, but current drop placement is a simple 3×3 demonstration. It does not yet test overlaps, rotations, fit constraints, whether the right gifts were selected, or reward conditions. When `ConfirmPacking` is not connected, the check button explains that validation is not yet integrated instead of falsely granting a reward.
+**Important prototype boundary:** the drag-and-drop visuals work independently, but current drop placement is a simple 3×3 demonstration. It does not yet test overlaps, rotations, or fit constraints. When `ConfirmPacking` is not connected, the check button uses a temporary demonstration order (teddy bear, present and candy cane) and shows a success screen; connect the real game managers before treating this as final gameplay.
 
 ## Integration API
 UI class: `TheLastGift.UI.LastGiftUIController`.
