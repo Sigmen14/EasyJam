@@ -49,8 +49,10 @@ namespace TheLastGift.UI
         private Image fadeCurtain;
         private Sprite whiteSprite;
         private Sprite softCircleSprite;
+        private Sprite pineTriangleSprite;
         private Texture2D whiteTexture;
         private Texture2D softCircleTexture;
+        private Texture2D pineTriangleTexture;
         private Font introFont;
         private bool ownsIntroFont;
         private readonly List<SnowParticle> snowParticles = new List<SnowParticle>();
@@ -154,10 +156,14 @@ namespace TheLastGift.UI
                 Destroy(whiteSprite);
             if (softCircleSprite != null)
                 Destroy(softCircleSprite);
+            if (pineTriangleSprite != null)
+                Destroy(pineTriangleSprite);
             if (whiteTexture != null)
                 Destroy(whiteTexture);
             if (softCircleTexture != null)
                 Destroy(softCircleTexture);
+            if (pineTriangleTexture != null)
+                Destroy(pineTriangleTexture);
             if (ownsIntroFont && introFont != null)
                 Destroy(introFont);
         }
@@ -194,6 +200,36 @@ namespace TheLastGift.UI
             softCircleSprite = Sprite.Create(
                 softCircleTexture,
                 new Rect(0f, 0f, diameter, diameter),
+                new Vector2(0.5f, 0.5f),
+                100f);
+
+            // Standard UI sprite keeps the pine silhouettes fully opaque and stable
+            // across render pipelines, unlike the custom polygon graphic.
+            const int triangleSize = 128;
+            pineTriangleTexture = new Texture2D(triangleSize, triangleSize, TextureFormat.RGBA32, false);
+            pineTriangleTexture.name = "Last Gift Intro — pine silhouette";
+            pineTriangleTexture.filterMode = FilterMode.Bilinear;
+            pineTriangleTexture.wrapMode = TextureWrapMode.Clamp;
+            Color32[] trianglePixels = new Color32[triangleSize * triangleSize];
+            float triangleCenter = (triangleSize - 1) * 0.5f;
+            for (int y = 0; y < triangleSize; y++)
+            {
+                float vertical = (float)y / (triangleSize - 1);
+                float halfWidth = (1f - vertical) * triangleSize * 0.49f;
+                for (int x = 0; x < triangleSize; x++)
+                {
+                    float distance = Mathf.Abs((x + 0.5f) - triangleCenter);
+                    float coverage = Mathf.Clamp01(halfWidth + 0.5f - distance);
+                    trianglePixels[y * triangleSize + x] =
+                        new Color32(255, 255, 255, (byte)Mathf.RoundToInt(coverage * 255f));
+                }
+            }
+
+            pineTriangleTexture.SetPixels32(trianglePixels);
+            pineTriangleTexture.Apply(false, true);
+            pineTriangleSprite = Sprite.Create(
+                pineTriangleTexture,
+                new Rect(0f, 0f, triangleSize, triangleSize),
                 new Vector2(0.5f, 0.5f),
                 100f);
         }
@@ -331,18 +367,15 @@ namespace TheLastGift.UI
         {
             AddImage(parent, "Pine trunk", new Vector2(x, baseY + 50f * scale),
                 new Vector2(36f * scale, 120f * scale), new Color32(83, 53, 39, 255));
-            AddPolygon(parent, "Pine lower bough", new Vector2(x, baseY + 150f * scale),
+            AddImage(parent, "Pine lower bough", new Vector2(x, baseY + 150f * scale),
                 new Vector2(250f * scale, 250f * scale),
-                new[] { new Vector2(-0.5f, -0.48f), new Vector2(0f, 0.5f), new Vector2(0.5f, -0.48f) },
-                new Color32(20, 72, 59, 255));
-            AddPolygon(parent, "Pine middle bough", new Vector2(x, baseY + 225f * scale),
+                new Color32(20, 72, 59, 255), pineTriangleSprite);
+            AddImage(parent, "Pine middle bough", new Vector2(x, baseY + 225f * scale),
                 new Vector2(195f * scale, 210f * scale),
-                new[] { new Vector2(-0.5f, -0.48f), new Vector2(0f, 0.5f), new Vector2(0.5f, -0.48f) },
-                new Color32(27, 91, 68, 255));
-            AddPolygon(parent, "Pine upper bough", new Vector2(x, baseY + 285f * scale),
+                new Color32(27, 91, 68, 255), pineTriangleSprite);
+            AddImage(parent, "Pine upper bough", new Vector2(x, baseY + 285f * scale),
                 new Vector2(135f * scale, 155f * scale),
-                new[] { new Vector2(-0.5f, -0.48f), new Vector2(0f, 0.5f), new Vector2(0.5f, -0.48f) },
-                new Color32(33, 107, 75, 255));
+                new Color32(33, 107, 75, 255), pineTriangleSprite);
             AddImage(parent, "Snow cap lower", new Vector2(x, baseY + 78f * scale),
                 new Vector2(175f * scale, 12f * scale), new Color32(233, 239, 228, 230));
             AddImage(parent, "Snow cap middle", new Vector2(x, baseY + 188f * scale),
@@ -393,6 +426,23 @@ namespace TheLastGift.UI
                 new Color32(86, 54, 40, 255));
             AddImage(worldRoot, "Shop right timber", new Vector2(520f, 15f), new Vector2(24f, 600f),
                 new Color32(86, 54, 40, 255));
+
+            // Close the visible gap between the timber facade and the snowy street.
+            AddImage(worldRoot, "Shop foundation shadow", new Vector2(0f, -303f),
+                new Vector2(1120f, 70f), new Color32(55, 43, 37, 255));
+            AddImage(worldRoot, "Shop stone foundation", new Vector2(0f, -303f),
+                new Vector2(1096f, 58f), new Color32(126, 103, 82, 255));
+            for (int joint = 0; joint < 8; joint++)
+            {
+                float jointX = -480f + joint * 137f;
+                AddImage(worldRoot, "Foundation stone joint " + joint,
+                    new Vector2(jointX, -303f), new Vector2(3f, 48f),
+                    new Color32(91, 72, 59, 255));
+            }
+            AddImage(worldRoot, "Shop foundation upper beam", new Vector2(0f, -273f),
+                new Vector2(1110f, 18f), new Color32(78, 48, 37, 255));
+            AddImage(worldRoot, "Shop foundation snow edge", new Vector2(0f, -333f),
+                new Vector2(1128f, 10f), new Color32(235, 240, 230, 255));
 
             AddImage(worldRoot, "Shop sign frame", new Vector2(0f, 300f), new Vector2(590f, 88f),
                 new Color32(60, 42, 35, 255));
@@ -501,8 +551,10 @@ namespace TheLastGift.UI
                 new Color32(61, 46, 39, 255), softCircleSprite);
             AddImage(worldRoot, "Shopkeeper right eye", new Vector2(-318f, 112f), new Vector2(6f, 6f),
                 new Color32(61, 46, 39, 255), softCircleSprite);
-            shopkeeperArm = CreateRect(worldRoot, "Shopkeeper moving arm", new Vector2(-272f, 15f), new Vector2(27f, 112f));
-            shopkeeperArm.pivot = new Vector2(0.5f, 0.88f);
+            // The arm's top pivot is embedded in the shopkeeper's right shoulder.
+            shopkeeperArm = CreateRect(worldRoot, "Shopkeeper moving arm",
+                new Vector2(-291f, 42f), new Vector2(32f, 108f));
+            shopkeeperArm.pivot = new Vector2(0.5f, 0.9f);
             AddImage(shopkeeperArm, "Shopkeeper sleeve", Vector2.zero, new Vector2(27f, 112f),
                 new Color32(45, 82, 65, 255));
             AddImage(shopkeeperArm, "Shopkeeper hand", new Vector2(0f, -56f), new Vector2(25f, 24f), skin, softCircleSprite);
@@ -530,6 +582,29 @@ namespace TheLastGift.UI
                 new Color32(164, 54, 49, 255));
             AddImage(boyRoot, "Boy hat pompom", new Vector2(28f, 180f), new Vector2(18f, 18f),
                 new Color32(245, 236, 218, 255), softCircleSprite);
+
+            // Clear, high-contrast facial features remain readable at the final camera scale.
+            AddImage(boyRoot, "Boy left cheek", new Vector2(-23f, 87f), new Vector2(12f, 8f),
+                new Color32(218, 127, 112, 150), softCircleSprite);
+            AddImage(boyRoot, "Boy right cheek", new Vector2(23f, 87f), new Vector2(12f, 8f),
+                new Color32(218, 127, 112, 150), softCircleSprite);
+            AddImage(boyRoot, "Boy left eye white", new Vector2(-15f, 101f), new Vector2(11f, 14f),
+                new Color32(255, 250, 239, 255), softCircleSprite);
+            AddImage(boyRoot, "Boy right eye white", new Vector2(15f, 101f), new Vector2(11f, 14f),
+                new Color32(255, 250, 239, 255), softCircleSprite);
+            AddImage(boyRoot, "Boy left pupil", new Vector2(-14f, 101f), new Vector2(5f, 8f),
+                new Color32(55, 43, 39, 255), softCircleSprite);
+            AddImage(boyRoot, "Boy right pupil", new Vector2(16f, 101f), new Vector2(5f, 8f),
+                new Color32(55, 43, 39, 255), softCircleSprite);
+            AddImage(boyRoot, "Boy left eyebrow", new Vector2(-15f, 113f), new Vector2(12f, 3f),
+                new Color32(91, 62, 47, 255));
+            AddImage(boyRoot, "Boy right eyebrow", new Vector2(15f, 113f), new Vector2(12f, 3f),
+                new Color32(91, 62, 47, 255));
+            AddImage(boyRoot, "Boy nose", new Vector2(0f, 88f), new Vector2(6f, 7f),
+                new Color32(204, 139, 111, 255), softCircleSprite);
+            AddImage(boyRoot, "Boy smile", new Vector2(0f, 76f), new Vector2(13f, 5f),
+                new Color32(111, 59, 54, 255), softCircleSprite);
+
             AddImage(boyRoot, "Boy left boot", new Vector2(-22f, -77f), new Vector2(34f, 20f),
                 new Color32(70, 53, 47, 255));
             AddImage(boyRoot, "Boy right boot", new Vector2(25f, -77f), new Vector2(34f, 20f),
