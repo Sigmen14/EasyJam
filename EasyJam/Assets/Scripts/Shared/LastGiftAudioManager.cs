@@ -29,6 +29,7 @@ namespace TheLastGift.Audio
             new Dictionary<LastGiftSoundEffect, AudioClip>();
 
         private AudioSource sfxSource;
+        private AudioListener persistentAudioListener;
         private Coroutine musicFadeRoutine;
         private int activeMusicSourceIndex = -1;
         private float masterVolume = 1f;
@@ -55,29 +56,35 @@ namespace TheLastGift.Audio
         public static void EnsureInstance() { Instance.ApplyVolumes(); }
 
         /// <summary>
-        /// Guarantees exactly one enabled listener and keeps it attached to the active camera.
-        /// Call this when a scene supplies or creates its rendering camera.
+        /// Keeps the only active listener on the persistent audio object.
+        /// The camera parameter is retained for existing scene callers; 2D game audio
+        /// must continue playing while gameplay cameras are disabled or additive scenes load.
         /// </summary>
         public static AudioListener EnsureSingleAudioListener(Camera targetCamera)
         {
-            if (targetCamera == null)
-                return null;
+            return Instance.EnsurePersistentAudioListener();
+        }
 
-            AudioListener targetListener = targetCamera.GetComponent<AudioListener>();
-            if (targetListener == null)
-                targetListener = targetCamera.gameObject.AddComponent<AudioListener>();
+        private AudioListener EnsurePersistentAudioListener()
+        {
+            if (persistentAudioListener == null)
+            {
+                persistentAudioListener = GetComponent<AudioListener>();
+                if (persistentAudioListener == null)
+                    persistentAudioListener = gameObject.AddComponent<AudioListener>();
+            }
 
-            targetListener.enabled = true;
+            persistentAudioListener.enabled = true;
 
             AudioListener[] listeners = Object.FindObjectsByType<AudioListener>(FindObjectsSortMode.None);
             for (int i = 0; i < listeners.Length; i++)
             {
                 AudioListener listener = listeners[i];
-                if (listener != null && listener != targetListener)
+                if (listener != null && listener != persistentAudioListener)
                     listener.enabled = false;
             }
 
-            return targetListener;
+            return persistentAudioListener;
         }
 
         private void Awake()
@@ -90,6 +97,12 @@ namespace TheLastGift.Audio
 
             instance = this;
             DontDestroyOnLoad(gameObject);
+
+            // Music and SFX are 2D, so their listener must not depend on a scene camera.
+            // This persistent listener survives additive puzzle-scene transitions.
+            persistentAudioListener = gameObject.AddComponent<AudioListener>();
+            EnsurePersistentAudioListener();
+
             masterVolume = Mathf.Clamp01(PlayerPrefs.GetFloat(MasterVolumeKey, 1f));
             musicVolume = Mathf.Clamp01(PlayerPrefs.GetFloat(MusicVolumeKey, 0.8f));
             sfxVolume = Mathf.Clamp01(PlayerPrefs.GetFloat(SfxVolumeKey, 1f));
