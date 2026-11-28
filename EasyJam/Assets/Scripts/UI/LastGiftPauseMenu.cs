@@ -33,6 +33,7 @@ namespace TheLastGift.UI
         private bool canvasWasEnabledBeforePause;
         private bool rootWasActiveBeforePause;
         private bool wrappingWasActiveBeforePause;
+        private bool qualityCheckWasActiveBeforePause;
 
         private readonly List<Resolution> supportedDisplayResolutions = new List<Resolution>();
         private int selectedDisplayResolutionIndex;
@@ -94,6 +95,7 @@ namespace TheLastGift.UI
             canvasWasEnabledBeforePause = canvas.enabled;
             rootWasActiveBeforePause = root != null && root.activeSelf;
             wrappingWasActiveBeforePause = wrappingRoot != null && wrappingRoot.activeSelf;
+            qualityCheckWasActiveBeforePause = qualityCheckRoot != null && qualityCheckRoot.activeSelf;
 
             // Keep the music source running; pausing Unity time is enough to stop
             // gameplay timers, physics, animations and scaled coroutines.
@@ -106,6 +108,8 @@ namespace TheLastGift.UI
                 root.SetActive(false);
             if (wrappingRoot != null)
                 wrappingRoot.SetActive(false);
+            if (qualityCheckRoot != null)
+                qualityCheckRoot.SetActive(false);
 
             pauseOverlayRoot = new GameObject("Меню паузы The Last Gift",
                 typeof(RectTransform), typeof(Image));
@@ -221,6 +225,8 @@ namespace TheLastGift.UI
                 root.SetActive(rootWasActiveBeforePause);
             if (wrappingRoot != null)
                 wrappingRoot.SetActive(wrappingWasActiveBeforePause);
+            if (qualityCheckRoot != null)
+                qualityCheckRoot.SetActive(qualityCheckWasActiveBeforePause);
 
             Time.timeScale = timeScaleBeforePause;
             timeScaleBeforePause = 1f;
@@ -251,6 +257,7 @@ namespace TheLastGift.UI
                 root.SetActive(true);
             if (wrappingRoot != null)
                 wrappingRoot.SetActive(true);
+            CancelQualityCheckForMainMenu();
 
             LeaveGameplayToMenu();
         }
