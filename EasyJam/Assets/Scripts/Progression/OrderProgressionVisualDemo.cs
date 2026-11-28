@@ -17,7 +17,7 @@ public sealed class OrderProgressionVisualDemo : MonoBehaviour
 
     // Applied centrally so every label, heading, button and status message
     // remains visually consistent when the demo UI is generated.
-    private const float UiFontScale = 1.15f;
+    private const float UiFontScale = 1.35f;
 
     private readonly List<DaySummaryData> completedDays = new List<DaySummaryData>();
 
@@ -346,7 +346,7 @@ public sealed class OrderProgressionVisualDemo : MonoBehaviour
         text.horizontalOverflow = HorizontalWrapMode.Wrap;
         text.verticalOverflow = VerticalWrapMode.Truncate;
         text.resizeTextForBestFit = true;
-        text.resizeTextMinSize = Mathf.Max(10, Mathf.RoundToInt(fontSize * 0.65f));
+        text.resizeTextMinSize = Mathf.Max(10, Mathf.RoundToInt(fontSize * 0.9f));
         text.resizeTextMaxSize = Mathf.Max(text.fontSize, Mathf.RoundToInt(fontSize * UiFontScale));
         text.supportRichText = false;
         text.raycastTarget = false;
