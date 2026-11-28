@@ -932,14 +932,17 @@ namespace TheLastGift.UI
             RectTransform rect = CreateRect(parent, objectName, position, size);
             Text label = rect.gameObject.AddComponent<Text>();
             label.font = GetIntroFont();
+            int readableFontSize = fontSize < 40
+                ? Mathf.Max(23, fontSize + 3)
+                : fontSize;
             // Request the complete Russian alphabet, including Ё/ё, before setting the label text.
             if (label.font != null)
                 label.font.RequestCharactersInTexture(
                     "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя" + value,
-                    fontSize,
+                    readableFontSize,
                     style);
             label.text = value;
-            label.fontSize = fontSize;
+            label.fontSize = readableFontSize;
             label.color = color;
             label.alignment = alignment;
             label.fontStyle = style;
