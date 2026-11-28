@@ -505,7 +505,7 @@ namespace TheLastGift.UI
                 new Vector2(0.04f, 0.04f), new Vector2(0.96f, 0.96f),
                 TextAnchor.MiddleCenter);
 
-            RectTransform endRoot = CreateGroup(card, "Завершение и повторная игра", new Vector2(0.5f, 0.265f));
+            RectTransform endRoot = CreateGroup(card, "Завершение и повторная игра", new Vector2(0.5f, 0.34f));
             endRoot.sizeDelta = new Vector2(760f, 190f);
             endGroup = endRoot.gameObject.AddComponent<CanvasGroup>();
             endGroup.alpha = 0f;
