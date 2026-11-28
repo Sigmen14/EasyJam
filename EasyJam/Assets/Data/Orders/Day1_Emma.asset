@@ -13,12 +13,11 @@ MonoBehaviour:
   m_Name: Day1_Emma
   m_EditorClassIdentifier:
   CustomerName: Эмма
-  CustomerWish: "Я хочу подарить эти вещи маме. Пожалуйста, бережно упакуйте снежный шар!"
+  CustomerWish: "Я готовлю подарок для мамы. Пожалуйста, бережно уложи мишку и снежный шар."
   CustomerPortrait: {fileID: 0}
   GiftNames:
-  - Снежный шар
-  - Медвежонок
-  - Пряничный человечек
+  - МИШКА
+  - СНЕЖНЫЙ ШАР
   BoxSize: 1
   RewardCoins: 30
   Day: 1

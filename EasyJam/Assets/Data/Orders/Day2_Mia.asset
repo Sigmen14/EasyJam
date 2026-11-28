@@ -13,14 +13,12 @@ MonoBehaviour:
   m_Name: Day2_Mia
   m_EditorClassIdentifier:
   CustomerName: Мия
-  CustomerWish: "Эти подарки для моего лучшего друга. Пожалуйста, убедитесь, что всё поместится!"
+  CustomerWish: "Пожалуйста, собери для моей подруги снежный шар и леденец. Ничего не забудь!"
   CustomerPortrait: {fileID: 0}
   GiftNames:
-  - Снежный шар
-  - Игрушечный поезд
-  - Коробка печенья
-  - Колокольчик
-  BoxSize: 2
+  - СНЕЖНЫЙ ШАР
+  - ЛЕДЕНЕЦ
+  BoxSize: 1
   RewardCoins: 45
   Day: 2
   PerfectPackingTip: 8

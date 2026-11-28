@@ -13,15 +13,11 @@ MonoBehaviour:
   m_Name: Day3_Freya
   m_EditorClassIdentifier:
   CustomerName: Фрея
-  CustomerWish: "Это последние подарки, которые мне нужно упаковать. Идеальная упаковка очень много для меня значит!"
+  CustomerWish: "Мне нужен всего один подарок. Пожалуйста, положи его точно в центр коробки."
   CustomerPortrait: {fileID: 0}
   GiftNames:
-  - Головоломка-кубик
-  - Чайный сервиз
-  - Миниатюрная ёлка
-  - Леденец-трость
-  - Варежки
-  BoxSize: 2
+  - ПОДАРОК
+  BoxSize: 0
   RewardCoins: 65
   Day: 3
   PerfectPackingTip: 15

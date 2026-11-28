@@ -25,7 +25,9 @@ namespace TheLastGift.Editor
             GameObject prefabSource = new GameObject(
                 "LastGiftUI",
                 typeof(RectTransform),
-                typeof(LastGiftUIController));
+                typeof(LastGiftUIController),
+                typeof(OrderProgressionManager),
+                typeof(OrderProgressionUIAdapter));
 
             GameObject prefabAsset = PrefabUtility.SaveAsPrefabAsset(prefabSource, UiPrefabPath);
             Object.DestroyImmediate(prefabSource);

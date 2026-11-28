@@ -13,13 +13,12 @@ MonoBehaviour:
   m_Name: Day2_Ethan
   m_EditorClassIdentifier:
   CustomerName: Итан
-  CustomerWish: "У меня несколько хрупких подарков. Пожалуйста, будьте особенно осторожны при упаковке."
+  CustomerWish: "Мне нужен зимний набор из мишки и леденца. Сделай упаковку аккуратной."
   CustomerPortrait: {fileID: 0}
   GiftNames:
-  - Стеклянная ёлочная игрушка
-  - Фарфоровый ангел
-  - Снежный шар
-  BoxSize: 2
+  - МИШКА
+  - ЛЕДЕНЕЦ
+  BoxSize: 1
   RewardCoins: 50
   Day: 2
   PerfectPackingTip: 10
