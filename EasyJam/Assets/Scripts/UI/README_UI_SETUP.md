@@ -19,10 +19,13 @@
 - Gameplay HUD with separate customer, packing box and gift shelf areas.
 - Four illustrated gift icons (teddy bear, present, candy cane and snow globe), loaded from `Assets/Resources/LastGift/GiftIconsBase64.txt`.
 - Drag a gift from the shelf and release it over the box. It snaps into the next available cell in a 3×3 visual grid.
+- The prototype includes **10 different customer orders**. Customer names, wishes and required gift combinations are shuffled; each order appears once before the set is shuffled again.
+- The shelf has four gifts: teddy bear, present, candy cane and snow globe. Each order asks for one to three of them.
+- The local prototype check validates the exact gift combination for the current customer and reports missing or extra gifts.
 - The **В МЕНЮ** button is at the lower left; **ПРОВЕРИТЬ ЗАКАЗ** is centered below the box.
 - Order success, day-end and final presentation screens remain available through public methods.
 
-**Important prototype boundary:** the drag-and-drop visuals work independently, but current drop placement is a simple 3×3 demonstration. It does not yet test overlaps, rotations, or fit constraints. When `ConfirmPacking` is not connected, the check button uses a temporary demonstration order (teddy bear, present and candy cane) and shows a success screen; connect the real game managers before treating this as final gameplay.
+**Important prototype boundary:** drag-and-drop placement is still a simple 3×3 visual demonstration. It does not test overlaps, rotations, or fit constraints. The 10-order catalog and local validation are a UI prototype until connected to the main game progression and customer-order managers.
 
 ## Integration API
 UI class: `TheLastGift.UI.LastGiftUIController`.
