@@ -12,11 +12,17 @@ namespace TheLastGift.UI
     public sealed class LastGiftUIController : MonoBehaviour
     {
         public Action ConfirmPacking, Continue, StartGame;
+        public Action<GiftWrappingSelection> ConfirmWrapping;
 
         private const string PackingMiniGameSceneName = "SampleScene";
         private static LastGiftUIController activeInstance;
         private Camera shopCamera;
         private bool packingMiniGameOpen;
+        private GameObject wrappingRoot;
+        private bool wrappingSubmitted;
+        private GiftWrappingPaper selectedPaper;
+        private GiftWrappingRibbon selectedRibbon;
+        private GiftWrappingCard selectedCard;
 
         [Header("Настройки интерфейса")]
         [SerializeField, Range(0.8f, 1.8f)]
@@ -41,6 +47,7 @@ namespace TheLastGift.UI
         private Text packingHint;
         private int day = 1;
         private int coins = 0;
+        private int reputation = 0;
         private int order = 1;
         private int placedGiftCount = 0;
         private readonly List<string> placedGiftNames = new List<string>();
@@ -52,12 +59,14 @@ namespace TheLastGift.UI
             public readonly string Wish;
             public readonly string[] RequiredGifts;
             public readonly GiftBoxSize BoxSize;
+            public readonly GiftOrderDefinition Definition;
 
-            public CustomerOrderData(string customerName, string wish, GiftBoxSize boxSize, params string[] requiredGifts)
+            public CustomerOrderData(GiftOrderDefinition definition, params string[] requiredGifts)
             {
-                CustomerName = customerName;
-                Wish = wish;
-                BoxSize = boxSize;
+                Definition = definition;
+                CustomerName = definition.CustomerName;
+                Wish = definition.CustomerWish;
+                BoxSize = definition.BoxSize;
                 RequiredGifts = requiredGifts;
             }
         }
@@ -289,6 +298,12 @@ namespace TheLastGift.UI
 
         private void Build(string screenName)
         {
+            if (wrappingRoot != null)
+            {
+                Destroy(wrappingRoot);
+                wrappingRoot = null;
+            }
+
             if (root != null)
                 Destroy(root);
 
@@ -415,9 +430,11 @@ namespace TheLastGift.UI
             Label("ДЕНЬ " + day, 21, cream,
                 new Vector2(0.37f, 0.875f), new Vector2(0.51f, 0.925f), TextAnchor.MiddleCenter);
             Label("✦ " + coins, 21, gold,
-                new Vector2(0.54f, 0.875f), new Vector2(0.66f, 0.925f), TextAnchor.MiddleCenter);
+                new Vector2(0.54f, 0.875f), new Vector2(0.65f, 0.925f), TextAnchor.MiddleCenter);
+            Label("РЕП. " + reputation, 18, gold,
+                new Vector2(0.66f, 0.875f), new Vector2(0.78f, 0.925f), TextAnchor.MiddleCenter);
             Label("ЗАКАЗ №" + order.ToString("00"), 21, cream,
-                new Vector2(0.75f, 0.875f), new Vector2(0.96f, 0.925f), TextAnchor.MiddleRight);
+                new Vector2(0.80f, 0.875f), new Vector2(0.96f, 0.925f), TextAnchor.MiddleRight);
 
             BuildCustomerPanel();
             BuildPackingArea();
@@ -437,6 +454,293 @@ namespace TheLastGift.UI
 
             ButtonAt("ОЧИСТИТЬ КОРОБКУ", red, ClearPackingBox,
                 new Vector2(0.70f, 0.075f), new Vector2(0.965f, 0.145f));
+        }
+
+        /// <summary>Opens gift wrapping after the existing exact-content validation has passed.</summary>
+        public void ShowGiftWrappingScreen()
+        {
+            GiftWrappingSelection fallback = currentOrder != null && currentOrder.Definition != null
+                ? new GiftWrappingSelection(
+                    currentOrder.Definition.PreferredWrappingPaper,
+                    currentOrder.Definition.PreferredWrappingRibbon,
+                    currentOrder.Definition.PreferredWrappingCard)
+                : new GiftWrappingSelection(GiftWrappingPaper.Red, GiftWrappingRibbon.BigRed, GiftWrappingCard.MerryChristmas);
+
+            if (root == null || canvas == null || currentOrder == null)
+            {
+                Debug.LogWarning("Экран оформления недоступен. Заказ будет завершён без блокировки.", this);
+                ConfirmWrapping?.Invoke(fallback);
+                return;
+            }
+
+            // Start from neutral choices for every order; customer preferences are shown as a hint.
+            selectedPaper = GiftWrappingPaper.Blue;
+            selectedRibbon = GiftWrappingRibbon.ThinBlue;
+            selectedCard = GiftWrappingCard.MerryChristmas;
+            wrappingSubmitted = false;
+            root.SetActive(false);
+            CreateWrappingScreen();
+        }
+
+        private void CreateWrappingScreen()
+        {
+            if (wrappingRoot != null)
+                Destroy(wrappingRoot);
+
+            wrappingRoot = new GameObject("Экран оформления подарка", typeof(RectTransform));
+            wrappingRoot.transform.SetParent(canvas.transform, false);
+
+            RectTransform screenRect = wrappingRoot.GetComponent<RectTransform>();
+            screenRect.anchorMin = Vector2.zero;
+            screenRect.anchorMax = Vector2.one;
+            screenRect.offsetMin = Vector2.zero;
+            screenRect.offsetMax = Vector2.zero;
+
+            Panel(wrappingRoot.transform, "Затемнение", Vector2.zero, Vector2.one,
+                new Color(0.035f, 0.075f, 0.12f, 0.92f));
+            Panel(wrappingRoot.transform, "Панель оформления",
+                new Vector2(0.035f, 0.055f), new Vector2(0.965f, 0.945f), paper);
+
+            CreateText(wrappingRoot.transform, "УКРАШЕНИЕ ПОДАРКА", 34, green,
+                new Vector2(0.08f, 0.855f), new Vector2(0.92f, 0.93f), TextAnchor.MiddleCenter, Vector2.zero);
+
+            string hint = currentOrder.Definition != null
+                ? currentOrder.Definition.WrappingHint
+                : string.Empty;
+            if (string.IsNullOrWhiteSpace(hint))
+                hint = "Подбери бумагу, ленту и открытку, чтобы порадовать покупателя.";
+            CreateText(wrappingRoot.transform, currentOrder.CustomerName + ": " + hint, 18, brown,
+                new Vector2(0.075f, 0.785f), new Vector2(0.625f, 0.85f), TextAnchor.MiddleCenter, Vector2.zero);
+
+            CreateText(wrappingRoot.transform, "УПАКОВОЧНАЯ БУМАГА", 18, green,
+                new Vector2(0.07f, 0.705f), new Vector2(0.62f, 0.76f), TextAnchor.MiddleLeft, Vector2.zero);
+            GiftWrappingPaper[] papers = {
+                GiftWrappingPaper.Red, GiftWrappingPaper.Green, GiftWrappingPaper.Blue,
+                GiftWrappingPaper.Gold, GiftWrappingPaper.Blush
+            };
+            string[] paperNames = { "КРАСНАЯ", "ЗЕЛЁНАЯ", "СИНЯЯ", "ЗОЛОТАЯ", "НЕЖНАЯ" };
+            for (int i = 0; i < papers.Length; i++)
+            {
+                GiftWrappingPaper option = papers[i];
+                float left = 0.07f + i * 0.112f;
+                CreateWrappingOptionButton(wrappingRoot.transform, paperNames[i], GetWrappingPaperColor(option),
+                    new Vector2(left, 0.605f), new Vector2(left + 0.102f, 0.695f),
+                    selectedPaper == option, () => { selectedPaper = option; RefreshWrappingScreen(); });
+            }
+
+            CreateText(wrappingRoot.transform, "ЛЕНТА И СТИЛЬ", 18, green,
+                new Vector2(0.07f, 0.505f), new Vector2(0.62f, 0.56f), TextAnchor.MiddleLeft, Vector2.zero);
+            GiftWrappingRibbon[] ribbons = {
+                GiftWrappingRibbon.BigRed, GiftWrappingRibbon.BigGold, GiftWrappingRibbon.ClassicGreen,
+                GiftWrappingRibbon.ThinBlue, GiftWrappingRibbon.SoftPink
+            };
+            string[] ribbonNames = { "БОЛЬШАЯ", "БОЛЬШАЯ", "КЛАССИКА", "ТОНКАЯ", "НЕЖНАЯ" };
+            for (int i = 0; i < ribbons.Length; i++)
+            {
+                GiftWrappingRibbon option = ribbons[i];
+                float left = 0.07f + i * 0.112f;
+                CreateWrappingOptionButton(wrappingRoot.transform, ribbonNames[i], GetWrappingRibbonColor(option),
+                    new Vector2(left, 0.405f), new Vector2(left + 0.102f, 0.495f),
+                    selectedRibbon == option, () => { selectedRibbon = option; RefreshWrappingScreen(); });
+            }
+
+            CreateText(wrappingRoot.transform, "ПРАЗДНИЧНАЯ ОТКРЫТКА", 18, green,
+                new Vector2(0.07f, 0.305f), new Vector2(0.62f, 0.36f), TextAnchor.MiddleLeft, Vector2.zero);
+            GiftWrappingCard[] cards = {
+                GiftWrappingCard.MerryChristmas, GiftWrappingCard.WarmWishes,
+                GiftWrappingCard.DreamsComeTrue, GiftWrappingCard.WithLove,
+                GiftWrappingCard.HappyHolidays
+            };
+            string[] cardNames = { "РОЖДЕСТВО", "ТЁПЛЫХ ПРАЗДНИКОВ", "МЕЧТЫ", "С ЛЮБОВЬЮ", "СЧАСТЬЯ" };
+            for (int i = 0; i < cards.Length; i++)
+            {
+                GiftWrappingCard option = cards[i];
+                float left = 0.07f + i * 0.112f;
+                CreateWrappingOptionButton(wrappingRoot.transform, cardNames[i], new Color32(236, 218, 180, 255),
+                    new Vector2(left, 0.205f), new Vector2(left + 0.102f, 0.295f),
+                    selectedCard == option, () => { selectedCard = option; RefreshWrappingScreen(); });
+            }
+
+            Panel(wrappingRoot.transform, "Подложка предпросмотра",
+                new Vector2(0.665f, 0.285f), new Vector2(0.94f, 0.765f), cream);
+            CreateText(wrappingRoot.transform, "ТВОЙ ПОДАРОК", 18, green,
+                new Vector2(0.68f, 0.70f), new Vector2(0.925f, 0.755f), TextAnchor.MiddleCenter, Vector2.zero);
+            DrawWrappingPreview();
+
+            ButtonAtOnParent(wrappingRoot.transform, "НАЗАД", wood, BackToGameplay,
+                new Vector2(0.07f, 0.075f), new Vector2(0.24f, 0.155f));
+            ButtonAtOnParent(wrappingRoot.transform, "ЗАВЕРШИТЬ УПАКОВКУ", green, FinishGiftWrapping,
+                new Vector2(0.66f, 0.075f), new Vector2(0.94f, 0.165f));
+        }
+
+        private void RefreshWrappingScreen()
+        {
+            if (wrappingSubmitted)
+                return;
+            CreateWrappingScreen();
+        }
+
+        private void BackToGameplay()
+        {
+            if (wrappingSubmitted)
+                return;
+
+            if (wrappingRoot != null)
+            {
+                Destroy(wrappingRoot);
+                wrappingRoot = null;
+            }
+
+            if (root != null)
+                root.SetActive(true);
+        }
+
+        private void FinishGiftWrapping()
+        {
+            if (wrappingSubmitted)
+                return;
+
+            wrappingSubmitted = true;
+            GiftWrappingSelection selection = new GiftWrappingSelection(selectedPaper, selectedRibbon, selectedCard);
+            if (ConfirmWrapping != null)
+                ConfirmWrapping.Invoke(selection);
+            else
+                OrderSuccess(25);
+        }
+
+        private void DrawWrappingPreview()
+        {
+            Color ribbonColor = GetWrappingRibbonColor(selectedRibbon);
+            float ribbonWidth = selectedRibbon == GiftWrappingRibbon.BigRed || selectedRibbon == GiftWrappingRibbon.BigGold
+                ? 0.09f
+                : selectedRibbon == GiftWrappingRibbon.ClassicGreen ? 0.055f : 0.028f;
+
+            Panel(wrappingRoot.transform, "Коробка предпросмотра",
+                new Vector2(0.755f, 0.415f), new Vector2(0.87f, 0.675f), GetWrappingPaperColor(selectedPaper));
+            Panel(wrappingRoot.transform, "Вертикальная лента",
+                new Vector2(0.81f - ribbonWidth * 0.5f, 0.415f),
+                new Vector2(0.81f + ribbonWidth * 0.5f, 0.675f), ribbonColor);
+            Panel(wrappingRoot.transform, "Горизонтальная лента",
+                new Vector2(0.755f, 0.52f - ribbonWidth * 0.5f),
+                new Vector2(0.87f, 0.52f + ribbonWidth * 0.5f), ribbonColor);
+
+            RectTransform bowLeft = Panel(wrappingRoot.transform, "Бант слева",
+                new Vector2(0.785f, 0.65f), new Vector2(0.81f, 0.715f), ribbonColor);
+            bowLeft.localRotation = Quaternion.Euler(0f, 0f, 38f);
+            RectTransform bowRight = Panel(wrappingRoot.transform, "Бант справа",
+                new Vector2(0.81f, 0.65f), new Vector2(0.835f, 0.715f), ribbonColor);
+            bowRight.localRotation = Quaternion.Euler(0f, 0f, -38f);
+            Panel(wrappingRoot.transform, "Узел банта",
+                new Vector2(0.802f, 0.66f), new Vector2(0.818f, 0.685f), gold);
+
+            Panel(wrappingRoot.transform, "Открытка предпросмотра",
+                new Vector2(0.685f, 0.305f), new Vector2(0.92f, 0.385f), new Color32(255, 249, 235, 255));
+            CreateText(wrappingRoot.transform, GetWrappingCardText(selectedCard), 15, brown,
+                new Vector2(0.695f, 0.31f), new Vector2(0.91f, 0.38f), TextAnchor.MiddleCenter, Vector2.zero);
+        }
+
+        private void CreateWrappingOptionButton(Transform parent, string caption, Color color,
+            Vector2 min, Vector2 max, bool selected, Action onClick)
+        {
+            GameObject buttonObject = new GameObject("Выбор " + caption,
+                typeof(RectTransform), typeof(Image), typeof(Button));
+            buttonObject.transform.SetParent(parent, false);
+
+            RectTransform rect = buttonObject.GetComponent<RectTransform>();
+            rect.anchorMin = min;
+            rect.anchorMax = max;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            Image background = buttonObject.GetComponent<Image>();
+            background.color = color;
+
+            Button button = buttonObject.GetComponent<Button>();
+            ColorBlock colors = button.colors;
+            colors.normalColor = color;
+            colors.highlightedColor = Color.Lerp(color, Color.white, 0.18f);
+            colors.pressedColor = Color.Lerp(color, Color.black, 0.18f);
+            colors.selectedColor = Color.Lerp(color, Color.white, 0.12f);
+            button.colors = colors;
+            button.onClick.AddListener(() => onClick?.Invoke());
+
+            if (selected)
+            {
+                Outline outline = buttonObject.AddComponent<Outline>();
+                outline.effectColor = gold;
+                outline.effectDistance = new Vector2(4f, 4f);
+            }
+
+            Color labelColor = color.grayscale > 0.72f ? brown : paper;
+            Text label = ChildLabel(buttonObject.transform, caption, 13, labelColor,
+                new Vector2(0.02f, 0.02f), new Vector2(0.98f, 0.98f), TextAnchor.MiddleCenter);
+            label.raycastTarget = false;
+        }
+
+        private void ButtonAtOnParent(Transform parent, string caption, Color color, Action action,
+            Vector2 min, Vector2 max)
+        {
+            GameObject buttonObject = new GameObject("Кнопка " + caption,
+                typeof(RectTransform), typeof(Image), typeof(Button));
+            buttonObject.transform.SetParent(parent, false);
+
+            RectTransform rect = buttonObject.GetComponent<RectTransform>();
+            rect.anchorMin = min;
+            rect.anchorMax = max;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            Image background = buttonObject.GetComponent<Image>();
+            background.color = color;
+
+            Button button = buttonObject.GetComponent<Button>();
+            ColorBlock colors = button.colors;
+            colors.normalColor = color;
+            colors.highlightedColor = Color.Lerp(color, Color.white, 0.18f);
+            colors.pressedColor = Color.Lerp(color, Color.black, 0.18f);
+            colors.selectedColor = Color.Lerp(color, Color.white, 0.12f);
+            button.colors = colors;
+            button.onClick.AddListener(() => action?.Invoke());
+
+            Text label = ChildLabel(buttonObject.transform, caption, 18, paper,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+            label.raycastTarget = false;
+        }
+
+        private Color GetWrappingPaperColor(GiftWrappingPaper option)
+        {
+            switch (option)
+            {
+                case GiftWrappingPaper.Red: return red;
+                case GiftWrappingPaper.Green: return green;
+                case GiftWrappingPaper.Blue: return new Color32(55, 112, 166, 255);
+                case GiftWrappingPaper.Gold: return gold;
+                default: return new Color32(235, 178, 191, 255);
+            }
+        }
+
+        private Color GetWrappingRibbonColor(GiftWrappingRibbon option)
+        {
+            switch (option)
+            {
+                case GiftWrappingRibbon.BigRed: return red;
+                case GiftWrappingRibbon.BigGold: return gold;
+                case GiftWrappingRibbon.ClassicGreen: return green;
+                case GiftWrappingRibbon.ThinBlue: return new Color32(55, 112, 166, 255);
+                default: return new Color32(218, 132, 155, 255);
+            }
+        }
+
+        private string GetWrappingCardText(GiftWrappingCard option)
+        {
+            switch (option)
+            {
+                case GiftWrappingCard.WarmWishes: return "Тёплых и уютных праздников!";
+                case GiftWrappingCard.DreamsComeTrue: return "Пусть мечты сбываются!";
+                case GiftWrappingCard.WithLove: return "С теплом и любовью!";
+                case GiftWrappingCard.HappyHolidays: return "Радости и чудес!";
+                default: return "Счастливого Рождества!";
+            }
         }
 
         private void OpenPackingMiniGame()
@@ -732,20 +1036,17 @@ namespace TheLastGift.UI
                 }
             }
 
-            currentOrder = new CustomerOrderData(
-                orderData.CustomerName,
-                orderData.CustomerWish,
-                orderData.BoxSize,
-                requiredGifts.ToArray());
+            currentOrder = new CustomerOrderData(orderData, requiredGifts.ToArray());
 
             day = currentDay;
             order = currentOrderNumber;
             coins = currentBalance;
         }
 
-        public void SetProgressionBalance(int currentBalance)
+        public void SetProgressionBalance(int currentBalance, int currentReputation = 0)
         {
             coins = currentBalance;
+            reputation = currentReputation;
         }
 
         private void ClearPackingBox()
@@ -919,13 +1220,21 @@ namespace TheLastGift.UI
 
         public void OrderSuccess(int earned)
         {
+            OrderSuccess(earned, 0, 0);
+        }
+
+        public void OrderSuccess(int earned, int wrappingBonus, int reputationBonus)
+        {
             coins += earned;
             order++;
             currentOrder = null;
             Build("Заказ выполнен");
-            RectTransform successCard = Card(
-                "Заказ выполнен!",
-                "Покупатель доволен!\nТы заработала монеты и помогла сделать чей-то праздник теплее.");
+            string resultMessage = "Покупатель доволен!\nТы заработала монеты и помогла сделать чей-то праздник теплее.";
+            if (wrappingBonus > 0)
+                resultMessage += "\nБонус за удачное оформление: +" + wrappingBonus + " монет.";
+            if (reputationBonus > 0)
+                resultMessage += "\nИдеальное сочетание! Репутация +" + reputationBonus + ".";
+            RectTransform successCard = Card("Заказ выполнен!", resultMessage);
             ChildLabel(successCard, "+ " + earned + " МОНЕТ ✦", 44, gold,
                 new Vector2(0.10f, 0.21f), new Vector2(0.90f, 0.41f), TextAnchor.MiddleCenter);
             Button("СЛЕДУЮЩИЙ ПОКУПАТЕЛЬ", green, () =>
@@ -955,12 +1264,14 @@ namespace TheLastGift.UI
                 : "Ты завершила все три дня!\nВыполнено заказов: " + summary.OrdersCompleted
                     + "\nЗаработано монет: " + summary.TotalCoinsEarned
                     + "\nИтоговый баланс: " + summary.FinalCoins
+                    + "\nРепутация: " + summary.ReputationEarned
                     + "\n\nСпасибо, что наполнила лавку рождественским чудом!";
             Card("Последний подарок", body);
             Button("ИГРАТЬ СНОВА", green, () =>
             {
                 day = 1;
                 coins = 0;
+                reputation = 0;
                 order = 1;
                 currentOrder = null;
                 placedGiftCount = 0;
