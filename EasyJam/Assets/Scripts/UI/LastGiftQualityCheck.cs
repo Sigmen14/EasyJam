@@ -204,14 +204,14 @@ namespace TheLastGift.UI
 
             qualityTaskHint = ChildLabel(qualityCheckRoot.transform, "", qualityCompactLayout ? 20 : 23,
                 red, hintMin, hintMax, TextAnchor.MiddleCenter);
-            qualityTaskDescription = ChildLabel(qualityCheckRoot.transform, "", 16,
+            qualityTaskDescription = ChildLabel(qualityCheckRoot.transform, "", 20,
                 brown, descriptionMin, descriptionMax, TextAnchor.MiddleCenter);
-            qualityTaskProgress = ChildLabel(qualityCheckRoot.transform, "", 14,
+            qualityTaskProgress = ChildLabel(qualityCheckRoot.transform, "", 20,
                 green, progressMin, progressMax, TextAnchor.MiddleCenter);
 
             Vector2 timerLabelMin = qualityCompactLayout ? new Vector2(0.61f, 0.675f) : new Vector2(0.765f, 0.875f);
             Vector2 timerLabelMax = qualityCompactLayout ? new Vector2(0.89f, 0.710f) : new Vector2(0.90f, 0.945f);
-            qualityTimerLabel = ChildLabel(qualityCheckRoot.transform, "", 18, red,
+            qualityTimerLabel = ChildLabel(qualityCheckRoot.transform, "", 20, red,
                 timerLabelMin, timerLabelMax, TextAnchor.MiddleCenter);
 
             qualityTaskStatusPanel = FestivePanel(qualityCheckRoot.transform, "Карточка отклика",
@@ -219,7 +219,7 @@ namespace TheLastGift.UI
                 qualityCompactLayout ? new Vector2(0.88f, 0.235f) : new Vector2(0.455f, 0.445f),
                 cream).gameObject;
             qualityTaskStatus = ChildLabel(qualityCheckRoot.transform,
-                "Подарок почти готов — осталось немного!", qualityCompactLayout ? 14 : 16, brown,
+                "Подарок почти готов — осталось немного!", qualityCompactLayout ? 20 : 21, brown,
                 qualityCompactLayout ? new Vector2(0.15f, 0.175f) : new Vector2(0.105f, 0.325f),
                 qualityCompactLayout ? new Vector2(0.85f, 0.225f) : new Vector2(0.425f, 0.415f),
                 TextAnchor.MiddleCenter);
@@ -322,7 +322,7 @@ namespace TheLastGift.UI
 
             Vector2 giftLabelMin = qualityCompactLayout ? new Vector2(0.31f, 0.255f) : new Vector2(0.57f, 0.255f);
             Vector2 giftLabelMax = qualityCompactLayout ? new Vector2(0.69f, 0.295f) : new Vector2(0.84f, 0.295f);
-            ChildLabel(qualityCheckRoot.transform, "РОЖДЕСТВЕНСКИЙ ПОДАРОК", 12, brown,
+            ChildLabel(qualityCheckRoot.transform, "РОЖДЕСТВЕНСКИЙ ПОДАРОК", 20, brown,
                 giftLabelMin, giftLabelMax, TextAnchor.MiddleCenter);
         }
 
@@ -408,7 +408,7 @@ namespace TheLastGift.UI
                     qualityTaskHandle = qualityTaskTarget.gameObject.AddComponent<LastGiftQualityDragHandle>();
                     qualityTaskHandle.Initialize(this, GiftQualityTask.Ribbon, true);
                     qualityTaskItem = qualityTaskTarget;
-                    ChildLabel(qualityTaskTarget, "СКОТЧ", qualityCompactLayout ? 10 : 13, brown,
+                    ChildLabel(qualityTaskTarget, "СКОТЧ", 20, brown,
                         Vector2.zero, Vector2.one, TextAnchor.MiddleCenter).raycastTarget = false;
                     break;
                 }
@@ -439,7 +439,7 @@ namespace TheLastGift.UI
             image.raycastTarget = true;
 
             Color captionColor = task == GiftQualityTask.Postcard ? brown : paper;
-            ChildLabel(item.transform, caption, 14, captionColor,
+            ChildLabel(item.transform, caption, 20, captionColor,
                 Vector2.zero, Vector2.one, TextAnchor.MiddleCenter).raycastTarget = false;
 
             LastGiftQualityDragHandle handle = item.GetComponent<LastGiftQualityDragHandle>();
@@ -649,7 +649,7 @@ namespace TheLastGift.UI
             string reward = qualityBonusForSession > 0
                 ? "Аккуратность: +" + qualityBonusForSession + " монеты ✦"
                 : "Основная награда за заказ сохранена.";
-            ChildLabel(qualityCheckRoot.transform, reward, 18, brown,
+            ChildLabel(qualityCheckRoot.transform, reward, 21, brown,
                 new Vector2(0.20f, 0.405f), new Vector2(0.80f, 0.49f), TextAnchor.MiddleCenter);
 
             ButtonAtOnParent(qualityCheckRoot.transform, "ПРОДОЛЖИТЬ", green,
