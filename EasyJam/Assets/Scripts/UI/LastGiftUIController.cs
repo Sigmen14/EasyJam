@@ -433,29 +433,61 @@ namespace TheLastGift.UI
             LastGiftAudioManager.EnsureInstance();
             Build("Настройки");
 
-            Vector2 cardMin = new Vector2(0.16f, 0.18f);
-            Vector2 cardMax = new Vector2(0.84f, 0.89f);
-            Panel(root.transform, "Тень настроек",
-                cardMin, cardMax, new Vector2(14, -12), new Vector2(14, -12), wood);
-            RectTransform card = Panel(root.transform, "Карточка настроек",
-                cardMin, cardMax, Vector2.zero, Vector2.zero, paper);
+            Vector2 frameMin = new Vector2(0.13f, 0.13f);
+            Vector2 frameMax = new Vector2(0.87f, 0.92f);
 
-            CreateText(card, "НАСТРОЙКИ", 42, green,
-                new Vector2(0.10f, 0.83f), new Vector2(0.90f, 0.97f),
-                TextAnchor.MiddleCenter, Vector2.zero);
+            // The wood, gold and parchment layers belong only to this screen.
+            Panel(root.transform, "Тень панели настроек",
+                frameMin, frameMax, new Vector2(16f, -14f), new Vector2(16f, -14f), brown);
+            Panel(root.transform, "Деревянная рамка настроек",
+                frameMin, frameMax, wood);
+            Panel(root.transform, "Золотая окантовка настроек",
+                frameMin + new Vector2(0.008f, 0.008f),
+                frameMax - new Vector2(0.008f, 0.008f), gold);
 
-            CreateVolumeControl(card, "ОБЩАЯ ГРОМКОСТЬ",
-                LastGiftAudioManager.MasterVolume, 0.68f,
-                LastGiftAudioManager.SetMasterVolume);
-            CreateVolumeControl(card, "МУЗЫКА",
-                LastGiftAudioManager.MusicVolume, 0.45f,
-                LastGiftAudioManager.SetMusicVolume);
-            CreateVolumeControl(card, "ЗВУКОВЫЕ ЭФФЕКТЫ",
-                LastGiftAudioManager.SfxVolume, 0.22f,
-                LastGiftAudioManager.SetSfxVolume);
+            RectTransform card = Panel(root.transform, "Пергаментная панель настроек",
+                frameMin + new Vector2(0.017f, 0.017f),
+                frameMax - new Vector2(0.017f, 0.017f), paper);
 
-            ButtonAt("НАЗАД В МЕНЮ", wood, MainMenu,
-                new Vector2(0.38f, 0.085f), new Vector2(0.62f, 0.16f));
+            // A festive burgundy title ribbon with fine gold edging.
+            Panel(card, "Красная шапка настроек",
+                new Vector2(0.045f, 0.825f), new Vector2(0.955f, 0.965f), red);
+            Panel(card, "Золотая линия шапки сверху",
+                new Vector2(0.045f, 0.955f), new Vector2(0.955f, 0.968f), gold);
+            Panel(card, "Золотая линия шапки снизу",
+                new Vector2(0.045f, 0.822f), new Vector2(0.955f, 0.835f), gold);
+
+            ChildLabel(card, "✦", 22, gold,
+                new Vector2(0.065f, 0.84f), new Vector2(0.16f, 0.95f),
+                TextAnchor.MiddleCenter);
+            ChildLabel(card, "НАСТРОЙКИ", 34, cream,
+                new Vector2(0.16f, 0.84f), new Vector2(0.84f, 0.95f),
+                TextAnchor.MiddleCenter);
+            ChildLabel(card, "✦", 22, gold,
+                new Vector2(0.84f, 0.84f), new Vector2(0.935f, 0.95f),
+                TextAnchor.MiddleCenter);
+
+            ChildLabel(card, "ЗВУК И НАСТРОЕНИЕ", 17, green,
+                new Vector2(0.15f, 0.755f), new Vector2(0.85f, 0.81f),
+                TextAnchor.MiddleCenter);
+
+            CreateSettingsVolumeRow(card, "ОБЩАЯ ГРОМКОСТЬ",
+                LastGiftAudioManager.MasterVolume, 0.65f,
+                new Vector2(0.07f, 0.535f), new Vector2(0.93f, 0.755f),
+                red, LastGiftAudioManager.SetMasterVolume);
+            CreateSettingsVolumeRow(card, "МУЗЫКА",
+                LastGiftAudioManager.MusicVolume, 0.42f,
+                new Vector2(0.07f, 0.305f), new Vector2(0.93f, 0.525f),
+                green, LastGiftAudioManager.SetMusicVolume);
+            CreateSettingsVolumeRow(card, "ЗВУКОВЫЕ ЭФФЕКТЫ",
+                LastGiftAudioManager.SfxVolume, 0.19f,
+                new Vector2(0.07f, 0.075f), new Vector2(0.93f, 0.295f),
+                gold, LastGiftAudioManager.SetSfxVolume);
+
+            Panel(card, "Золотая основа кнопки возврата",
+                new Vector2(0.315f, 0.006f), new Vector2(0.685f, 0.078f), gold);
+            ButtonAt(card, "НАЗАД В МЕНЮ", green, MainMenu,
+                new Vector2(0.322f, 0.013f), new Vector2(0.678f, 0.071f));
         }
 
         public void ShowTutorial()
@@ -1968,6 +2000,28 @@ namespace TheLastGift.UI
             return image;
         }
 
+        private void CreateSettingsVolumeRow(
+            Transform parent,
+            string caption,
+            float initialValue,
+            float top,
+            Vector2 rowMin,
+            Vector2 rowMax,
+            Color accent,
+            Action<float> onValueChanged)
+        {
+            RectTransform frame = Panel(parent, "Золотая рамка — " + caption, rowMin, rowMax, gold);
+            Panel(frame, "Пергаментная вставка — " + caption,
+                new Vector2(0.006f, 0.07f), new Vector2(0.994f, 0.93f),
+                new Color32(252, 245, 229, 255));
+            Panel(frame, "Праздничная цветная полоса — " + caption,
+                new Vector2(0.045f, 0.20f), new Vector2(0.054f, 0.80f), accent);
+            Panel(frame, "Тонкая золотая полоса — " + caption,
+                new Vector2(0.057f, 0.20f), new Vector2(0.061f, 0.80f), gold);
+
+            CreateVolumeControl(parent, caption, initialValue, top, onValueChanged);
+        }
+
         private void CreateVolumeControl(
             Transform parent,
             string caption,
@@ -2102,8 +2156,13 @@ namespace TheLastGift.UI
 
         private void ButtonAt(string caption, Color color, Action action, Vector2 min, Vector2 max)
         {
+            ButtonAt(root.transform, caption, color, action, min, max);
+        }
+
+        private void ButtonAt(Transform parent, string caption, Color color, Action action, Vector2 min, Vector2 max)
+        {
             GameObject buttonObject = new GameObject("Кнопка " + caption, typeof(RectTransform), typeof(Image), typeof(Button));
-            buttonObject.transform.SetParent(root.transform, false);
+            buttonObject.transform.SetParent(parent, false);
 
             RectTransform rect = buttonObject.GetComponent<RectTransform>();
             rect.anchorMin = min;
