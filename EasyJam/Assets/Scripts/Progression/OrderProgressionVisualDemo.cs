@@ -191,6 +191,15 @@ public sealed class OrderProgressionVisualDemo : MonoBehaviour
             || successButton == null || failButton == null || continueButton == null)
             return false;
 
+        // Runtime listeners are reattached because Unity does not serialize
+        // listeners added with AddListener while building the scene in the Editor.
+        successButton.onClick.RemoveAllListeners();
+        successButton.onClick.AddListener(SubmitSuccessfulPacking);
+        failButton.onClick.RemoveAllListeners();
+        failButton.onClick.AddListener(SubmitFailedPacking);
+        continueButton.onClick.RemoveAllListeners();
+        continueButton.onClick.AddListener(ContinueToNextOrder);
+
         EnsureEventSystem();
         return true;
     }
