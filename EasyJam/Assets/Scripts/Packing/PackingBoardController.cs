@@ -43,12 +43,43 @@ namespace TheLastGift.Packing
 
         private void Start()
         {
-            if (targetCamera == null) targetCamera = Camera.main;
+            EnsureCamera();
             if (!hasBeenConfigured)
             {
                 if (runDemoOnStart) SetupBoard(defaultWidth, defaultHeight, CreateDemoGifts());
                 else SetupBoard(defaultWidth, defaultHeight, new List<GiftDefinition>());
             }
+        }
+
+
+        private void EnsureCamera()
+        {
+            if (targetCamera == null || !targetCamera.isActiveAndEnabled)
+            {
+                var mainCamera = Camera.main;
+                if (mainCamera != null && mainCamera.isActiveAndEnabled)
+                    targetCamera = mainCamera;
+            }
+
+            if (targetCamera != null && targetCamera.isActiveAndEnabled) return;
+
+            // Safety net for scenes opened without an enabled Main Camera.
+            var cameraObject = new GameObject("Packing Runtime Camera");
+            cameraObject.tag = "MainCamera";
+            cameraObject.transform.position = new Vector3(0f, 0f, -10f);
+
+            targetCamera = cameraObject.AddComponent<Camera>();
+            targetCamera.enabled = true;
+            targetCamera.orthographic = true;
+            targetCamera.orthographicSize = 5f;
+            targetCamera.nearClipPlane = 0.1f;
+            targetCamera.farClipPlane = 1000f;
+            targetCamera.clearFlags = CameraClearFlags.SolidColor;
+            targetCamera.backgroundColor = boardBackgroundColor;
+            targetCamera.cullingMask = ~0;
+            targetCamera.depth = 0f;
+
+            Debug.LogWarning("[Packing] No active camera was found. Created Packing Runtime Camera.", this);
         }
 
         private void Update()
