@@ -413,12 +413,18 @@ namespace TheLastGift.Packing
 
             var skySprite = Sprite.Create(skyTexture, new Rect(0, 0, 512, 512),
                 new Vector2(0.5f, 0.5f), 100f);
-            var sky = CreateChristmasSprite("Winter Night Sky", skySprite,
+            CreateChristmasSprite("Winter Night Sky", skySprite,
                 new Vector3(targetCamera.transform.position.x, targetCamera.transform.position.y, 9f),
                 new Vector3(viewWidth / 5.12f, viewHeight / 5.12f, 1f), -100);
 
             snowflakeSprite = CreateSnowflakeSprite();
             pineTreeSprite = CreatePineTreeSprite();
+            var snowBankSprite = CreateSnowBankSprite();
+
+            CreateChristmasSprite("Snowy Ground", snowBankSprite,
+                new Vector3(targetCamera.transform.position.x,
+                    targetCamera.transform.position.y - viewHeight * 0.5f + 0.48f, 8.3f),
+                new Vector3(viewWidth / 5.12f, 1f, 1f), -87);
 
             // Snowy fir trees frame the play area without covering the board or gifts.
             CreateChristmasSprite("Snowy Fir Left", pineTreeSprite,
@@ -492,6 +498,33 @@ namespace TheLastGift.Packing
             FillTriangle(pixels, width, height, new Vector2(64, 106),
                 new Vector2(31, 57), new Vector2(97, 57),
                 new Color32(213, 237, 247, 255));
+
+            texture.SetPixels32(pixels);
+            texture.Apply(false, false);
+            return Sprite.Create(texture, new Rect(0, 0, width, height),
+                new Vector2(0.5f, 0.5f), 100f);
+        }
+
+        private Sprite CreateSnowBankSprite()
+        {
+            const int width = 512;
+            const int height = 96;
+            var texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+            texture.name = "SnowyGroundTexture";
+            var pixels = new Color32[width * height];
+
+            for (var x = 0; x < width; x++)
+            {
+                var edge = 19f + 5f * Mathf.Sin(x * 0.018f) + 3f * Mathf.Sin(x * 0.043f + 1.1f);
+                for (var y = 0; y < height; y++)
+                {
+                    if (y > edge) continue;
+                    var highlight = y > edge - 4f;
+                    pixels[y * width + x] = highlight
+                        ? new Color32(239, 249, 255, 255)
+                        : new Color32(184, 218, 237, 255);
+                }
+            }
 
             texture.SetPixels32(pixels);
             texture.Apply(false, false);
@@ -580,13 +613,10 @@ namespace TheLastGift.Packing
                 var point = new Vector3(x, y, 8.2f);
                 line.SetPosition(i, point);
 
-                if (i % 1 == 0)
-                {
-                    var bulb = CreateChristmasSprite("Garland Light", bulbSprite,
-                        point + new Vector3(0f, -0.07f, -0.05f),
-                        Vector3.one * 0.42f, -85);
-                    bulb.GetComponent<SpriteRenderer>().color = bulbColors[i % bulbColors.Length];
-                }
+                var bulb = CreateChristmasSprite("Garland Light", bulbSprite,
+                    point + new Vector3(0f, -0.07f, -0.05f),
+                    Vector3.one * 0.42f, -85);
+                bulb.GetComponent<SpriteRenderer>().color = bulbColors[i % bulbColors.Length];
             }
 
             christmasVisuals.Add(wireObject);
