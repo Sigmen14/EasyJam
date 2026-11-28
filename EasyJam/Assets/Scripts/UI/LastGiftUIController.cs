@@ -67,7 +67,12 @@ namespace TheLastGift.UI
         private int lastResultEarned;
         private int lastResultWrappingBonus;
         private int lastResultReputationBonus;
+        private int lastResultUrgencyBonus;
         private bool lastResultCanOpenWorkshop;
+        private OrderQueueEntry activeOrderQueueEntry;
+        private Text activeUrgencyLabel;
+        private readonly List<OrderQueueEntry> displayedQueueEntries = new List<OrderQueueEntry>();
+        private readonly List<Text> displayedQueueWaitLabels = new List<Text>();
         private Sprite scarfSprite;
         private Texture2D scarfTexture;
 
@@ -420,6 +425,8 @@ namespace TheLastGift.UI
 
         private void Build(string screenName)
         {
+            activeUrgencyLabel = null;
+
             if (wrappingRoot != null)
             {
                 Destroy(wrappingRoot);
@@ -531,7 +538,7 @@ namespace TheLastGift.UI
             Build("Обучение");
             Card(
                 "Как играть",
-                "1. Слева прочитай, что нужно покупателю.\n2. Справа выбери нужные подарки.\n3. Зажми подарок мышью и перетащи его в коробку по центру.\n4. Когда всё готово, нажми «ПРОВЕРИТЬ ЗАКАЗ».\n\nПеретаскивай подарки по одному.");
+                "1. Слева прочитай, что нужно покупателю.\n2. Справа выбери нужные подарки.\n3. Зажми подарок мышью и перетащи его в коробку по центру.\n4. Когда всё готово, нажми «ПРОВЕРИТЬ ЗАКАЗ».\n5. После упаковки выбери следующего покупателя из очереди.\n\nСрочный заказ даёт дополнительный бонус за своевременное выполнение, но сам заказ не исчезает. Перетаскивай подарки по одному.");
 
             ButtonAt("ПОНЯТНО, НАЧИНАЕМ!", green, () =>
             {
@@ -565,6 +572,201 @@ namespace TheLastGift.UI
                 $"showSecretWish={showSecretWish}.",
                 this);
 #endif
+        }
+
+        public void ShowOrderQueue(IReadOnlyList<OrderQueueEntry> entries,
+            Action<GiftOrderDefinition> onSelectOrder)
+        {
+            Build("Очередь покупателей");
+            displayedQueueEntries.Clear();
+            displayedQueueWaitLabels.Clear();
+
+            FestiveHeader(root.transform, "Заголовок очереди",
+                "ПОКУПАТЕЛИ ОЖИДАЮТ", new Vector2(0.12f, 0.83f),
+                new Vector2(0.88f, 0.93f), red, 27);
+            Label("В мастерской ждут рождественские заказы", 21, brown,
+                new Vector2(0.10f, 0.75f), new Vector2(0.90f, 0.81f), TextAnchor.MiddleCenter);
+            Label("Выбери, какой заказ выполнить следующим. Остальные останутся в очереди.",
+                16, brown, new Vector2(0.08f, 0.69f), new Vector2(0.92f, 0.75f),
+                TextAnchor.MiddleCenter);
+
+            if (entries == null || entries.Count == 0)
+            {
+                FestivePanel(root.transform, "Пустая очередь",
+                    new Vector2(0.23f, 0.32f), new Vector2(0.77f, 0.64f), paper);
+                Label("Сейчас покупателей нет. Новые заказы появятся здесь.",
+                    22, brown, new Vector2(0.27f, 0.38f), new Vector2(0.73f, 0.58f),
+                    TextAnchor.MiddleCenter);
+                return;
+            }
+
+            int count = Mathf.Min(entries.Count, 3);
+            float cardWidth = count == 1 ? 0.46f : count == 2 ? 0.39f : 0.285f;
+            float cardGap = count == 1 ? 0f : count == 2 ? 0.055f : 0.022f;
+            float totalWidth = count * cardWidth + (count - 1) * cardGap;
+            float startX = (1f - totalWidth) * 0.5f;
+
+            for (int i = 0; i < count; i++)
+            {
+                OrderQueueEntry entry = entries[i];
+                if (entry == null || entry.Order == null)
+                    continue;
+
+                float x = startX + i * (cardWidth + cardGap);
+                CreateOrderQueueCard(entry, x, cardWidth, onSelectOrder);
+            }
+
+            Label("ЗАКАЗ НЕ ПРОПАДЁТ, ДАЖЕ ЕСЛИ БОНУС ЗА СРОЧНОСТЬ УЖЕ НЕДОСТУПЕН.",
+                14, green, new Vector2(0.08f, 0.145f), new Vector2(0.92f, 0.205f),
+                TextAnchor.MiddleCenter);
+        }
+
+        private void CreateOrderQueueCard(OrderQueueEntry entry, float left, float width,
+            Action<GiftOrderDefinition> onSelectOrder)
+        {
+            GameObject card = new GameObject("Карточка заказа — " + entry.Order.CustomerName,
+                typeof(RectTransform), typeof(Image), typeof(Button));
+            card.transform.SetParent(root.transform, false);
+
+            RectTransform rect = card.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(left, 0.235f);
+            rect.anchorMax = new Vector2(left + width, 0.675f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            Image background = card.GetComponent<Image>();
+            background.color = entry.IsUrgent ? new Color32(255, 242, 226, 255) : paper;
+
+            Button button = card.GetComponent<Button>();
+            LastGiftButtonHover.Attach(button);
+            ColorBlock colors = button.colors;
+            colors.normalColor = background.color;
+            colors.highlightedColor = Color.Lerp(background.color, Color.white, 0.16f);
+            colors.pressedColor = Color.Lerp(background.color, gold, 0.18f);
+            colors.selectedColor = Color.Lerp(background.color, Color.white, 0.12f);
+            button.colors = colors;
+            button.onClick.AddListener(() => onSelectOrder?.Invoke(entry.Order));
+            AddGoldOutline(card, 2.5f);
+
+            FestivePanel(card.transform, "Праздничная рамка карточки",
+                Vector2.zero, Vector2.one, paper);
+
+            Sprite giftSprite = entry.Order.GiftNames != null && entry.Order.GiftNames.Count > 0
+                ? GetGiftSprite(entry.Order.GiftNames[0]) : null;
+            if (giftSprite != null)
+            {
+                ImageAt(card.transform, "Иконка подарка",
+                    new Vector2(0.055f, 0.755f), new Vector2(0.27f, 0.945f),
+                    giftSprite, Color.white);
+            }
+            else
+            {
+                ChildLabel(card.transform, "✦", 38, red,
+                    new Vector2(0.055f, 0.755f), new Vector2(0.27f, 0.945f),
+                    TextAnchor.MiddleCenter);
+            }
+
+            ChildLabel(card.transform, entry.Order.CustomerName, 18, brown,
+                new Vector2(0.29f, 0.79f), new Vector2(0.95f, 0.94f),
+                TextAnchor.MiddleCenter);
+
+            string giftCaption = "ПОДАРОК";
+            if (entry.Order.GiftNames != null && entry.Order.GiftNames.Count > 0)
+            {
+                giftCaption = GetGiftDisplayName(entry.Order.GiftNames[0]).ToUpperInvariant();
+                if (entry.Order.GiftNames.Count > 1)
+                    giftCaption += " +" + (entry.Order.GiftNames.Count - 1);
+            }
+            ChildLabel(card.transform, giftCaption, 15, green,
+                new Vector2(0.07f, 0.68f), new Vector2(0.93f, 0.755f),
+                TextAnchor.MiddleCenter);
+
+            Color priorityColor = entry.IsUrgent ? red : green;
+            Panel(card.transform, entry.IsUrgent ? "Срочная метка" : "Обычная метка",
+                new Vector2(0.12f, 0.585f), new Vector2(0.88f, 0.66f), priorityColor);
+            ChildLabel(card.transform, entry.IsUrgent ? "СРОЧНО" : "ОБЫЧНЫЙ ЗАКАЗ",
+                14, paper, new Vector2(0.13f, 0.59f), new Vector2(0.87f, 0.655f),
+                TextAnchor.MiddleCenter);
+
+            ChildLabel(card.transform, entry.Order.CustomerWish, 14, brown,
+                new Vector2(0.08f, 0.365f), new Vector2(0.92f, 0.565f),
+                TextAnchor.MiddleCenter);
+
+            Text waitLabel = ChildLabel(card.transform, FormatQueueWaitLabel(entry),
+                13, entry.IsUrgent ? red : green,
+                new Vector2(0.07f, 0.245f), new Vector2(0.93f, 0.34f),
+                TextAnchor.MiddleCenter);
+            displayedQueueEntries.Add(entry);
+            displayedQueueWaitLabels.Add(waitLabel);
+
+            ChildLabel(card.transform, "ВЫБРАТЬ ЗАКАЗ", 15, gold,
+                new Vector2(0.08f, 0.065f), new Vector2(0.92f, 0.17f),
+                TextAnchor.MiddleCenter);
+
+            StartCoroutine(Pop(card.transform));
+        }
+
+        private string FormatQueueWaitLabel(OrderQueueEntry entry)
+        {
+            if (entry.IsUrgent)
+            {
+                if (entry.UrgencyBonusAvailable)
+                    return "БОНУС +" + entry.UrgencyBonusCoins + " • ЕЩЁ "
+                        + FormatQueueTime(entry.UrgencySecondsRemaining);
+                return "БОНУС ЗА СРОЧНОСТЬ УЖЕ НЕДОСТУПЕН";
+            }
+
+            return "ОЖИДАНИЕ " + FormatQueueTime(entry.WaitedSeconds);
+        }
+
+        private static string FormatQueueTime(float seconds)
+        {
+            int totalSeconds = Mathf.Max(0, Mathf.CeilToInt(seconds));
+            return (totalSeconds / 60).ToString("00") + ":" + (totalSeconds % 60).ToString("00");
+        }
+
+        public void UpdateOrderQueueWaitTimes(IReadOnlyList<OrderQueueEntry> entries)
+        {
+            if (entries == null)
+                return;
+
+            for (int i = 0; i < displayedQueueEntries.Count; i++)
+            {
+                OrderQueueEntry displayedEntry = displayedQueueEntries[i];
+                Text label = displayedQueueWaitLabels[i];
+                if (displayedEntry == null || label == null)
+                    continue;
+
+                for (int j = 0; j < entries.Count; j++)
+                {
+                    if (entries[j] != displayedEntry)
+                        continue;
+
+                    label.text = FormatQueueWaitLabel(displayedEntry);
+                    label.color = displayedEntry.IsUrgent
+                        ? (displayedEntry.UrgencyBonusAvailable ? red : brown)
+                        : green;
+                    break;
+                }
+            }
+        }
+
+        public void SetActiveOrderQueueEntry(OrderQueueEntry entry)
+        {
+            activeOrderQueueEntry = entry;
+            UpdateActiveOrderQueueWaitTime(entry);
+        }
+
+        public void UpdateActiveOrderQueueWaitTime(OrderQueueEntry entry)
+        {
+            if (activeUrgencyLabel == null || entry == null || !entry.IsUrgent)
+                return;
+
+            activeUrgencyLabel.text = entry.UrgencyBonusAvailable
+                ? "СРОЧНО • +" + entry.UrgencyBonusCoins + " • "
+                    + FormatQueueTime(entry.UrgencySecondsRemaining)
+                : "СРОЧНО • БОНУС УТРАЧЕН";
+            activeUrgencyLabel.color = entry.UrgencyBonusAvailable ? paper : cream;
         }
 
         private void BuildGameplayScreen()
@@ -1143,10 +1345,21 @@ namespace TheLastGift.UI
             Label(currentOrder.CustomerName, 18, brown,
                 new Vector2(0.135f, 0.69f), new Vector2(0.25f, 0.77f), TextAnchor.MiddleCenter);
 
+            bool isUrgentOrder = activeOrderQueueEntry != null && activeOrderQueueEntry.IsUrgent;
             FestivePanel(root.transform, "Пожелание покупателя",
                 new Vector2(0.045f, 0.47f), new Vector2(0.245f, 0.65f), cream);
+            if (isUrgentOrder)
+            {
+                Panel(root.transform, "Лента срочного заказа",
+                    new Vector2(0.052f, 0.612f), new Vector2(0.238f, 0.655f), red);
+                activeUrgencyLabel = Label("СРОЧНО • БОНУС +" + activeOrderQueueEntry.UrgencyBonusCoins,
+                    12, paper, new Vector2(0.055f, 0.615f),
+                    new Vector2(0.235f, 0.652f), TextAnchor.MiddleCenter);
+                UpdateActiveOrderQueueWaitTime(activeOrderQueueEntry);
+            }
             Label(currentOrder.Wish, 17, brown,
-                new Vector2(0.05f, 0.475f), new Vector2(0.24f, 0.645f), TextAnchor.MiddleCenter);
+                new Vector2(0.05f, 0.475f), new Vector2(0.24f, isUrgentOrder ? 0.605f : 0.645f),
+                TextAnchor.MiddleCenter);
 
             FestiveHeader(root.transform, "Метка состава заказа", "В ЗАКАЗЕ НУЖНО",
                 new Vector2(0.045f, 0.425f), new Vector2(0.245f, 0.465f), green, 13, false);
@@ -2119,14 +2332,17 @@ namespace TheLastGift.UI
             OrderSuccess(earned, 0, 0);
         }
 
-        public void OrderSuccess(int earned, int wrappingBonus, int reputationBonus, bool allowWorkshop = true)
+        public void OrderSuccess(int earned, int wrappingBonus, int reputationBonus,
+            bool allowWorkshop = true, int urgencyBonus = 0)
         {
             coins += earned;
             order++;
             currentOrder = null;
+            activeOrderQueueEntry = null;
             lastResultEarned = earned;
             lastResultWrappingBonus = wrappingBonus;
             lastResultReputationBonus = reputationBonus;
+            lastResultUrgencyBonus = urgencyBonus;
             lastResultCanOpenWorkshop = allowWorkshop;
             RenderOrderSuccessScreen();
         }
@@ -2137,6 +2353,8 @@ namespace TheLastGift.UI
             string resultMessage = "Покупатель доволен!\nТы получаешь монеты и помогаешь сделать чей-то праздник теплее.";
             if (lastResultWrappingBonus > 0)
                 resultMessage += "\nБонус за удачное оформление: +" + lastResultWrappingBonus + " монет.";
+            if (lastResultUrgencyBonus > 0)
+                resultMessage += "\nБонус за срочность: +" + lastResultUrgencyBonus + " монет.";
             if (lastResultReputationBonus > 0)
                 resultMessage += "\nИдеальное сочетание! Репутация +" + lastResultReputationBonus + ".";
             RectTransform successCard = Card("Заказ выполнен!", resultMessage);
