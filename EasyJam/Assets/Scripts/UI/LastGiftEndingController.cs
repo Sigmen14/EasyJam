@@ -596,6 +596,7 @@ namespace TheLastGift.UI
             frameImage.raycastTarget = true;
 
             Button button = frame.gameObject.AddComponent<Button>();
+            LastGiftButtonHover.Attach(button);
             button.transition = Selectable.Transition.ColorTint;
             button.onClick.AddListener(() => LastGiftAudioManager.PlaySfx(LastGiftSoundEffect.UiClick));
             button.onClick.AddListener(Skip);
@@ -970,6 +971,7 @@ namespace TheLastGift.UI
             image.color = color;
 
             Button button = rect.gameObject.AddComponent<Button>();
+            LastGiftButtonHover.Attach(button);
             button.targetGraphic = image;
             button.onClick.AddListener(() => LastGiftAudioManager.PlaySfx(LastGiftSoundEffect.UiClick));
             button.onClick.AddListener(action);
