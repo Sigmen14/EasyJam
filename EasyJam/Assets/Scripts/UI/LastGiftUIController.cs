@@ -933,6 +933,7 @@ namespace TheLastGift.UI
             background.color = color;
 
             Button button = buttonObject.GetComponent<Button>();
+            LastGiftButtonHover.Attach(button);
             ColorBlock colors = button.colors;
             colors.normalColor = color;
             colors.highlightedColor = Color.Lerp(color, Color.white, 0.18f);
@@ -969,6 +970,7 @@ namespace TheLastGift.UI
             background.color = color;
 
             Button button = buttonObject.GetComponent<Button>();
+            LastGiftButtonHover.Attach(button);
             ColorBlock colors = button.colors;
             colors.normalColor = color;
             colors.highlightedColor = Color.Lerp(color, Color.white, 0.18f);
@@ -2429,6 +2431,7 @@ namespace TheLastGift.UI
             background.color = color;
 
             Button button = buttonObject.GetComponent<Button>();
+            LastGiftButtonHover.Attach(button);
             ColorBlock colors = button.colors;
             colors.normalColor = color;
             colors.highlightedColor = Color.Lerp(color, Color.white, 0.18f);
@@ -2458,6 +2461,7 @@ namespace TheLastGift.UI
             background.color = color;
 
             Button button = buttonObject.GetComponent<Button>();
+            LastGiftButtonHover.Attach(button);
             ColorBlock colors = button.colors;
             colors.normalColor = color;
             colors.highlightedColor = Color.Lerp(color, Color.white, 0.18f);
