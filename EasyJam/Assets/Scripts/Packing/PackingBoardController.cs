@@ -182,6 +182,7 @@ namespace TheLastGift.Packing
 
         private void RefreshProgress()
         {
+            var wasCompleted = puzzleCompleted;
             var valid = TryValidate(out var result);
             puzzleCompleted = valid;
 
@@ -189,7 +190,7 @@ namespace TheLastGift.Packing
             showValidationMessage = valid || result.AllItemsPlaced;
             if (showValidationMessage) feedbackMessage = result.Message;
 
-            if (valid)
+            if (valid && !wasCompleted)
                 Debug.Log($"[Packing] SUCCESS: {result.Message}", this);
         }
 
@@ -276,13 +277,13 @@ namespace TheLastGift.Packing
                 var obj = new GameObject(gifts[i].GiftName);
                 obj.transform.SetParent(transform, false);
                 var view = obj.AddComponent<GiftPieceView>();
-                var trayPosition = GetTrayPosition(i, gifts.Count, gifts[i]);
+                var trayPosition = GetTrayPosition(i, gifts[i]);
                 view.Initialize(this, gifts[i], trayPosition, cellSize, cellSprite, i + 10);
                 pieces.Add(view);
             }
         }
 
-        private Vector2 GetTrayPosition(int index, int count, GiftDefinition definition)
+        private Vector2 GetTrayPosition(int index, GiftDefinition definition)
         {
             var cells = definition.Cells;
             if (cells == null || cells.Length == 0) cells = new[] { Vector2Int.zero };
