@@ -1480,7 +1480,7 @@ namespace TheLastGift.UI
                 new Vector2(0.16f, 0.49f), new Vector2(0.84f, 0.50f), gold);
 
             ChildLabel(successCard,
-                rewardCoins > 0 ? "+ " + rewardCoins + " МОНЕТ ✦" : "БОНУС ЗА ЭТО ПРОИСШЕСТВИЕ УЖЕ ПОЛУЧЕН",
+                rewardCoins > 0 ? "+" + rewardCoins + " МОНЕТ ✦" : "БОНУС ЗА ЭТО ПРОИСШЕСТВИЕ УЖЕ ПОЛУЧЕН",
                 38, gold, new Vector2(0.10f, 0.29f), new Vector2(0.90f, 0.43f),
                 TextAnchor.MiddleCenter);
 
