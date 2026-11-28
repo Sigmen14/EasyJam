@@ -51,10 +51,10 @@ namespace TheLastGift.UI
             if (giftAtlas == null)
                 return;
 
-            teddySprite = Sprite.Create(giftAtlas, new Rect(0, 0, 96, 96), new Vector2(0.5f, 0.5f), 96);
-            giftBoxSprite = Sprite.Create(giftAtlas, new Rect(96, 0, 96, 96), new Vector2(0.5f, 0.5f), 96);
-            candyCaneSprite = Sprite.Create(giftAtlas, new Rect(0, 96, 96, 96), new Vector2(0.5f, 0.5f), 96);
-            snowGlobeSprite = Sprite.Create(giftAtlas, new Rect(96, 96, 96, 96), new Vector2(0.5f, 0.5f), 96);
+            teddySprite = Sprite.Create(giftAtlas, new Rect(0, 0, 64, 64), new Vector2(0.5f, 0.5f), 96);
+            giftBoxSprite = Sprite.Create(giftAtlas, new Rect(64, 0, 64, 64), new Vector2(0.5f, 0.5f), 96);
+            candyCaneSprite = Sprite.Create(giftAtlas, new Rect(0, 64, 64, 64), new Vector2(0.5f, 0.5f), 96);
+            snowGlobeSprite = Sprite.Create(giftAtlas, new Rect(64, 64, 64, 64), new Vector2(0.5f, 0.5f), 96);
         }
 
         private void SetupCanvas()
