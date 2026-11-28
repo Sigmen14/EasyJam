@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace TheLastGift.UI
@@ -81,7 +82,20 @@ namespace TheLastGift.UI
 
         private void Update()
         {
-            if (restarting || snowParticles.Count == 0 || overlayRoot == null)
+            if (restarting || overlayRoot == null)
+                return;
+
+            // The project uses the new Input System (with legacy input enabled as well).
+            // Read Space only while the story animation is still active.
+            if (!finalCardShown && !skipRequested
+                && Keyboard.current != null
+                && Keyboard.current.spaceKey.wasPressedThisFrame)
+            {
+                Skip();
+            }
+
+            // A skip freezes the moving snow together with the story animation.
+            if (skipRequested || finalCardShown || snowParticles.Count == 0)
                 return;
 
             RectTransform rootRect = overlayRoot.GetComponent<RectTransform>();
@@ -196,9 +210,12 @@ namespace TheLastGift.UI
 
             CreateSnow();
             BuildCaption();
-            skipButton = CreateButton(overlayRoot.transform, "ПРОПУСТИТЬ  ›",
-                new Vector2(0.865f, 0.94f), new Vector2(0.985f, 0.99f),
-                new Color32(35, 66, 54, 235), Skip);
+            skipButton = CreateSkipButton();
+
+            // The ending overlay is already the last child of the shop Canvas.
+            // Keep the skip control as its last child so snow and scene layers
+            // can never cover its hit area or its gold frame.
+            skipButton.transform.SetAsLastSibling();
         }
 
         private void BuildCaption()
@@ -213,7 +230,11 @@ namespace TheLastGift.UI
             AddShape(captionPanel, "Золотая линия подписи",
                 new Vector2(0.5f, 0.08f), new Vector2(1380f, 4f), Gold);
             captionText = CreateText(captionPanel, "Текст подписи", string.Empty,
-                27, WarmCream, new Vector2(0.035f, 0.05f), new Vector2(0.965f, 0.95f),
+                27, WarmCream, new Vector2(0.035f, 0.31f), new Vector2(0.965f, 0.97f),
+                TextAnchor.MiddleCenter);
+            CreateText(captionPanel, "Подсказка клавиши пропуска",
+                "ПРОБЕЛ — пропустить заставку",
+                17, Gold, new Vector2(0.15f, 0.015f), new Vector2(0.85f, 0.29f),
                 TextAnchor.MiddleCenter);
         }
 
@@ -345,22 +366,26 @@ namespace TheLastGift.UI
                 CanvasGroup captionCanvas = captionPanel.GetComponent<CanvasGroup>();
                 if (captionCanvas == null)
                     captionCanvas = captionPanel.gameObject.AddComponent<CanvasGroup>();
-                yield return Fade(captionCanvas, captionCanvas.alpha, 0f, 0.45f);
+                yield return Fade(captionCanvas, captionCanvas.alpha, 0f,
+                    skipRequested ? 0.22f : 0.45f, skipRequested);
                 captionPanel.gameObject.SetActive(false);
             }
 
             finalCardGroup = CreateFinalCard();
-            yield return Fade(finalCardGroup, 0f, 1f, skipRequested ? 0.15f : 1.4f);
+            yield return Fade(finalCardGroup, 0f, 1f,
+                skipRequested ? 0.65f : 1.4f, skipRequested);
 
             if (quoteGroup != null)
-                yield return Fade(quoteGroup, 0f, 1f, skipRequested ? 0.1f : 1.1f);
+                yield return Fade(quoteGroup, 0f, 1f,
+                    skipRequested ? 0.45f : 1.1f, skipRequested);
 
             if (!skipRequested)
                 yield return Hold(3.2f);
 
             if (endGroup != null)
             {
-                yield return Fade(endGroup, 0f, 1f, skipRequested ? 0.1f : 0.9f);
+                yield return Fade(endGroup, 0f, 1f,
+                    skipRequested ? 0.45f : 0.9f, skipRequested);
                 endGroup.interactable = true;
                 endGroup.blocksRaycasts = true;
             }
@@ -406,11 +431,11 @@ namespace TheLastGift.UI
             endGroup.alpha = 0f;
             endGroup.interactable = false;
             endGroup.blocksRaycasts = false;
-            CreateText(endRoot.transform, "THE END",
-                "THE END", 48, Burgundy,
+            CreateText(endRoot.transform, "Надпись конец",
+                "КОНЕЦ", 48, Burgundy,
                 new Vector2(0.20f, 0.48f), new Vector2(0.80f, 1f),
                 TextAnchor.MiddleCenter);
-            CreateButton(endRoot.transform, "ПРОЙТИ СНОВА",
+            CreateButton(endRoot.transform, "ИГРАТЬ СНОВА",
                 new Vector2(0.27f, 0.0f), new Vector2(0.73f, 0.45f),
                 Evergreen, RestartCampaign);
             return group;
@@ -424,12 +449,79 @@ namespace TheLastGift.UI
 
         private void Skip()
         {
-            if (finalCardShown || skipRequested)
+            if (restarting || finalCardShown || skipRequested)
                 return;
 
             skipRequested = true;
             if (skipButton != null)
                 skipButton.SetActive(false);
+
+            // Stop the currently running nested animation coroutine before starting
+            // the one and only transition to the final card.
+            if (sequence != null)
+            {
+                StopCoroutine(sequence);
+                sequence = null;
+            }
+
+            sequence = StartCoroutine(ShowFinalCardAfterSkip());
+        }
+
+        private IEnumerator ShowFinalCardAfterSkip()
+        {
+            yield return ShowFinalCard();
+            sequence = null;
+        }
+
+        private GameObject CreateSkipButton()
+        {
+            RectTransform frame = CreateRect(
+                overlayRoot.transform,
+                "Кнопка пропустить заставку",
+                new Vector2(0.81f, 0.91f),
+                new Vector2(0.985f, 0.985f));
+
+            // A separate gold image remains visible as a real border,
+            // while the inset burgundy face is the button's hit target.
+            Image frameImage = frame.gameObject.AddComponent<Image>();
+            frameImage.sprite = whiteSprite;
+            frameImage.color = Gold;
+            frameImage.raycastTarget = true;
+
+            Button button = frame.gameObject.AddComponent<Button>();
+            button.transition = Selectable.Transition.ColorTint;
+            button.onClick.AddListener(Skip);
+
+            RectTransform face = CreateRect(
+                frame,
+                "Бордовая поверхность кнопки",
+                new Vector2(0.025f, 0.12f),
+                new Vector2(0.975f, 0.88f));
+            Image faceImage = face.gameObject.AddComponent<Image>();
+            faceImage.sprite = whiteSprite;
+            faceImage.color = new Color32(76, 35, 34, 255);
+            faceImage.raycastTarget = false;
+
+            button.targetGraphic = faceImage;
+            ColorBlock colors = button.colors;
+            colors.normalColor = new Color32(76, 35, 34, 255);
+            colors.highlightedColor = new Color32(111, 48, 43, 255);
+            colors.pressedColor = new Color32(56, 27, 29, 255);
+            colors.selectedColor = colors.highlightedColor;
+            button.colors = colors;
+
+            Text label = CreateText(
+                face,
+                "Текст кнопки пропуска",
+                "ПРОПУСТИТЬ",
+                22,
+                WarmCream,
+                Vector2.zero,
+                Vector2.one,
+                TextAnchor.MiddleCenter);
+            label.resizeTextMinSize = 17;
+
+            return frame.gameObject;
         }
 
         private void RestartCampaign()
@@ -474,12 +566,17 @@ namespace TheLastGift.UI
             }
         }
 
-        private IEnumerator Fade(CanvasGroup target, float from, float to, float duration)
+        private IEnumerator Fade(
+            CanvasGroup target,
+            float from,
+            float to,
+            float duration,
+            bool continueDuringSkip = false)
         {
             if (target == null)
                 yield break;
 
-            if (duration <= 0f || skipRequested)
+            if (duration <= 0f || (skipRequested && !continueDuringSkip))
             {
                 target.alpha = to;
                 yield break;
@@ -487,7 +584,7 @@ namespace TheLastGift.UI
 
             float elapsed = 0f;
             target.alpha = from;
-            while (elapsed < duration && !skipRequested)
+            while (elapsed < duration && (!skipRequested || continueDuringSkip))
             {
                 elapsed += Time.unscaledDeltaTime;
                 target.alpha = Mathf.Lerp(from, to, Mathf.SmoothStep(0f, 1f, elapsed / duration));
