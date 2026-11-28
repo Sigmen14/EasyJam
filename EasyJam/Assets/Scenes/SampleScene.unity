@@ -401,7 +401,7 @@ MonoBehaviour:
   cellSize: 1
   boardCenter: {x: 0, y: 0}
   trayGap: 0.65
-  targetCamera: {fileID: 0}
+  targetCamera: {fileID: 519420031}
   runDemoOnStart: 1
   emptyCellColor: {r: 0.88, g: 0.9, b: 0.95, a: 1}
   boardBackgroundColor: {r: 0.18, g: 0.24, b: 0.3, a: 1}
