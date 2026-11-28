@@ -311,12 +311,12 @@ namespace TheLastGift.UI
                 hintPanel,
                 "Подсказка клавиши продолжения",
                 "ПРОБЕЛ — продолжить",
-                17,
+                21,
                 WarmCream,
                 new Vector2(0.03f, 0.06f),
                 new Vector2(0.97f, 0.86f),
                 TextAnchor.MiddleCenter);
-            hintText.resizeTextMinSize = 13;
+            hintText.resizeTextMinSize = 18;
         }
 
         private void CreateSnow()
@@ -628,7 +628,7 @@ namespace TheLastGift.UI
                 Vector2.zero,
                 Vector2.one,
                 TextAnchor.MiddleCenter);
-            label.resizeTextMinSize = 14;
+            label.resizeTextMinSize = 19;
 
             return frame.gameObject;
         }
@@ -947,7 +947,7 @@ namespace TheLastGift.UI
             text.horizontalOverflow = HorizontalWrapMode.Wrap;
             text.verticalOverflow = VerticalWrapMode.Overflow;
             text.resizeTextForBestFit = true;
-            text.resizeTextMinSize = Mathf.Max(16, fontSize - 8);
+            text.resizeTextMinSize = Mathf.Max(18, fontSize - 4);
             text.resizeTextMaxSize = fontSize;
             text.raycastTarget = false;
             text.supportRichText = true;
@@ -985,7 +985,7 @@ namespace TheLastGift.UI
 
             Text text = CreateText(rect, "Надпись кнопки", label, 22, WarmCream,
                 Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
-            text.resizeTextMinSize = 17;
+            text.resizeTextMinSize = 19;
             return rect.gameObject;
         }
 
