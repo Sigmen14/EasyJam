@@ -12,14 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0a2b3c4d5e6f7890a1b2c3d4e5f67890, type: 3}
   m_Name: Day2_Mia
   m_EditorClassIdentifier:
-  CustomerName: Mia
-  CustomerWish: "These gifts are for my best friend. Please make sure they all fit!"
+  CustomerName: Мия
+  CustomerWish: "Эти подарки для моего лучшего друга. Пожалуйста, убедитесь, что всё поместится!"
   CustomerPortrait: {fileID: 0}
   GiftNames:
-  - Snow Globe
-  - Toy Train
-  - Cookie Tin
-  - Bell
+  - Снежный шар
+  - Игрушечный поезд
+  - Коробка печенья
+  - Колокольчик
   BoxSize: 2
   RewardCoins: 45
   Day: 2
