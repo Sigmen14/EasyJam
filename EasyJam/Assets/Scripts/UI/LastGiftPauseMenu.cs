@@ -461,9 +461,9 @@ namespace TheLastGift.UI
             toggleObject.transform.SetParent(parent, false);
 
             RectTransform toggleRect = toggleObject.GetComponent<RectTransform>();
-            // Place the toggle immediately beside its label for a clear association.
-            toggleRect.anchorMin = new Vector2(0.705f, 0.235f);
-            toggleRect.anchorMax = new Vector2(0.785f, 0.32f);
+            // Put the toggle directly to the left of its label.
+            toggleRect.anchorMin = new Vector2(0.055f, 0.235f);
+            toggleRect.anchorMax = new Vector2(0.135f, 0.32f);
             toggleRect.offsetMin = Vector2.zero;
             toggleRect.offsetMax = Vector2.zero;
 
