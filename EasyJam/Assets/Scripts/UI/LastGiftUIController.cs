@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using TheLastGift.Audio;
 
 namespace TheLastGift.UI
 {
@@ -82,6 +83,7 @@ namespace TheLastGift.UI
         private void Awake()
         {
             EnsureCamera();
+            LastGiftAudioManager.EnsureInstance();
             font = customFont != null
                 ? customFont
                 : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
@@ -329,10 +331,43 @@ namespace TheLastGift.UI
                     StartGame?.Invoke();
                     Gameplay();
                 }
-            }, new Vector2(0.35f, 0.18f), new Vector2(0.65f, 0.275f));
+            }, new Vector2(0.25f, 0.18f), new Vector2(0.49f, 0.275f));
+
+            ButtonAt("НАСТРОЙКИ", wood, SettingsMenu,
+                new Vector2(0.51f, 0.18f), new Vector2(0.75f, 0.275f));
 
             ButtonAt("ВЫЙТИ", wood, Application.Quit,
                 new Vector2(0.41f, 0.085f), new Vector2(0.59f, 0.16f));
+        }
+
+        private void SettingsMenu()
+        {
+            LastGiftAudioManager.EnsureInstance();
+            Build("Настройки");
+
+            Vector2 cardMin = new Vector2(0.16f, 0.18f);
+            Vector2 cardMax = new Vector2(0.84f, 0.89f);
+            Panel(root.transform, "Тень настроек",
+                cardMin, cardMax, new Vector2(14, -12), new Vector2(14, -12), wood);
+            RectTransform card = Panel(root.transform, "Карточка настроек",
+                cardMin, cardMax, Vector2.zero, Vector2.zero, paper);
+
+            CreateText(card, "НАСТРОЙКИ", 42, green,
+                new Vector2(0.10f, 0.83f), new Vector2(0.90f, 0.97f),
+                TextAnchor.MiddleCenter, Vector2.zero);
+
+            CreateVolumeControl(card, "ОБЩАЯ ГРОМКОСТЬ",
+                LastGiftAudioManager.MasterVolume, 0.68f,
+                LastGiftAudioManager.SetMasterVolume);
+            CreateVolumeControl(card, "МУЗЫКА",
+                LastGiftAudioManager.MusicVolume, 0.45f,
+                LastGiftAudioManager.SetMusicVolume);
+            CreateVolumeControl(card, "ЗВУКОВЫЕ ЭФФЕКТЫ",
+                LastGiftAudioManager.SfxVolume, 0.22f,
+                LastGiftAudioManager.SetSfxVolume);
+
+            ButtonAt("НАЗАД В МЕНЮ", wood, MainMenu,
+                new Vector2(0.38f, 0.085f), new Vector2(0.62f, 0.16f));
         }
 
         public void ShowTutorial()
@@ -960,6 +995,111 @@ namespace TheLastGift.UI
             image.preserveAspect = true;
             image.raycastTarget = false;
             return image;
+        }
+
+        private void CreateVolumeControl(
+            Transform parent,
+            string caption,
+            float initialValue,
+            float top,
+            Action<float> onValueChanged)
+        {
+            ChildLabel(parent, caption, 23, brown,
+                new Vector2(0.16f, top),
+                new Vector2(0.70f, top + 0.09f),
+                TextAnchor.MiddleLeft);
+
+            Text valueLabel = ChildLabel(parent,
+                Mathf.RoundToInt(initialValue * 100f) + "%", 21, brown,
+                new Vector2(0.72f, top),
+                new Vector2(0.84f, top + 0.09f),
+                TextAnchor.MiddleRight);
+
+            Slider slider = CreateVolumeSlider(parent, caption, top);
+            slider.SetValueWithoutNotify(Mathf.Clamp01(initialValue));
+            slider.onValueChanged.AddListener(value =>
+            {
+                valueLabel.text = Mathf.RoundToInt(value * 100f) + "%";
+                onValueChanged?.Invoke(value);
+            });
+        }
+
+        private Slider CreateVolumeSlider(Transform parent, string sliderName, float top)
+        {
+            GameObject sliderObject = new GameObject(
+                "Ползунок " + sliderName,
+                typeof(RectTransform),
+                typeof(Slider));
+            sliderObject.transform.SetParent(parent, false);
+
+            RectTransform sliderRect = sliderObject.GetComponent<RectTransform>();
+            sliderRect.anchorMin = new Vector2(0.16f, top - 0.09f);
+            sliderRect.anchorMax = new Vector2(0.84f, top - 0.02f);
+            sliderRect.offsetMin = Vector2.zero;
+            sliderRect.offsetMax = Vector2.zero;
+
+            GameObject backgroundObject = new GameObject(
+                "Дорожка", typeof(RectTransform), typeof(Image));
+            backgroundObject.transform.SetParent(sliderObject.transform, false);
+            RectTransform backgroundRect = backgroundObject.GetComponent<RectTransform>();
+            backgroundRect.anchorMin = Vector2.zero;
+            backgroundRect.anchorMax = Vector2.one;
+            backgroundRect.offsetMin = Vector2.zero;
+            backgroundRect.offsetMax = Vector2.zero;
+
+            Image backgroundImage = backgroundObject.GetComponent<Image>();
+            backgroundImage.color = new Color32(117, 86, 62, 255);
+            backgroundImage.raycastTarget = true;
+
+            GameObject fillAreaObject = new GameObject("Область заполнения", typeof(RectTransform));
+            fillAreaObject.transform.SetParent(sliderObject.transform, false);
+            RectTransform fillAreaRect = fillAreaObject.GetComponent<RectTransform>();
+            fillAreaRect.anchorMin = Vector2.zero;
+            fillAreaRect.anchorMax = Vector2.one;
+            fillAreaRect.offsetMin = new Vector2(12f, 0f);
+            fillAreaRect.offsetMax = new Vector2(-12f, 0f);
+
+            GameObject fillObject = new GameObject("Заполнение", typeof(RectTransform), typeof(Image));
+            fillObject.transform.SetParent(fillAreaObject.transform, false);
+            RectTransform fillRect = fillObject.GetComponent<RectTransform>();
+            fillRect.anchorMin = Vector2.zero;
+            fillRect.anchorMax = Vector2.one;
+            fillRect.offsetMin = Vector2.zero;
+            fillRect.offsetMax = Vector2.zero;
+            Image fillImage = fillObject.GetComponent<Image>();
+            fillImage.color = gold;
+            fillImage.raycastTarget = false;
+
+            GameObject handleAreaObject = new GameObject("Область бегунка", typeof(RectTransform));
+            handleAreaObject.transform.SetParent(sliderObject.transform, false);
+            RectTransform handleAreaRect = handleAreaObject.GetComponent<RectTransform>();
+            handleAreaRect.anchorMin = Vector2.zero;
+            handleAreaRect.anchorMax = Vector2.one;
+            handleAreaRect.offsetMin = new Vector2(12f, 0f);
+            handleAreaRect.offsetMax = new Vector2(-12f, 0f);
+
+            GameObject handleObject = new GameObject("Бегунок", typeof(RectTransform), typeof(Image));
+            handleObject.transform.SetParent(handleAreaObject.transform, false);
+            RectTransform handleRect = handleObject.GetComponent<RectTransform>();
+            handleRect.anchorMin = new Vector2(0f, 0.5f);
+            handleRect.anchorMax = new Vector2(0f, 0.5f);
+            handleRect.pivot = new Vector2(0.5f, 0.5f);
+            handleRect.sizeDelta = new Vector2(26f, 26f);
+
+            Image handleImage = handleObject.GetComponent<Image>();
+            handleImage.color = paper;
+            handleImage.raycastTarget = true;
+
+            Slider slider = sliderObject.GetComponent<Slider>();
+            slider.minValue = 0f;
+            slider.maxValue = 1f;
+            slider.wholeNumbers = false;
+            slider.direction = Slider.Direction.LeftToRight;
+            slider.fillRect = fillRect;
+            slider.handleRect = handleRect;
+            slider.targetGraphic = handleImage;
+
+            return slider;
         }
 
         private void Button(string caption, Color color, Action action, float x, float y, float width, float height)
