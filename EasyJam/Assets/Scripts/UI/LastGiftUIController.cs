@@ -67,6 +67,8 @@ namespace TheLastGift.UI
         private Sprite candyCaneSprite;
         private Sprite snowGlobeSprite;
         private Texture2D giftAtlas;
+        private Texture2D customerPortraitAtlas;
+        private readonly Sprite[] customerPortraits = new Sprite[9];
 
         private readonly Color cream = new Color32(250, 239, 215, 255);
         private readonly Color paper = new Color32(255, 249, 235, 255);
@@ -84,6 +86,7 @@ namespace TheLastGift.UI
                 ? customFont
                 : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             LoadGiftSprites();
+            LoadCustomerPortraits();
             christmasBackgroundTexture = LastGiftChristmasBackground.CreateTexture();
             christmasBackground = Sprite.Create(
                 christmasBackgroundTexture,
@@ -100,6 +103,12 @@ namespace TheLastGift.UI
                 Destroy(christmasBackground);
             if (christmasBackgroundTexture != null)
                 Destroy(christmasBackgroundTexture);
+
+            for (int i = 0; i < customerPortraits.Length; i++)
+            {
+                if (customerPortraits[i] != null)
+                    Destroy(customerPortraits[i]);
+            }
         }
 
         // A Screen Space Overlay canvas can display without a camera, but the
@@ -163,6 +172,53 @@ namespace TheLastGift.UI
             giftBoxSprite = Sprite.Create(giftAtlas, new Rect(64, 0, 64, 64), new Vector2(0.5f, 0.5f), 96);
             candyCaneSprite = Sprite.Create(giftAtlas, new Rect(0, 64, 64, 64), new Vector2(0.5f, 0.5f), 96);
             snowGlobeSprite = Sprite.Create(giftAtlas, new Rect(64, 64, 64, 64), new Vector2(0.5f, 0.5f), 96);
+        }
+
+        private void LoadCustomerPortraits()
+        {
+            customerPortraitAtlas = Resources.Load<Texture2D>("LastGift/CustomerPortraits");
+            if (customerPortraitAtlas == null)
+            {
+                Debug.LogWarning("Не найден набор портретов покупателей: Resources/LastGift/CustomerPortraits.jpg");
+                return;
+            }
+
+            customerPortraitAtlas.filterMode = FilterMode.Bilinear;
+            customerPortraitAtlas.wrapMode = TextureWrapMode.Clamp;
+
+            int cellWidth = customerPortraitAtlas.width / 3;
+            int cellHeight = customerPortraitAtlas.height / 3;
+            for (int row = 0; row < 3; row++)
+            {
+                for (int column = 0; column < 3; column++)
+                {
+                    int portraitIndex = row * 3 + column;
+                    int textureY = (2 - row) * cellHeight;
+                    Rect portraitRect = new Rect(
+                        column * cellWidth,
+                        textureY,
+                        cellWidth,
+                        cellHeight);
+
+                    customerPortraits[portraitIndex] = Sprite.Create(
+                        customerPortraitAtlas,
+                        portraitRect,
+                        new Vector2(0.5f, 0.5f),
+                        96f);
+                    customerPortraits[portraitIndex].name = "Портрет покупателя " + (portraitIndex + 1);
+                }
+            }
+        }
+
+        private Sprite GetCurrentCustomerPortrait()
+        {
+            if (currentOrder == null || customerPortraits.Length == 0)
+                return null;
+
+            // Three orders are presented on each of the three campaign days.
+            int portraitIndex = ((Mathf.Max(1, day) - 1) * 3 + (Mathf.Max(1, order) - 1))
+                % customerPortraits.Length;
+            return customerPortraits[portraitIndex];
         }
 
         private void SetupCanvas()
@@ -325,8 +381,18 @@ namespace TheLastGift.UI
 
             Panel(root.transform, "Портрет покупателя",
                 new Vector2(0.055f, 0.66f), new Vector2(0.125f, 0.775f), gold);
-            Label("☺", 66, red,
-                new Vector2(0.055f, 0.66f), new Vector2(0.125f, 0.775f), TextAnchor.MiddleCenter);
+            Sprite customerPortrait = GetCurrentCustomerPortrait();
+            if (customerPortrait != null)
+            {
+                ImageAt(root.transform, "Фото покупателя",
+                    new Vector2(0.059f, 0.664f), new Vector2(0.121f, 0.771f),
+                    customerPortrait, Color.white);
+            }
+            else
+            {
+                Label("☺", 66, red,
+                    new Vector2(0.055f, 0.66f), new Vector2(0.125f, 0.775f), TextAnchor.MiddleCenter);
+            }
             Label(currentOrder.CustomerName, 18, brown,
                 new Vector2(0.135f, 0.69f), new Vector2(0.25f, 0.77f), TextAnchor.MiddleCenter);
 
