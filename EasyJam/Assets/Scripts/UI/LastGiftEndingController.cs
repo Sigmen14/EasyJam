@@ -200,23 +200,6 @@ namespace TheLastGift.UI
             streetBackground = streetImage.rectTransform;
             streetBackground.localScale = Vector3.one * 1.12f;
 
-            // Keep the shop title in the clear sky at the upper-right edge.
-            // It is intentionally separate from the house artwork so it cannot
-            // overlap the roof, windows, timber seams or doorway.
-            RectTransform signPanel = CreateRect(
-                streetGroup,
-                "Плашка названия лавки",
-                new Vector2(0.715f, 0.835f),
-                new Vector2(0.985f, 0.925f));
-            Image signBacking = signPanel.gameObject.AddComponent<Image>();
-            signBacking.sprite = whiteSprite;
-            signBacking.color = new Color32(43, 42, 39, 238);
-            signBacking.raycastTarget = false;
-
-            CreateText(signPanel, "Название лавки", "РОЖДЕСТВЕНСКАЯ ЛАВКА",
-                16, Gold, new Vector2(0.035f, 0.08f), new Vector2(0.965f, 0.92f),
-                TextAnchor.MiddleCenter);
-
             streetBoy = CreateCharacter(streetGroup, "Мальчик с подарком", new Vector2(0.56f, 0.20f), 0.62f, false);
             CreateGift(streetBoy, new Vector2(0.82f, 0.42f), 0.52f, "Упакованный шарф");
 
@@ -258,15 +241,15 @@ namespace TheLastGift.UI
             captionUiGroup.interactable = false;
             captionUiGroup.blocksRaycasts = false;
 
-            // Keep the story line in a centered reading area; on portrait displays
-            // it receives extra height so wrapped lines remain inside their panel.
+            // Place dialogue in an upper-left reading panel, away from the
+            // center of the scene and clear of the top-right skip control.
             bool portrait = safePixels.height > safePixels.width;
             Vector2 storyMin = portrait
-                ? new Vector2(0.035f, 0.405f)
-                : new Vector2(0.035f, 0.405f);
+                ? new Vector2(0.035f, 0.69f)
+                : new Vector2(0.035f, 0.755f);
             Vector2 storyMax = portrait
-                ? new Vector2(0.965f, 0.665f)
-                : new Vector2(0.965f, 0.585f);
+                ? new Vector2(0.64f, 0.86f)
+                : new Vector2(0.74f, 0.885f);
 
             captionPanel = CreateRect(
                 captionUiRoot,
@@ -275,7 +258,7 @@ namespace TheLastGift.UI
                 storyMax);
             Image backing = captionPanel.gameObject.AddComponent<Image>();
             backing.sprite = whiteSprite;
-            backing.color = new Color32(29, 42, 42, 232);
+            backing.color = new Color32(29, 42, 42, 255);
             backing.raycastTarget = false;
 
             RectTransform storyAccent = CreateRect(
