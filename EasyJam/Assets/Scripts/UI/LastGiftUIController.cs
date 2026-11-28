@@ -1264,8 +1264,6 @@ namespace TheLastGift.UI
                 new Vector2(0.12f, 0.84f), new Vector2(0.88f, 0.94f), TextAnchor.MiddleCenter);
             Label("Эльфы перепутали подарки! Перетащи каждый подарок в правильное место.",
                 21, brown, new Vector2(0.08f, 0.75f), new Vector2(0.92f, 0.82f), TextAnchor.MiddleCenter);
-            Label("Подсказка: мишка → объятия   •   подарок → под ёлку   •   леденец → сладости   •   снежный шар → зимнее чудо",
-                15, green, new Vector2(0.06f, 0.68f), new Vector2(0.94f, 0.74f), TextAnchor.MiddleCenter);
 
             int[] shuffledGiftIndices = { 0, 1, 2, 3 };
             for (int i = shuffledGiftIndices.Length - 1; i > 0; i--)
@@ -1373,7 +1371,7 @@ namespace TheLastGift.UI
 
             if (targetIndex != giftIndex)
             {
-                SetSortingEventStatus("Пока не подходит! Подсказка сверху поможет выбрать нужное место.", false);
+                SetSortingEventStatus("Не подходит. Попробуй другое место.", false);
                 StartCoroutine(Pop(sortingEventTargets[targetIndex]));
                 return;
             }
@@ -1461,14 +1459,33 @@ namespace TheLastGift.UI
             sortingEventCompleted = null;
 
             Build("Происшествие завершено");
-            RectTransform successCard = Card(
-                "Эльфам снова можно доверять!",
-                "Все подарки вернулись на свои места.\nЛавка снова готова принимать покупателей!\nСпасибо за помощь.");
+
+            Vector2 cardMin = new Vector2(0.12f, 0.12f);
+            Vector2 cardMax = new Vector2(0.88f, 0.92f);
+            Panel(root.transform, "Тень карточки происшествия",
+                cardMin, cardMax, new Vector2(14, -12), new Vector2(14, -12), wood);
+            RectTransform successCard = Panel(root.transform, "Карточка успеха происшествия",
+                cardMin, cardMax, Vector2.zero, Vector2.zero, paper);
+
+            CreateText(successCard, "Эльфам снова можно доверять!", 36, green,
+                new Vector2(0.055f, 0.83f), new Vector2(0.945f, 0.97f),
+                TextAnchor.MiddleCenter, Vector2.zero);
+
+            CreateText(successCard,
+                "Все подарки вернулись на свои места. Лавка снова готова принимать покупателей!",
+                26, brown, new Vector2(0.10f, 0.56f), new Vector2(0.90f, 0.76f),
+                TextAnchor.MiddleCenter, Vector2.zero);
+
+            Panel(successCard, "Разделитель награды",
+                new Vector2(0.16f, 0.49f), new Vector2(0.84f, 0.50f), gold);
+
             ChildLabel(successCard,
                 rewardCoins > 0 ? "+ " + rewardCoins + " МОНЕТ ✦" : "БОНУС ЗА ЭТО ПРОИСШЕСТВИЕ УЖЕ ПОЛУЧЕН",
-                38, gold, new Vector2(0.08f, 0.21f), new Vector2(0.92f, 0.41f), TextAnchor.MiddleCenter);
+                38, gold, new Vector2(0.10f, 0.29f), new Vector2(0.90f, 0.43f),
+                TextAnchor.MiddleCenter);
+
             ButtonAt("ПРОДОЛЖИТЬ РАБОТУ", green, () => continueToShop?.Invoke(),
-                new Vector2(0.32f, 0.13f), new Vector2(0.68f, 0.23f));
+                new Vector2(0.34f, 0.15f), new Vector2(0.66f, 0.24f));
             StartCoroutine(Pop(successCard));
         }
 
