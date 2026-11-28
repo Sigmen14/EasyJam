@@ -1460,32 +1460,117 @@ namespace TheLastGift.UI
 
             Build("Происшествие завершено");
 
-            Vector2 cardMin = new Vector2(0.12f, 0.12f);
-            Vector2 cardMax = new Vector2(0.88f, 0.92f);
-            Panel(root.transform, "Тень карточки происшествия",
-                cardMin, cardMax, new Vector2(14, -12), new Vector2(14, -12), wood);
-            RectTransform successCard = Panel(root.transform, "Карточка успеха происшествия",
-                cardMin, cardMax, Vector2.zero, Vector2.zero, paper);
+            // Keep the winter illustration visible around the card and use a
+            // layered evergreen surface instead of the large plain paper panel.
+            Color evergreen = new Color32(22, 65, 47, 255);
+            Color deepEvergreen = new Color32(13, 43, 33, 210);
+            Color ribbonRed = new Color32(151, 43, 43, 255);
+            Color warmCream = new Color32(255, 246, 224, 255);
+            Color softCream = new Color32(249, 235, 203, 255);
 
-            CreateText(successCard, "Эльфам снова можно доверять!", 36, green,
-                new Vector2(0.055f, 0.83f), new Vector2(0.945f, 0.97f),
+            Panel(root.transform, "Мягкая тень праздничной карточки",
+                new Vector2(0.065f, 0.058f), new Vector2(0.935f, 0.942f),
+                new Vector2(16f, -18f), new Vector2(8f, -10f), deepEvergreen);
+
+            Panel(root.transform, "Внешняя золотая окантовка",
+                new Vector2(0.075f, 0.075f), new Vector2(0.925f, 0.925f), gold);
+            RectTransform successCard = Panel(root.transform, "Праздничная зелёная карточка",
+                new Vector2(0.087f, 0.087f), new Vector2(0.913f, 0.913f), evergreen);
+
+            // A second fine gold line creates a double frame around the dark-green surface.
+            Panel(successCard, "Внутренняя золотая окантовка",
+                new Vector2(0.022f, 0.022f), new Vector2(0.978f, 0.978f), gold);
+            Panel(successCard, "Внутренняя хвойная поверхность",
+                new Vector2(0.032f, 0.032f), new Vector2(0.968f, 0.968f), evergreen);
+
+            // Small festive corner details keep the frame warm without crowding the content.
+            ChildLabel(successCard, "✦", 22, gold,
+                new Vector2(0.045f, 0.91f), new Vector2(0.12f, 0.98f), TextAnchor.MiddleCenter);
+            ChildLabel(successCard, "✦", 22, gold,
+                new Vector2(0.88f, 0.91f), new Vector2(0.955f, 0.98f), TextAnchor.MiddleCenter);
+            ChildLabel(successCard, "❄", 17, warmCream,
+                new Vector2(0.045f, 0.045f), new Vector2(0.12f, 0.11f), TextAnchor.MiddleCenter);
+            ChildLabel(successCard, "❄", 17, warmCream,
+                new Vector2(0.88f, 0.045f), new Vector2(0.955f, 0.11f), TextAnchor.MiddleCenter);
+
+            // Red title ribbon with a gold backing, slim edge and star accents.
+            Panel(successCard, "Золотая основа праздничной ленты",
+                new Vector2(0.115f, 0.765f), new Vector2(0.885f, 0.925f), gold);
+            Panel(successCard, "Красная праздничная лента",
+                new Vector2(0.128f, 0.782f), new Vector2(0.872f, 0.908f), ribbonRed);
+            Panel(successCard, "Золотая линия на ленте",
+                new Vector2(0.145f, 0.792f), new Vector2(0.855f, 0.799f), gold);
+            Panel(successCard, "Нижняя золотая линия ленты",
+                new Vector2(0.145f, 0.891f), new Vector2(0.855f, 0.898f), gold);
+            ChildLabel(successCard, "✦", 22, gold,
+                new Vector2(0.145f, 0.815f), new Vector2(0.21f, 0.88f), TextAnchor.MiddleCenter);
+            ChildLabel(successCard, "✦", 22, gold,
+                new Vector2(0.79f, 0.815f), new Vector2(0.855f, 0.88f), TextAnchor.MiddleCenter);
+            CreateText(successCard, "Эльфам снова можно доверять!", 34, warmCream,
+                new Vector2(0.20f, 0.805f), new Vector2(0.80f, 0.885f),
                 TextAnchor.MiddleCenter, Vector2.zero);
 
+            // A compact cream inset keeps the result message legible against green.
+            Panel(successCard, "Золотая рамка основного текста",
+                new Vector2(0.17f, 0.605f), new Vector2(0.83f, 0.745f), gold);
+            Panel(successCard, "Светлая область основного текста",
+                new Vector2(0.179f, 0.615f), new Vector2(0.821f, 0.735f), warmCream);
             CreateText(successCard,
                 "Все подарки вернулись на свои места. Лавка снова готова принимать покупателей!",
-                26, brown, new Vector2(0.10f, 0.56f), new Vector2(0.90f, 0.76f),
+                24, brown, new Vector2(0.205f, 0.622f), new Vector2(0.795f, 0.728f),
                 TextAnchor.MiddleCenter, Vector2.zero);
 
-            Panel(successCard, "Разделитель награды",
-                new Vector2(0.16f, 0.49f), new Vector2(0.84f, 0.50f), gold);
+            // Four small existing in-game gift sprites form a decorative reward row.
+            string[] giftNames =
+            {
+                "МИШКА", "КОРОБКА", "ЛЕДЕНЕЦ", "СНЕЖНЫЙ ШАР"
+            };
+            Sprite[] giftSprites =
+            {
+                teddySprite, giftBoxSprite, candyCaneSprite, snowGlobeSprite
+            };
 
-            ChildLabel(successCard,
+            const float tileWidth = 0.132f;
+            const float tileGap = 0.035f;
+            float tileStart = (1f - (tileWidth * 4f + tileGap * 3f)) * 0.5f;
+
+            for (int i = 0; i < giftSprites.Length; i++)
+            {
+                float left = tileStart + i * (tileWidth + tileGap);
+                RectTransform tile = Panel(successCard, "Подарочная миниатюра " + giftNames[i],
+                    new Vector2(left - 0.008f, 0.385f),
+                    new Vector2(left + tileWidth + 0.008f, 0.565f), gold);
+                Panel(tile, "Светлая подложка подарка",
+                    new Vector2(0.045f, 0.045f), new Vector2(0.955f, 0.955f), softCream);
+
+                ImageAt(tile, "Спрайт " + giftNames[i],
+                    new Vector2(0.16f, 0.24f), new Vector2(0.84f, 0.94f),
+                    giftSprites[i], Color.white);
+                ChildLabel(tile, giftNames[i], 12, brown,
+                    new Vector2(0.025f, 0.035f), new Vector2(0.975f, 0.23f),
+                    TextAnchor.MiddleCenter);
+            }
+
+            // The burgundy reward plaque has its own gold border and clear spacing.
+            Panel(successCard, "Золотая рамка награды",
+                new Vector2(0.22f, 0.205f), new Vector2(0.78f, 0.345f), gold);
+            RectTransform rewardPlaque = Panel(successCard, "Бордовая плашка награды",
+                new Vector2(0.232f, 0.218f), new Vector2(0.768f, 0.332f), ribbonRed);
+            ChildLabel(rewardPlaque,
                 rewardCoins > 0 ? "+" + rewardCoins + " МОНЕТ ✦" : "БОНУС ЗА ЭТО ПРОИСШЕСТВИЕ УЖЕ ПОЛУЧЕН",
-                38, gold, new Vector2(0.10f, 0.29f), new Vector2(0.90f, 0.43f),
+                rewardCoins > 0 ? 34 : 16, warmCream,
+                new Vector2(0.04f, 0.08f), new Vector2(0.96f, 0.92f),
                 TextAnchor.MiddleCenter);
 
+            // The button is layered over a gold backplate but keeps the existing callback.
+            Panel(root.transform, "Тень кнопки продолжения",
+                new Vector2(0.325f, 0.112f), new Vector2(0.675f, 0.208f),
+                new Vector2(5f, -5f), new Vector2(3f, -3f), deepEvergreen);
+            Panel(root.transform, "Золотая окантовка кнопки продолжения",
+                new Vector2(0.325f, 0.12f), new Vector2(0.675f, 0.205f), gold);
             ButtonAt("ПРОДОЛЖИТЬ РАБОТУ", green, () => continueToShop?.Invoke(),
-                new Vector2(0.34f, 0.15f), new Vector2(0.66f, 0.24f));
+                new Vector2(0.337f, 0.132f), new Vector2(0.663f, 0.193f));
+
             StartCoroutine(Pop(successCard));
         }
 
