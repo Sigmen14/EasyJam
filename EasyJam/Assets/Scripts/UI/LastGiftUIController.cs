@@ -149,7 +149,7 @@ namespace TheLastGift.UI
                     ShowTutorial();
                 else
                     Gameplay();
-            }, 0, -235, 360, 72);
+            }, 0, -270, 360, 72);
 
             Button("ВЫЙТИ", wood, Application.Quit, 0, -325, 220, 54);
         }
@@ -301,8 +301,7 @@ namespace TheLastGift.UI
 
             if (icon == null)
             {
-                Text fallback = Label(caption, 15, paper, min, max, TextAnchor.MiddleCenter);
-                fallback.transform.SetParent(tile.transform, false);
+                ChildLabel(tile.transform, caption, 15, paper, new Vector2(0.05f, 0.30f), new Vector2(0.95f, 0.70f), TextAnchor.MiddleCenter);
             }
             else
             {
