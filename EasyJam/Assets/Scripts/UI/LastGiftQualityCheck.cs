@@ -28,6 +28,7 @@ namespace TheLastGift.UI
         private GameObject qualityTaskPromptPanel;
         private GameObject qualityTaskStatusPanel;
         private bool qualityCompactLayout;
+        private bool qualitySmallScreen;
         private RectTransform qualityTaskTarget;
         private RectTransform qualityTaskItem;
         private LastGiftQualityDragHandle qualityTaskHandle;
@@ -158,6 +159,7 @@ namespace TheLastGift.UI
             qualityTaskSequence.Clear();
             qualityCompactLayout = Screen.width < Screen.height
                 || (float)Screen.width / Mathf.Max(1f, Screen.height) < 1.35f;
+            qualitySmallScreen = Screen.width < 700 || Screen.height < 500;
             BuildQualityTaskSequence();
 
             qualityCheckRoot = new GameObject("Проверка качества подарка", typeof(RectTransform));
@@ -350,9 +352,11 @@ namespace TheLastGift.UI
                     qualityTaskHint.text = "ПОПРАВЬ ЛЕНТУ";
                     qualityTaskDescription.text = "Перетащи ленту в золотую отметку на подарке.";
                     Vector2 targetMin = qualityCompactLayout
-                        ? new Vector2(0.485f, 0.315f) : new Vector2(0.685f, 0.305f);
+                        ? (qualitySmallScreen ? new Vector2(0.43f, 0.315f) : new Vector2(0.485f, 0.315f))
+                        : (qualitySmallScreen ? new Vector2(0.65f, 0.305f) : new Vector2(0.685f, 0.305f));
                     Vector2 targetMax = qualityCompactLayout
-                        ? new Vector2(0.515f, 0.545f) : new Vector2(0.725f, 0.615f);
+                        ? (qualitySmallScreen ? new Vector2(0.57f, 0.545f) : new Vector2(0.515f, 0.545f))
+                        : (qualitySmallScreen ? new Vector2(0.76f, 0.615f) : new Vector2(0.725f, 0.615f));
                     qualityTaskTarget = Panel(qualityCheckRoot.transform, "Цель для ленты",
                         targetMin, targetMax, new Color(1f, 0.82f, 0.35f, 0.40f));
                     qualityTaskTargetImage = qualityTaskTarget.GetComponent<Image>();
@@ -392,9 +396,11 @@ namespace TheLastGift.UI
                     qualityTaskHint.text = "ЗАКЛЕЙ УПАКОВКУ";
                     qualityTaskDescription.text = "Нажми на золотую отметку или проведи по ней.";
                     Vector2 targetMin = qualityCompactLayout
-                        ? new Vector2(0.485f, 0.415f) : new Vector2(0.685f, 0.445f);
+                        ? (qualitySmallScreen ? new Vector2(0.43f, 0.405f) : new Vector2(0.485f, 0.415f))
+                        : (qualitySmallScreen ? new Vector2(0.65f, 0.435f) : new Vector2(0.685f, 0.445f));
                     Vector2 targetMax = qualityCompactLayout
-                        ? new Vector2(0.515f, 0.455f) : new Vector2(0.725f, 0.485f);
+                        ? (qualitySmallScreen ? new Vector2(0.57f, 0.475f) : new Vector2(0.515f, 0.455f))
+                        : (qualitySmallScreen ? new Vector2(0.76f, 0.505f) : new Vector2(0.725f, 0.485f));
                     qualityTaskTarget = Panel(qualityCheckRoot.transform, "Отмеченный участок для скотча",
                         targetMin, targetMax, new Color(1f, 0.78f, 0.28f, 0.80f));
                     qualityTaskTargetImage = qualityTaskTarget.GetComponent<Image>();
@@ -421,6 +427,10 @@ namespace TheLastGift.UI
             RectTransform rect = item.GetComponent<RectTransform>();
             rect.anchorMin = anchor;
             rect.anchorMax = anchor;
+            float canvasScale = canvas != null ? Mathf.Max(0.1f, canvas.scaleFactor) : 1f;
+            float minimumTouchSize = 52f / canvasScale;
+            size.x = Mathf.Max(size.x, minimumTouchSize);
+            size.y = Mathf.Max(size.y, minimumTouchSize);
             rect.sizeDelta = size;
             rect.anchoredPosition = Vector2.zero;
 
