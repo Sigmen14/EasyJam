@@ -551,7 +551,7 @@ namespace TheLastGift.Packing
                 var screenPosition = targetCamera.WorldToScreenPoint(labelWorldPosition);
                 if (screenPosition.z <= 0f) continue;
 
-                var labelWidth = Mathf.Clamp(shapeWidth * pixelsPerWorldUnit, 96f, 280f);
+                var labelWidth = Mathf.Clamp(Mathf.Max(shapeWidth * pixelsPerWorldUnit, 170f), 150f, 280f);
                 var labelRect = new Rect(
                     screenPosition.x - labelWidth * 0.5f,
                     Screen.height - screenPosition.y - 13f,
