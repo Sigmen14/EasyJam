@@ -17,7 +17,7 @@ public sealed class OrderProgressionVisualDemo : MonoBehaviour
 
     // Applied centrally so every label, heading, button and status message
     // remains visually consistent when the demo UI is generated.
-    private const float UiFontScale = 1.4f;
+    private const float UiFontScale = 1.8f;
 
     private readonly List<DaySummaryData> completedDays = new List<DaySummaryData>();
 
