@@ -514,13 +514,24 @@ namespace TheLastGift.UI
             else Gameplay();
         }
 
-        /// <summary>Reusable entry point for the same audio settings panel from a future pause menu.</summary>
+        /// <summary>Opens audio settings and returns to the main menu when the panel is closed.</summary>
         public void ShowAudioSettings()
         {
-            SettingsMenu();
+            ShowAudioSettings(MainMenu);
+        }
+
+        /// <summary>Opens audio settings and invokes the supplied return action when closed (for example, a pause menu).</summary>
+        public void ShowAudioSettings(Action onBack)
+        {
+            SettingsMenu(onBack);
         }
 
         private void SettingsMenu()
+        {
+            SettingsMenu(MainMenu);
+        }
+
+        private void SettingsMenu(Action onBack)
         {
             LastGiftAudioManager.EnsureInstance();
             Build("Настройки");
@@ -550,7 +561,8 @@ namespace TheLastGift.UI
                 LastGiftAudioManager.SfxVolume, 0.22f,
                 LastGiftAudioManager.SetSfxVolume);
 
-            ButtonAt("НАЗАД В МЕНЮ", wood, MainMenu,
+            Action returnAction = onBack ?? (Action)MainMenu;
+            ButtonAt("НАЗАД", wood, returnAction,
                 new Vector2(0.38f, 0.085f), new Vector2(0.62f, 0.16f));
         }
 

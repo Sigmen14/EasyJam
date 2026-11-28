@@ -13,6 +13,6 @@ LastGiftAudioManager.PlayMusic(LastGiftMusicTheme, fadeDuration) crossfades betw
 LastGiftAudioManager.PlaySfx(LastGiftSoundEffect) plays one-shots from Audio/Sfx: UI click, gift drag, packed gift, error, new order, dialogue advance and order complete.
 
 ## Volume and pause-menu reuse
-The existing settings screen exposes master, music and SFX sliders. Values use PlayerPrefs and are flushed on application pause/quit. LastGiftUIController.ShowAudioSettings() opens this same panel from a future pause menu without duplicating slider logic.
+The existing settings screen exposes master, music and SFX sliders. Values use PlayerPrefs and are flushed on application pause/quit. LastGiftUIController.ShowAudioSettings() opens this panel and returns to the main menu. A future pause menu can call ShowAudioSettings(onBack) to restore its own state without duplicating slider logic.
 
 Example API calls: LastGiftAudioManager.PlaySfx(LastGiftSoundEffect.GiftPacked); LastGiftAudioManager.PlayMusic(LastGiftMusicTheme.Workshop); LastGiftAudioManager.SetMusicVolume(0.5f).
