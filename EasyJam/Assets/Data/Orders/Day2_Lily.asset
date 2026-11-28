@@ -22,3 +22,17 @@ MonoBehaviour:
   RewardCoins: 40
   Day: 2
   PerfectPackingTip: 8
+  PreferredWrappingPaper: 4
+  PreferredWrappingRibbon: 4
+  PreferredWrappingCard: 3
+  WrappingHint: "Любит нежные оттенки и открытки с тёплыми пожеланиями."
+  WrappingBonusCoins: 10
+  PerfectWrappingReputationBonus: 1
+  SecretWish:
+    Clue: Мама любит хранить памятные вещи и красивые сюрпризы.
+    GiftOptions:
+    - ПОДАРОК
+    - МИШКА
+    - СНЕЖНЫЙ ШАР
+    CorrectGiftName: ПОДАРОК
+    BonusCoins: 10

@@ -22,29 +22,32 @@ public class GiftOrderDefinition : ScriptableObject
     [Tooltip("Tip awarded when a valid packing result places every item.")]
     [Min(0)] public int PerfectPackingTip = 5;
 
+    [Header("Wrapping preferences")]
+    public GiftWrappingPaper PreferredWrappingPaper = GiftWrappingPaper.Red;
+    public GiftWrappingRibbon PreferredWrappingRibbon = GiftWrappingRibbon.BigRed;
+    public GiftWrappingCard PreferredWrappingCard = GiftWrappingCard.MerryChristmas;
+    [TextArea(1, 2)] public string WrappingHint;
+    [Min(0)] public int WrappingBonusCoins = 10;
+    [Min(0)] public int PerfectWrappingReputationBonus = 1;
+
     [Header("Тайное желание покупателя")]
-    [Tooltip("Необязательно. Заполни Clue, 2–3 Gift Options и Correct Gift Name, чтобы показать диалог до сборки коробки.")]
+    [Tooltip("Реплика, варианты и правильный подарок. Появление вопроса выбирается отдельно для каждого прохождения.")]
     public SecretCustomerWishDefinition SecretWish = new SecretCustomerWishDefinition();
 }
 
-/// <summary>
-/// Optional clue presented before packing. Gift names must match the existing shop shelf catalog.
-/// </summary>
 [Serializable]
 public class SecretCustomerWishDefinition
 {
     [TextArea(2, 4)]
-    [Tooltip("Короткая фраза покупателя о человеке, которому предназначен подарок.")]
     public string Clue;
 
-    [Tooltip("2–3 варианта из каталога: МИШКА, ПОДАРОК, ЛЕДЕНЕЦ, СНЕЖНЫЙ ШАР.")]
+    [Tooltip("Два или три уникальных подарка из каталога.")]
     public List<string> GiftOptions = new List<string>();
 
-    [Tooltip("Правильный вариант из списка Gift Options.")]
+    [Tooltip("Правильный вариант, который также должен присутствовать в GiftNames.")]
     public string CorrectGiftName;
 
     [Min(0)]
-    [Tooltip("Бонусные монеты за правильный ответ.")]
     public int BonusCoins = 10;
 }
 
@@ -53,4 +56,47 @@ public enum GiftBoxSize
     Small,
     Medium,
     Large
+}
+
+
+public enum GiftWrappingPaper
+{
+    Red,
+    Green,
+    Blue,
+    Gold,
+    Blush
+}
+
+public enum GiftWrappingRibbon
+{
+    BigRed,
+    BigGold,
+    ClassicGreen,
+    ThinBlue,
+    SoftPink
+}
+
+public enum GiftWrappingCard
+{
+    MerryChristmas,
+    WarmWishes,
+    DreamsComeTrue,
+    WithLove,
+    HappyHolidays
+}
+
+[Serializable]
+public struct GiftWrappingSelection
+{
+    public GiftWrappingPaper Paper;
+    public GiftWrappingRibbon Ribbon;
+    public GiftWrappingCard Card;
+
+    public GiftWrappingSelection(GiftWrappingPaper paper, GiftWrappingRibbon ribbon, GiftWrappingCard card)
+    {
+        Paper = paper;
+        Ribbon = ribbon;
+        Card = card;
+    }
 }

@@ -22,3 +22,17 @@ MonoBehaviour:
   RewardCoins: 45
   Day: 2
   PerfectPackingTip: 8
+  PreferredWrappingPaper: 1
+  PreferredWrappingRibbon: 0
+  PreferredWrappingCard: 2
+  WrappingHint: "Обожает яркие цвета, весёлые пожелания и большие банты."
+  WrappingBonusCoins: 10
+  PerfectWrappingReputationBonus: 1
+  SecretWish:
+    Clue: Подруга всегда выбирает сладкое угощение к чаю.
+    GiftOptions:
+    - ЛЕДЕНЕЦ
+    - СНЕЖНЫЙ ШАР
+    - МИШКА
+    CorrectGiftName: ЛЕДЕНЕЦ
+    BonusCoins: 10

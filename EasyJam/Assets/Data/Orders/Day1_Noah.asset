@@ -22,6 +22,12 @@ MonoBehaviour:
   RewardCoins: 25
   Day: 1
   PerfectPackingTip: 5
+  PreferredWrappingPaper: 0
+  PreferredWrappingRibbon: 0
+  PreferredWrappingCard: 2
+  WrappingHint: "Обожает яркие цвета, весёлые пожелания и большие банты."
+  WrappingBonusCoins: 10
+  PerfectWrappingReputationBonus: 1
   SecretWish:
     Clue: Моя сестра очень любит сладости.
     GiftOptions:

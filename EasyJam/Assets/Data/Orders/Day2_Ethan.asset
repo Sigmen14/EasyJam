@@ -22,3 +22,17 @@ MonoBehaviour:
   RewardCoins: 50
   Day: 2
   PerfectPackingTip: 10
+  PreferredWrappingPaper: 0
+  PreferredWrappingRibbon: 1
+  PreferredWrappingCard: 4
+  WrappingHint: "Ценит традиционные праздничные цвета и аккуратную ленту."
+  WrappingBonusCoins: 10
+  PerfectWrappingReputationBonus: 1
+  SecretWish:
+    Clue: Мой брат давно мечтает о мягком друге, которого можно обнимать.
+    GiftOptions:
+    - МИШКА
+    - ПОДАРОК
+    - ЛЕДЕНЕЦ
+    CorrectGiftName: МИШКА
+    BonusCoins: 10

@@ -46,9 +46,11 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
         }
 
         ui.ConfirmPacking = ConfirmPacking;
+        ui.ConfirmWrapping = HandleWrappingCompleted;
+        ui.SecretWishShown = progression.MarkCurrentSecretWishShown;
+        ui.AwardSecretWishBonus = AwardSecretWishBonus;
         ui.Continue = progression.ContinueAfterResult;
         ui.StartGame = StartOrRestartGame;
-        ui.AwardSecretWishBonus = AwardSecretWishBonus;
 
         progression.OrderStarted += HandleOrderStarted;
         progression.OrderCompleted += HandleOrderCompleted;
@@ -69,9 +71,11 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
         if (ui != null)
         {
             ui.ConfirmPacking = null;
+            ui.ConfirmWrapping = null;
+            ui.SecretWishShown = null;
+            ui.AwardSecretWishBonus = null;
             ui.Continue = null;
             ui.StartGame = null;
-            ui.AwardSecretWishBonus = null;
         }
     }
 
@@ -85,13 +89,9 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
 
     private int AwardSecretWishBonus(bool correctAnswer, int amount)
     {
-        if (progression == null)
-            return 0;
-
-        int awarded = progression.AwardSecretWishBonus(correctAnswer, amount);
-        if (ui != null)
-            ui.SetProgressionBalance(progression.CurrentCoins);
-
+        int awarded = progression == null ? 0 : progression.AwardSecretWishBonus(correctAnswer, amount);
+        if (ui != null && progression != null)
+            ui.SetProgressionBalance(progression.CurrentCoins, progression.TotalReputationEarned);
         return awarded;
     }
 
@@ -101,7 +101,9 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
             order,
             progression.CurrentDay,
             progression.CurrentOrderNumber,
-            progression.CurrentCoins);
+            progression.CurrentCoins,
+            progression.TotalReputationEarned,
+            progression.IsSecretWishAssignedForCurrentOrder);
     }
 
     private void ConfirmPacking()
@@ -113,21 +115,42 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
             return;
         }
 
-        int requiredCount = order.GiftNames == null ? 0 : order.GiftNames.Count;
-        int placedCount = ui.PlacedGiftCount;
+        // LastGiftUIController has already verified the exact gift combination.
+        // Keep the packed box intact while the player chooses its wrapping.
+        ui.ShowGiftWrappingScreen();
+    }
 
-        // LastGiftUIController validates the exact gift combination before this
-        // callback is invoked. The manager then awards the configured order reward.
+    private void HandleWrappingCompleted(GiftWrappingSelection selection)
+    {
+        GiftOrderDefinition order = progression.CurrentOrder;
+        if (order == null)
+        {
+            ui.PackingFeedback("Сейчас нет активного заказа.", false);
+            return;
+        }
+
+        int matchingChoices = 0;
+        if (selection.Paper == order.PreferredWrappingPaper) matchingChoices++;
+        if (selection.Ribbon == order.PreferredWrappingRibbon) matchingChoices++;
+        if (selection.Card == order.PreferredWrappingCard) matchingChoices++;
+
+        bool suitableWrapping = matchingChoices >= 2;
+        bool perfectWrapping = matchingChoices == 3;
+        int requiredCount = order.GiftNames == null ? 0 : order.GiftNames.Count;
+
+        // The manager validates the box again and owns the one-time reward guard.
         progression.CompleteCurrentOrder(
-            new PackingResult(true, true, placedCount, requiredCount));
+            new PackingResult(true, true, ui.PlacedGiftCount, requiredCount),
+            suitableWrapping,
+            perfectWrapping);
     }
 
     private void HandleOrderCompleted(OrderCompletionData result)
     {
         if (result.Success)
         {
-            ui.OrderSuccess(result.TotalEarned);
-            ui.SetProgressionBalance(progression.CurrentCoins);
+            ui.OrderSuccess(result.TotalEarned, result.WrappingBonus, result.ReputationBonus);
+            ui.SetProgressionBalance(progression.CurrentCoins, progression.TotalReputationEarned);
         }
         else
         {
@@ -137,13 +160,13 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
 
     private void HandleDayCompleted(DaySummaryData summary)
     {
-        ui.SetProgressionBalance(summary.CurrentBalance);
+        ui.SetProgressionBalance(summary.CurrentBalance, progression.TotalReputationEarned);
         ui.DayEnd(summary.OrdersCompleted, summary.CoinsEarned);
     }
 
     private void HandleGameCompleted(GameSummaryData summary)
     {
-        ui.SetProgressionBalance(summary.FinalCoins);
+        ui.SetProgressionBalance(summary.FinalCoins, summary.ReputationEarned);
         ui.FinalScreen(summary);
     }
 }

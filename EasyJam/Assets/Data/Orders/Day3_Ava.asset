@@ -23,3 +23,17 @@ MonoBehaviour:
   RewardCoins: 60
   Day: 3
   PerfectPackingTip: 12
+  PreferredWrappingPaper: 3
+  PreferredWrappingRibbon: 2
+  PreferredWrappingCard: 4
+  WrappingHint: "Предпочитает классическую рождественскую упаковку."
+  WrappingBonusCoins: 10
+  PerfectWrappingReputationBonus: 1
+  SecretWish:
+    Clue: Хочу подарить близкому человеку кусочек зимней сказки.
+    GiftOptions:
+    - СНЕЖНЫЙ ШАР
+    - ПОДАРОК
+    - ЛЕДЕНЕЦ
+    CorrectGiftName: СНЕЖНЫЙ ШАР
+    BonusCoins: 10

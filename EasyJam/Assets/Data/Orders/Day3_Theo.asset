@@ -23,3 +23,17 @@ MonoBehaviour:
   RewardCoins: 75
   Day: 3
   PerfectPackingTip: 20
+  PreferredWrappingPaper: 2
+  PreferredWrappingRibbon: 1
+  PreferredWrappingCard: 2
+  WrappingHint: "Обожает яркие цвета, весёлые пожелания и большие банты."
+  WrappingBonusCoins: 10
+  PerfectWrappingReputationBonus: 1
+  SecretWish:
+    Clue: Младший брат души не чает в плюшевых друзьях.
+    GiftOptions:
+    - МИШКА
+    - ПОДАРОК
+    - ЛЕДЕНЕЦ
+    CorrectGiftName: МИШКА
+    BonusCoins: 10

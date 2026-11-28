@@ -51,7 +51,20 @@ public static class OrderProgressionSmokeTest
             manager.DayCompleted += summary => completedDays.Add(summary);
             manager.GameCompleted += summary => gameSummary = summary;
 
+            ValidateSecretWishSeedVariations();
             manager.StartGame();
+
+            bool[] activeSequence = manager.GetSecretWishAssignments();
+            Require(OrderProgressionManager.IsValidSecretWishSequence(activeSequence),
+                "The generated secret-wish sequence is invalid.");
+            Require(CountSecretWishes(activeSequence) == 4,
+                "A new campaign must assign exactly four secret wishes.");
+            expectedCoins += SumAssignedSecretWishBonuses(campaign, activeSequence);
+
+            string initialSequenceKey = SequenceKey(activeSequence);
+            manager.StartGame();
+            Require(SequenceKey(manager.GetSecretWishAssignments()) == initialSequenceKey,
+                "Calling StartGame during an active run changed the secret-wish sequence.");
 
             int attemptIndex = 0;
             while (manager.CurrentOrder != null && attemptIndex < totalOrders)
@@ -59,28 +72,56 @@ public static class OrderProgressionSmokeTest
                 GiftOrderDefinition currentOrder = manager.CurrentOrder;
                 int giftCount = currentOrder.GiftNames == null ? 0 : currentOrder.GiftNames.Count;
                 bool deliberatelyFail = attemptIndex == 0;
+                bool assignedWish = manager.IsSecretWishAssignedForCurrentOrder;
 
-                if (currentOrder.SecretWish != null && !string.IsNullOrWhiteSpace(currentOrder.SecretWish.Clue))
+                Require(assignedWish == activeSequence[attemptIndex],
+                    "The current order's secret-wish assignment does not match the fixed campaign sequence.");
+                Require(SequenceKey(manager.GetSecretWishAssignments()) == initialSequenceKey,
+                    "The secret-wish sequence changed during campaign progression.");
+
+                manager.MarkCurrentSecretWishShown();
+                int balanceBeforeSecretWish = manager.CurrentCoins;
+                if (assignedWish)
                 {
-                    int expectedBonus = Mathf.Max(0, currentOrder.SecretWish.BonusCoins);
-                    int balanceBeforeWrongAnswer = manager.CurrentCoins;
-                    Require(manager.AwardSecretWishBonus(false, currentOrder.SecretWish.BonusCoins) == 0,
-                        "An incorrect secret-wish answer awarded coins for " + currentOrder.name + ".");
-                    Require(manager.CurrentCoins == balanceBeforeWrongAnswer,
-                        "An incorrect secret-wish answer changed the coin balance for " + currentOrder.name + ".");
+                    Require(manager.HasSecretWishBeenShownForCurrentOrder,
+                        "An assigned secret wish was not recorded as displayed.");
 
-                    int awardedBonus = manager.AwardSecretWishBonus(true, currentOrder.SecretWish.BonusCoins);
-                    Require(awardedBonus == expectedBonus,
-                        "Secret-wish bonus is incorrect for " + currentOrder.name + ".");
+                    int wrongAnswerReward = manager.AwardSecretWishBonus(false, currentOrder.SecretWish.BonusCoins);
+                    Require(wrongAnswerReward == 0 && manager.CurrentCoins == balanceBeforeSecretWish,
+                        "An incorrect secret-wish answer awarded coins.");
+
+                    int expectedWishBonus = Mathf.Max(0, currentOrder.SecretWish.BonusCoins);
+                    int wishBonus = manager.AwardSecretWishBonus(true, currentOrder.SecretWish.BonusCoins);
+                    Require(wishBonus == expectedWishBonus,
+                        "A correct secret-wish answer awarded an incorrect bonus.");
                     Require(manager.AwardSecretWishBonus(true, currentOrder.SecretWish.BonusCoins) == 0,
-                        "Secret-wish bonus was awarded more than once for " + currentOrder.name + ".");
+                        "The secret-wish bonus was awarded more than once.");
+                }
+                else
+                {
+                    Require(!manager.HasSecretWishBeenShownForCurrentOrder,
+                        "An unassigned customer's secret wish was marked as displayed.");
+                    Require(manager.AwardSecretWishBonus(true, currentOrder.SecretWish.BonusCoins) == 0,
+                        "An unassigned secret wish awarded a bonus.");
+                    Require(manager.CurrentCoins == balanceBeforeSecretWish,
+                        "An unassigned secret wish changed the coin balance.");
                 }
 
                 PackingResult result = deliberatelyFail
                     ? new PackingResult(false, false, 0, giftCount)
                     : new PackingResult(true, true, giftCount, giftCount);
 
-                manager.CompleteCurrentOrder(result);
+                bool suitableWrapping = !deliberatelyFail && attemptIndex != 1;
+                bool perfectWrapping = suitableWrapping && attemptIndex != 2;
+                manager.CompleteCurrentOrder(result, suitableWrapping, perfectWrapping);
+
+                int coinsAfterFirstCompletion = manager.CurrentCoins;
+                int reputationAfterFirstCompletion = manager.TotalReputationEarned;
+                manager.CompleteCurrentOrder(result, true, true);
+                Require(manager.CurrentCoins == coinsAfterFirstCompletion,
+                    "Repeated completion awarded coins more than once for order " + (attemptIndex + 1) + ".");
+                Require(manager.TotalReputationEarned == reputationAfterFirstCompletion,
+                    "Repeated completion awarded reputation more than once for order " + (attemptIndex + 1) + ".");
 
                 Require(completedOrders.Count == attemptIndex + 1,
                     "OrderCompleted did not fire exactly once for order " + (attemptIndex + 1) + ".");
@@ -97,9 +138,16 @@ public static class OrderProgressionSmokeTest
                 else
                 {
                     Require(completion.Success, "A simulated successful order was marked as failed: " + currentOrder.name);
+                    int expectedWrappingBonus = suitableWrapping ? Mathf.Max(0, currentOrder.WrappingBonusCoins) : 0;
+                    int expectedReputationBonus = perfectWrapping
+                        ? Mathf.Max(0, currentOrder.PerfectWrappingReputationBonus) : 0;
                     Require(completion.TotalEarned == Mathf.Max(0, currentOrder.RewardCoins)
-                        + Mathf.Max(0, currentOrder.PerfectPackingTip),
-                        "The reward or perfect-packing tip is incorrect for " + currentOrder.name + ".");
+                        + Mathf.Max(0, currentOrder.PerfectPackingTip) + expectedWrappingBonus,
+                        "The order reward, packing tip or wrapping bonus is incorrect for " + currentOrder.name + ".");
+                    Require(completion.WrappingBonus == expectedWrappingBonus,
+                        "Wrapping bonus did not respect the selected wrapping quality for " + currentOrder.name + ".");
+                    Require(completion.ReputationBonus == expectedReputationBonus,
+                        "The perfect-wrapping reputation bonus is incorrect for " + currentOrder.name + ".");
                 }
 
                 manager.ContinueAfterResult();
@@ -123,10 +171,14 @@ public static class OrderProgressionSmokeTest
                 + ", received " + manager.TotalCoinsEarned + ".");
             Require(manager.TotalTipsEarned == SumTipsForSuccessfulOrders(campaign),
                 "Perfect-packing tip total is incorrect.");
+            Require(manager.TotalReputationEarned == SumWrappingReputationBonusesForSuccessfulOrders(campaign),
+                "Perfect-wrapping reputation total is incorrect.");
             Require(manager.CurrentCoins == expectedCoins, "Final coin balance is incorrect.");
             Require(gameSummary.OrdersCompleted == expectedSuccessfulOrders, "Game summary has an incorrect order count.");
             Require(gameSummary.TotalCoinsEarned == expectedCoins, "Game summary has an incorrect coin total.");
             Require(gameSummary.FinalCoins == expectedCoins, "Game summary has an incorrect final balance.");
+            Require(gameSummary.ReputationEarned == manager.TotalReputationEarned,
+                "Game summary has an incorrect reputation total.");
             Require(gameSummary.DaysPlayed == campaign.Days.Count, "Game summary has an incorrect number of days.");
 
             for (int i = 0; i < completedDays.Count; i++)
@@ -141,6 +193,13 @@ public static class OrderProgressionSmokeTest
             }
 
             manager.RestartGame();
+            bool[] restartedSequence = manager.GetSecretWishAssignments();
+            Require(OrderProgressionManager.IsValidSecretWishSequence(restartedSequence),
+                "Restart generated an invalid secret-wish sequence.");
+            Require(CountSecretWishes(restartedSequence) == 4,
+                "Restart did not assign exactly four secret wishes.");
+            Require(SequenceKey(restartedSequence) != initialSequenceKey,
+                "Restart reused the previous secret-wish sequence.");
             Require(!manager.IsCompleted, "Restart did not clear the completed state.");
             Require(manager.CurrentDay == campaign.Days[0].DayNumber,
                 "Restart did not return to day one.");
@@ -148,8 +207,9 @@ public static class OrderProgressionSmokeTest
                 "Restart did not return to the first order.");
             Require(manager.CurrentOrder == campaign.Days[0].Orders[0],
                 "Restart did not restore the first campaign order.");
-            Require(manager.CurrentCoins == 0 && manager.TotalOrdersCompleted == 0,
-                "Restart did not reset the campaign balance and statistics.");
+            Require(manager.CurrentCoins == 0 && manager.TotalOrdersCompleted == 0
+                && manager.TotalReputationEarned == 0,
+                "Restart did not reset the campaign balance, reputation and statistics.");
 
             StringBuilder report = new StringBuilder();
             report.AppendLine("PASSED");
@@ -159,7 +219,16 @@ public static class OrderProgressionSmokeTest
             report.AppendLine("Deliberately failed orders: 1 (no reward awarded)");
             report.AppendLine("Successful orders: " + expectedSuccessfulOrders);
             report.AppendLine("Final coin balance: " + expectedCoins);
+            report.AppendLine("Perfect wrapping reputation: " + manager.TotalReputationEarned);
+            report.AppendLine("Unsuitable wrapping still completes the order without a bonus: OK");
+            report.AppendLine("Suitable wrapping awards coins; perfect wrapping awards reputation: OK");
+            report.AppendLine("Repeated completion does not duplicate rewards: OK");
             report.AppendLine("Day transitions and campaign completion: OK");
+            report.AppendLine("Secret wishes: exactly 4 per run, at least 1 each day, max 2 consecutive: OK");
+            report.AppendLine("Secret-wish assignments remain fixed during the run: OK");
+            report.AppendLine("Different seeds produce different valid sequences: OK");
+            report.AppendLine("Restart selects a new secret-wish sequence: OK");
+            report.AppendLine("Only displayed, assigned wishes can award a one-time bonus: OK");
             report.AppendLine("Restart campaign: OK");
 
             Debug.Log("[Order Progression Smoke Test]\n" + report);
@@ -221,70 +290,66 @@ public static class OrderProgressionSmokeTest
                         return "Order " + order.name + " contains an unknown shelf gift: " + order.GiftNames[giftIndex] + ".";
                 }
 
-                if (order.SecretWish != null && !string.IsNullOrWhiteSpace(order.SecretWish.Clue))
+                SecretCustomerWishDefinition wish = order.SecretWish;
+                if (wish == null || string.IsNullOrWhiteSpace(wish.Clue))
+                    return "Customer '" + order.CustomerName + "' has no configured secret wish.";
+
+                if (wish.GiftOptions == null || wish.GiftOptions.Count < 2 || wish.GiftOptions.Count > 3)
+                    return "Secret wish for customer '" + order.CustomerName + "' must contain 2–3 answer options.";
+
+                bool correctAnswerInOptions = false;
+                for (int optionIndex = 0; optionIndex < wish.GiftOptions.Count; optionIndex++)
                 {
-                    if (order.SecretWish.GiftOptions == null
-                        || order.SecretWish.GiftOptions.Count < 2
-                        || order.SecretWish.GiftOptions.Count > 3)
-                        return "Secret wish on " + order.name + " must have 2–3 gift options.";
+                    string option = wish.GiftOptions[optionIndex];
+                    if (string.IsNullOrWhiteSpace(option))
+                        return "Secret wish for customer '" + order.CustomerName + "' contains an empty answer option.";
 
-                    bool correctAnswerIncluded = false;
-                    for (int optionIndex = 0; optionIndex < order.SecretWish.GiftOptions.Count; optionIndex++)
+                    option = option.Trim();
+                    bool optionExists = false;
+                    for (int catalogIndex = 0; catalogIndex < availableGifts.Length; catalogIndex++)
                     {
-                        string option = order.SecretWish.GiftOptions[optionIndex];
-                        if (string.IsNullOrWhiteSpace(option))
-                            return "Secret wish on " + order.name + " contains an empty gift option.";
-
-                        option = option.Trim();
-                        bool optionExistsInCatalog = false;
-                        for (int catalogIndex = 0; catalogIndex < availableGifts.Length; catalogIndex++)
+                        if (string.Equals(option, availableGifts[catalogIndex], StringComparison.OrdinalIgnoreCase))
                         {
-                            if (string.Equals(option, availableGifts[catalogIndex], StringComparison.OrdinalIgnoreCase))
-                            {
-                                optionExistsInCatalog = true;
-                                break;
-                            }
-                        }
-
-                        if (!optionExistsInCatalog)
-                            return "Secret wish on " + order.name + " contains an unknown shelf gift: " + option + ".";
-
-                        for (int previousIndex = 0; previousIndex < optionIndex; previousIndex++)
-                        {
-                            if (string.Equals(option, order.SecretWish.GiftOptions[previousIndex]?.Trim(),
-                                StringComparison.OrdinalIgnoreCase))
-                                return "Secret wish on " + order.name + " contains duplicate gift options.";
-                        }
-
-                        if (string.Equals(option, order.SecretWish.CorrectGiftName?.Trim(),
-                            StringComparison.OrdinalIgnoreCase))
-                            correctAnswerIncluded = true;
-                    }
-
-                    if (!correctAnswerIncluded)
-                        return "Secret wish on " + order.name + " does not include its correct answer.";
-
-                    string correctGiftName = order.SecretWish.CorrectGiftName.Trim();
-                    bool correctGiftExistsInOrder = false;
-                    for (int giftIndex = 0; giftIndex < order.GiftNames.Count; giftIndex++)
-                    {
-                        if (string.Equals(order.GiftNames[giftIndex]?.Trim(), correctGiftName,
-                            StringComparison.OrdinalIgnoreCase))
-                        {
-                            correctGiftExistsInOrder = true;
+                            optionExists = true;
                             break;
                         }
                     }
 
-                    if (!correctGiftExistsInOrder)
+                    if (!optionExists)
+                        return "Secret wish for customer '" + order.CustomerName
+                            + "' contains a gift outside the catalog: '" + option + "'.";
+
+                    for (int previousIndex = 0; previousIndex < optionIndex; previousIndex++)
                     {
-                        return "Secret wish mismatch for customer '" + order.CustomerName
-                            + "' (order " + order.name + "): correct gift '" + correctGiftName
-                            + "' is missing from the main order GiftNames.";
+                        if (string.Equals(option, wish.GiftOptions[previousIndex]?.Trim(),
+                            StringComparison.OrdinalIgnoreCase))
+                            return "Secret wish for customer '" + order.CustomerName
+                                + "' contains duplicate answer option '" + option + "'.";
                     }
 
-                    expectedCoins += Mathf.Max(0, order.SecretWish.BonusCoins);
+                    if (string.Equals(option, wish.CorrectGiftName?.Trim(), StringComparison.OrdinalIgnoreCase))
+                        correctAnswerInOptions = true;
                 }
+
+                if (!correctAnswerInOptions)
+                    return "Correct gift for customer '" + order.CustomerName
+                        + "' is not included in the secret-wish answer options.";
+
+                bool correctGiftInOrder = false;
+                for (int giftIndex = 0; giftIndex < order.GiftNames.Count; giftIndex++)
+                {
+                    if (string.Equals(order.GiftNames[giftIndex]?.Trim(), wish.CorrectGiftName?.Trim(),
+                        StringComparison.OrdinalIgnoreCase))
+                    {
+                        correctGiftInOrder = true;
+                        break;
+                    }
+                }
+
+                if (!correctGiftInOrder)
+                    return "Secret wish mismatch for customer '" + order.CustomerName
+                        + "': correct gift '" + wish.CorrectGiftName
+                        + "' is missing from the main order GiftNames.";
 
                 int boxCapacity = order.BoxSize == GiftBoxSize.Small ? 4
                     : order.BoxSize == GiftBoxSize.Medium ? 6 : 9;
@@ -296,6 +361,9 @@ public static class OrderProgressionSmokeTest
                 {
                     expectedCoins += Mathf.Max(0, order.RewardCoins);
                     expectedCoins += Mathf.Max(0, order.PerfectPackingTip);
+                    // The second order is deliberately wrapped poorly to verify it still completes.
+                    if (totalOrders > 2)
+                        expectedCoins += Mathf.Max(0, order.WrappingBonusCoins);
                 }
 
                 firstOrder = false;
@@ -303,6 +371,62 @@ public static class OrderProgressionSmokeTest
         }
 
         return null;
+    }
+
+    private static void ValidateSecretWishSeedVariations()
+    {
+        HashSet<string> distinctSequences = new HashSet<string>();
+        for (int seed = -16; seed < 80; seed++)
+        {
+            bool[] sequence = OrderProgressionManager.CreateSecretWishSequence(seed);
+            Require(OrderProgressionManager.IsValidSecretWishSequence(sequence),
+                "Seed " + seed + " generated an invalid secret-wish sequence.");
+            Require(CountSecretWishes(sequence) == 4,
+                "Seed " + seed + " did not generate exactly four secret wishes.");
+            distinctSequences.Add(SequenceKey(sequence));
+        }
+
+        Require(distinctSequences.Count > 1,
+            "Different seeds did not produce different secret-wish sequences.");
+    }
+
+    private static int CountSecretWishes(IList<bool> sequence)
+    {
+        int count = 0;
+        for (int i = 0; i < sequence.Count; i++)
+        {
+            if (sequence[i])
+                count++;
+        }
+
+        return count;
+    }
+
+    private static string SequenceKey(IList<bool> sequence)
+    {
+        char[] key = new char[sequence.Count];
+        for (int i = 0; i < sequence.Count; i++)
+            key[i] = sequence[i] ? '1' : '0';
+        return new string(key);
+    }
+
+    private static int SumAssignedSecretWishBonuses(
+        OrderCampaignDefinition campaign,
+        IList<bool> assignments)
+    {
+        int total = 0;
+        int orderIndex = 0;
+        foreach (OrderDayDefinition day in campaign.Days)
+        {
+            foreach (GiftOrderDefinition order in day.Orders)
+            {
+                if (assignments[orderIndex] && order.SecretWish != null)
+                    total += Mathf.Max(0, order.SecretWish.BonusCoins);
+                orderIndex++;
+            }
+        }
+
+        return total;
     }
 
     private static int SumTipsForSuccessfulOrders(OrderCampaignDefinition campaign)
@@ -318,6 +442,26 @@ public static class OrderProgressionSmokeTest
                     total += Mathf.Max(0, order.PerfectPackingTip);
 
                 firstOrder = false;
+            }
+        }
+
+        return total;
+    }
+
+    private static int SumWrappingReputationBonusesForSuccessfulOrders(OrderCampaignDefinition campaign)
+    {
+        int total = 0;
+        int processedOrders = 0;
+
+        foreach (OrderDayDefinition day in campaign.Days)
+        {
+            foreach (GiftOrderDefinition order in day.Orders)
+            {
+                // First order fails, second has unsuitable wrapping, third is suitable but not perfect.
+                if (processedOrders >= 3)
+                    total += Mathf.Max(0, order.PerfectWrappingReputationBonus);
+
+                processedOrders++;
             }
         }
 

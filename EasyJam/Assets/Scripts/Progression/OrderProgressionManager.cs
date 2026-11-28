@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -38,6 +39,7 @@ public class OrderProgressionManager : MonoBehaviour
     public int TotalOrdersCompleted { get; private set; }
     public int TotalCoinsEarned { get; private set; }
     public int TotalTipsEarned { get; private set; }
+    public int TotalReputationEarned { get; private set; }
 
     public OrderDayDefinition CurrentDayData { get; private set; }
 
@@ -51,9 +53,186 @@ public class OrderProgressionManager : MonoBehaviour
     private int orderIndex;
     private bool awaitingResultContinue;
     private bool campaignStarted;
+    private bool secretWishShownForCurrentOrder;
     private bool secretWishBonusAwarded;
+    private bool[] secretWishAssignments = new bool[9];
+    private bool[] previousSecretWishAssignments;
 
     public bool IsCompleted { get; private set; }
+
+    public bool IsSecretWishAssignedForCurrentOrder
+    {
+        get
+        {
+            if (!campaignStarted || CurrentOrder == null || CurrentOrder.SecretWish == null
+                || string.IsNullOrWhiteSpace(CurrentOrder.SecretWish.Clue))
+                return false;
+
+            int assignmentIndex = GetCurrentOrderFlatIndex();
+            return secretWishAssignments != null
+                && assignmentIndex >= 0
+                && assignmentIndex < secretWishAssignments.Length
+                && secretWishAssignments[assignmentIndex];
+        }
+    }
+
+    public bool HasSecretWishBeenShownForCurrentOrder => secretWishShownForCurrentOrder;
+
+    /// <summary>Returns a copy so callers cannot mutate the active campaign sequence.</summary>
+    public bool[] GetSecretWishAssignments()
+    {
+        bool[] copy = new bool[secretWishAssignments == null ? 0 : secretWishAssignments.Length];
+        if (secretWishAssignments != null)
+            Array.Copy(secretWishAssignments, copy, copy.Length);
+        return copy;
+    }
+
+    /// <summary>
+    /// Builds a reproducible nine-order sequence for tests. Valid masks contain exactly four
+    /// wishes, at least one per day, and never contain three equal states in a row.
+    /// </summary>
+    public static bool[] CreateSecretWishSequence(int seed)
+    {
+        return CreateSecretWishSequence(seed, null);
+    }
+
+    public static bool IsValidSecretWishSequence(IList<bool> sequence)
+    {
+        if (sequence == null || sequence.Count != 9)
+            return false;
+
+        int wishCount = 0;
+        int previousRun = 0;
+        bool previousValue = false;
+        int wishRun = 0;
+        int noWishRun = 0;
+
+        for (int i = 0; i < sequence.Count; i++)
+        {
+            bool hasWish = sequence[i];
+            if (hasWish)
+            {
+                wishCount++;
+                wishRun = previousRun > 0 && previousValue ? wishRun + 1 : 1;
+                noWishRun = 0;
+                previousRun = wishRun;
+            }
+            else
+            {
+                noWishRun = previousRun > 0 && !previousValue ? noWishRun + 1 : 1;
+                wishRun = 0;
+                previousRun = noWishRun;
+            }
+
+            previousValue = hasWish;
+            if (wishRun > 2 || noWishRun > 2)
+                return false;
+        }
+
+        if (wishCount != 4)
+            return false;
+
+        for (int day = 0; day < 3; day++)
+        {
+            if (!sequence[day * 3] && !sequence[day * 3 + 1] && !sequence[day * 3 + 2])
+                return false;
+        }
+
+        return true;
+    }
+
+    private static bool[] CreateSecretWishSequence(int seed, IList<bool> excludedSequence)
+    {
+        List<int> validMasks = new List<int>();
+        for (int mask = 0; mask < (1 << 9); mask++)
+        {
+            bool[] candidate = new bool[9];
+            for (int bit = 0; bit < candidate.Length; bit++)
+                candidate[bit] = (mask & (1 << bit)) != 0;
+
+            if (!IsValidSecretWishSequence(candidate))
+                continue;
+
+            if (excludedSequence != null && SequencesMatch(candidate, excludedSequence))
+                continue;
+
+            validMasks.Add(mask);
+        }
+
+        if (validMasks.Count == 0)
+            throw new InvalidOperationException("No valid secret-wish sequence is available.");
+
+        int selectedMask = validMasks[new System.Random(seed).Next(validMasks.Count)];
+        bool[] selected = new bool[9];
+        for (int bit = 0; bit < selected.Length; bit++)
+            selected[bit] = (selectedMask & (1 << bit)) != 0;
+
+        return selected;
+    }
+
+    private static bool SequencesMatch(IList<bool> left, IList<bool> right)
+    {
+        if (left == null || right == null || left.Count != right.Count)
+            return false;
+
+        for (int i = 0; i < left.Count; i++)
+        {
+            if (left[i] != right[i])
+                return false;
+        }
+
+        return true;
+    }
+
+    private void GenerateSecretWishAssignments()
+    {
+        int seed = Guid.NewGuid().GetHashCode() ^ Environment.TickCount;
+        secretWishAssignments = CreateSecretWishSequence(seed, previousSecretWishAssignments);
+        previousSecretWishAssignments = GetSecretWishAssignments();
+    }
+
+    private int GetCurrentOrderFlatIndex()
+    {
+        if (campaign == null || campaign.Days == null || dayIndex < 0 || dayIndex >= campaign.Days.Count)
+            return -1;
+
+        int index = orderIndex;
+        for (int i = 0; i < dayIndex; i++)
+        {
+            if (campaign.Days[i] == null || campaign.Days[i].Orders == null)
+                return -1;
+            index += campaign.Days[i].Orders.Count;
+        }
+
+        return index;
+    }
+
+    /// <summary>Called by the UI only after the assigned customer's wish panel is displayed.</summary>
+    public void MarkCurrentSecretWishShown()
+    {
+        if (IsSecretWishAssignedForCurrentOrder)
+            secretWishShownForCurrentOrder = true;
+    }
+
+    /// <summary>Only a wish that was assigned and actually displayed can award its bonus.</summary>
+    public int AwardSecretWishBonus(bool correctAnswer, int amount)
+    {
+        if (!correctAnswer || !IsSecretWishAssignedForCurrentOrder
+            || !secretWishShownForCurrentOrder || secretWishBonusAwarded
+            || awaitingResultContinue)
+            return 0;
+
+        secretWishBonusAwarded = true;
+        int bonus = Mathf.Max(0, amount);
+        if (bonus > 0)
+        {
+            AddCoins(bonus);
+            DayCoinsEarned += bonus;
+            TotalCoinsEarned += bonus;
+        }
+
+        return bonus;
+    }
 
     public void StartGame()
     {
@@ -76,7 +255,9 @@ public class OrderProgressionManager : MonoBehaviour
         TotalOrdersCompleted = 0;
         TotalCoinsEarned = 0;
         TotalTipsEarned = 0;
+        TotalReputationEarned = 0;
         awaitingResultContinue = false;
+        GenerateSecretWishAssignments();
         dayIndex = 0;
         orderIndex = 0;
         StartCurrentDay();
@@ -101,6 +282,12 @@ public class OrderProgressionManager : MonoBehaviour
     /// <summary>Called by the packing feature after a packing attempt has ended.</summary>
     public void CompleteCurrentOrder(PackingResult result)
     {
+        CompleteCurrentOrder(result, false, false);
+    }
+
+    /// <summary>Completes an order and applies optional wrapping rewards after the gift contents are valid.</summary>
+    public void CompleteCurrentOrder(PackingResult result, bool suitableWrapping, bool perfectWrapping)
+    {
         if (!campaignStarted || CurrentOrder == null || awaitingResultContinue)
             return;
 
@@ -116,7 +303,10 @@ public class OrderProgressionManager : MonoBehaviour
 
         int baseReward = success ? Mathf.Max(0, CurrentOrder.RewardCoins) : 0;
         int tip = success ? Mathf.Max(0, CurrentOrder.PerfectPackingTip) : 0;
-        int earned = baseReward + tip;
+        int wrappingBonus = success && suitableWrapping ? Mathf.Max(0, CurrentOrder.WrappingBonusCoins) : 0;
+        int reputationBonus = success && suitableWrapping && perfectWrapping
+            ? Mathf.Max(0, CurrentOrder.PerfectWrappingReputationBonus) : 0;
+        int earned = baseReward + tip + wrappingBonus;
 
         if (earned > 0)
             AddCoins(earned);
@@ -128,31 +318,13 @@ public class OrderProgressionManager : MonoBehaviour
             TotalOrdersCompleted++;
             TotalCoinsEarned += earned;
             TotalTipsEarned += tip;
+            TotalReputationEarned += reputationBonus;
         }
 
+        // Set this before invoking listeners so repeated clicks cannot award anything twice.
         awaitingResultContinue = true;
-        OrderCompleted?.Invoke(new OrderCompletionData(CurrentOrder, result, success, baseReward, tip, earned));
-    }
-
-    /// <summary>
-    /// Awards the optional secret-wish bonus without completing or changing the active order.
-    /// The UI calls this only after the player selects the configured correct gift.
-    /// </summary>
-    public int AwardSecretWishBonus(bool correctAnswer, int amount)
-    {
-        if (!correctAnswer || !campaignStarted || CurrentOrder == null
-            || awaitingResultContinue || secretWishBonusAwarded)
-            return 0;
-
-        secretWishBonusAwarded = true;
-        int bonus = Mathf.Max(0, amount);
-        if (bonus == 0)
-            return 0;
-
-        AddCoins(bonus);
-        DayCoinsEarned += bonus;
-        TotalCoinsEarned += bonus;
-        return bonus;
+        OrderCompleted?.Invoke(new OrderCompletionData(
+            CurrentOrder, result, success, baseReward, tip, wrappingBonus, reputationBonus, earned));
     }
 
     /// <summary>UI calls after showing the order-result panel.</summary>
@@ -193,6 +365,7 @@ public class OrderProgressionManager : MonoBehaviour
 
     private void StartCurrentOrder()
     {
+        secretWishShownForCurrentOrder = false;
         secretWishBonusAwarded = false;
         CurrentOrder = CurrentDayData.Orders[orderIndex];
         CurrentOrderNumber = orderIndex + 1;
@@ -215,7 +388,9 @@ public class OrderProgressionManager : MonoBehaviour
             CurrentOrder = null;
             CurrentDayData = null;
             IsCompleted = true;
-            GameCompleted?.Invoke(new GameSummaryData(CurrentCoins, TotalOrdersCompleted, TotalCoinsEarned, TotalTipsEarned, campaign.Days.Count));
+            GameCompleted?.Invoke(new GameSummaryData(
+                CurrentCoins, TotalOrdersCompleted, TotalCoinsEarned, TotalTipsEarned,
+                TotalReputationEarned, campaign.Days.Count));
             return;
         }
 
@@ -236,15 +411,20 @@ public sealed class OrderCompletionData
     public bool Success { get; }
     public int BaseReward { get; }
     public int Tip { get; }
+    public int WrappingBonus { get; }
+    public int ReputationBonus { get; }
     public int TotalEarned { get; }
 
-    public OrderCompletionData(GiftOrderDefinition order, PackingResult result, bool success, int baseReward, int tip, int totalEarned)
+    public OrderCompletionData(GiftOrderDefinition order, PackingResult result, bool success, int baseReward,
+        int tip, int wrappingBonus, int reputationBonus, int totalEarned)
     {
         Order = order;
         PackingResult = result;
         Success = success;
         BaseReward = baseReward;
         Tip = tip;
+        WrappingBonus = wrappingBonus;
+        ReputationBonus = reputationBonus;
         TotalEarned = totalEarned;
     }
 }
@@ -273,14 +453,17 @@ public sealed class GameSummaryData
     public int OrdersCompleted { get; }
     public int TotalCoinsEarned { get; }
     public int TipsEarned { get; }
+    public int ReputationEarned { get; }
     public int DaysPlayed { get; }
 
-    public GameSummaryData(int finalCoins, int ordersCompleted, int totalCoinsEarned, int tipsEarned, int daysPlayed)
+    public GameSummaryData(int finalCoins, int ordersCompleted, int totalCoinsEarned, int tipsEarned,
+        int reputationEarned, int daysPlayed)
     {
         FinalCoins = finalCoins;
         OrdersCompleted = ordersCompleted;
         TotalCoinsEarned = totalCoinsEarned;
         TipsEarned = tipsEarned;
+        ReputationEarned = reputationEarned;
         DaysPlayed = daysPlayed;
     }
 }

@@ -23,11 +23,17 @@ MonoBehaviour:
   RewardCoins: 35
   Day: 1
   PerfectPackingTip: 5
+  PreferredWrappingPaper: 3
+  PreferredWrappingRibbon: 2
+  PreferredWrappingCard: 0
+  WrappingHint: "Предпочитает классическую рождественскую упаковку."
+  WrappingBonusCoins: 10
+  PerfectWrappingReputationBonus: 1
   SecretWish:
-    Clue: Я хочу порадовать сладкоежку.
+    Clue: Дедушка любит мягкие и уютные вещи.
     GiftOptions:
+    - МИШКА
     - ЛЕДЕНЕЦ
     - СНЕЖНЫЙ ШАР
-    - ПОДАРОК
-    CorrectGiftName: ЛЕДЕНЕЦ
+    CorrectGiftName: МИШКА
     BonusCoins: 10
