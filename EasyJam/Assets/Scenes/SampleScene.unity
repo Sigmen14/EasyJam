@@ -403,5 +403,5 @@ MonoBehaviour:
   trayGap: 0.65
   targetCamera: {fileID: 519420031}
   runDemoOnStart: 1
-  emptyCellColor: {r: 0.88, g: 0.9, b: 0.95, a: 1}
-  boardBackgroundColor: {r: 0.045, g: 0.12, b: 0.2, a: 1}
+  emptyCellColor: {r: 0.96, g: 0.89, b: 0.75, a: 1}
+  boardBackgroundColor: {r: 0.08, g: 0.23, b: 0.14, a: 1}
