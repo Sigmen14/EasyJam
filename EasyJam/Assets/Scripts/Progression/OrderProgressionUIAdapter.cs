@@ -48,6 +48,7 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
         ui.ConfirmPacking = ConfirmPacking;
         ui.Continue = progression.ContinueAfterResult;
         ui.StartGame = StartOrRestartGame;
+        ui.AwardSecretWishBonus = AwardSecretWishBonus;
 
         progression.OrderStarted += HandleOrderStarted;
         progression.OrderCompleted += HandleOrderCompleted;
@@ -70,6 +71,7 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
             ui.ConfirmPacking = null;
             ui.Continue = null;
             ui.StartGame = null;
+            ui.AwardSecretWishBonus = null;
         }
     }
 
@@ -79,6 +81,18 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
             progression.RestartGame();
         else
             progression.StartGame();
+    }
+
+    private int AwardSecretWishBonus(int amount)
+    {
+        if (progression == null)
+            return 0;
+
+        int awarded = progression.AwardSecretWishBonus(amount);
+        if (ui != null)
+            ui.SetProgressionBalance(progression.CurrentCoins);
+
+        return awarded;
     }
 
     private void HandleOrderStarted(GiftOrderDefinition order)

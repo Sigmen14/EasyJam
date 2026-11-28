@@ -12,6 +12,7 @@ namespace TheLastGift.UI
     public sealed class LastGiftUIController : MonoBehaviour
     {
         public Action ConfirmPacking, Continue, StartGame;
+        public Func<int, int> AwardSecretWishBonus;
 
         private const string PackingMiniGameSceneName = "SampleScene";
         private static LastGiftUIController activeInstance;
@@ -45,6 +46,7 @@ namespace TheLastGift.UI
         private int placedGiftCount = 0;
         private readonly List<string> placedGiftNames = new List<string>();
         private bool tutorialShown = false;
+        private bool secretWishAnswered;
 
         private sealed class CustomerOrderData
         {
@@ -52,13 +54,36 @@ namespace TheLastGift.UI
             public readonly string Wish;
             public readonly string[] RequiredGifts;
             public readonly GiftBoxSize BoxSize;
+            public readonly string SecretWishClue;
+            public readonly string[] SecretWishOptions;
+            public readonly string SecretWishCorrectGift;
+            public readonly int SecretWishBonusCoins;
 
-            public CustomerOrderData(string customerName, string wish, GiftBoxSize boxSize, params string[] requiredGifts)
+            public bool HasSecretWish =>
+                !string.IsNullOrWhiteSpace(SecretWishClue)
+                && SecretWishOptions != null
+                && SecretWishOptions.Length >= 2
+                && SecretWishOptions.Length <= 3
+                && !string.IsNullOrWhiteSpace(SecretWishCorrectGift);
+
+            public CustomerOrderData(
+                string customerName,
+                string wish,
+                GiftBoxSize boxSize,
+                string[] requiredGifts,
+                string secretWishClue,
+                string[] secretWishOptions,
+                string secretWishCorrectGift,
+                int secretWishBonusCoins)
             {
                 CustomerName = customerName;
                 Wish = wish;
                 BoxSize = boxSize;
                 RequiredGifts = requiredGifts;
+                SecretWishClue = secretWishClue;
+                SecretWishOptions = secretWishOptions;
+                SecretWishCorrectGift = secretWishCorrectGift;
+                SecretWishBonusCoins = secretWishBonusCoins;
             }
         }
 
@@ -405,6 +430,12 @@ namespace TheLastGift.UI
                 return;
             }
 
+            if (currentOrder.HasSecretWish && !secretWishAnswered)
+            {
+                ShowSecretWish();
+                return;
+            }
+
             Build("Игровой экран");
             placedGiftCount = 0;
             placedGiftNames.Clear();
@@ -437,6 +468,153 @@ namespace TheLastGift.UI
 
             ButtonAt("ОЧИСТИТЬ КОРОБКУ", red, ClearPackingBox,
                 new Vector2(0.70f, 0.075f), new Vector2(0.965f, 0.145f));
+        }
+
+        private void ShowSecretWish()
+        {
+            Build("Тайное желание покупателя");
+            Panel(root.transform, "Карточка тайного желания",
+                new Vector2(0.10f, 0.14f), new Vector2(0.90f, 0.90f), paper);
+
+            Label("ТАЙНОЕ ЖЕЛАНИЕ ПОКУПАТЕЛЯ", 34, green,
+                new Vector2(0.16f, 0.79f), new Vector2(0.84f, 0.88f), TextAnchor.MiddleCenter);
+
+            Panel(root.transform, "Рамка портрета",
+                new Vector2(0.17f, 0.55f), new Vector2(0.30f, 0.74f), gold);
+            Sprite portrait = GetCurrentCustomerPortrait();
+            if (portrait != null)
+            {
+                ImageAt(root.transform, "Портрет покупателя",
+                    new Vector2(0.175f, 0.555f), new Vector2(0.295f, 0.735f), portrait, Color.white);
+            }
+            else
+            {
+                Label("☺", 64, red,
+                    new Vector2(0.17f, 0.55f), new Vector2(0.30f, 0.74f), TextAnchor.MiddleCenter);
+            }
+            Label(currentOrder.CustomerName, 19, brown,
+                new Vector2(0.15f, 0.49f), new Vector2(0.32f, 0.55f), TextAnchor.MiddleCenter);
+
+            Panel(root.transform, "Реплика покупателя",
+                new Vector2(0.34f, 0.55f), new Vector2(0.83f, 0.74f), cream);
+            Label("«" + currentOrder.SecretWishClue + "»", 24, brown,
+                new Vector2(0.36f, 0.56f), new Vector2(0.81f, 0.73f), TextAnchor.MiddleCenter);
+
+            Label("Какой подарок подойдёт этому человеку?", 23, green,
+                new Vector2(0.18f, 0.41f), new Vector2(0.82f, 0.49f), TextAnchor.MiddleCenter);
+
+            float totalWidth = 0.72f;
+            float gap = 0.025f;
+            float optionWidth = (totalWidth - gap * (currentOrder.SecretWishOptions.Length - 1))
+                / currentOrder.SecretWishOptions.Length;
+            float startX = (1f - totalWidth) * 0.5f;
+
+            for (int i = 0; i < currentOrder.SecretWishOptions.Length; i++)
+            {
+                float x = startX + i * (optionWidth + gap);
+                AddSecretWishOption(
+                    currentOrder.SecretWishOptions[i],
+                    new Vector2(x, 0.22f),
+                    new Vector2(x + optionWidth, 0.40f));
+            }
+
+            Label("За правильный ответ: +" + currentOrder.SecretWishBonusCoins + " монет",
+                17, wood, new Vector2(0.20f, 0.14f), new Vector2(0.80f, 0.21f), TextAnchor.MiddleCenter);
+        }
+
+        private void AddSecretWishOption(string giftName, Vector2 min, Vector2 max)
+        {
+            string displayName = GetGiftDisplayName(giftName);
+            GameObject optionObject = new GameObject(
+                "Вариант подарка " + displayName,
+                typeof(RectTransform),
+                typeof(Image),
+                typeof(Button));
+            optionObject.transform.SetParent(root.transform, false);
+
+            RectTransform rect = optionObject.GetComponent<RectTransform>();
+            rect.anchorMin = min;
+            rect.anchorMax = max;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            Image background = optionObject.GetComponent<Image>();
+            background.color = paleBlue;
+            background.raycastTarget = true;
+
+            Button button = optionObject.GetComponent<Button>();
+            button.targetGraphic = background;
+            ColorBlock colors = button.colors;
+            colors.normalColor = paleBlue;
+            colors.highlightedColor = Color.Lerp(paleBlue, Color.white, 0.2f);
+            colors.pressedColor = Color.Lerp(paleBlue, gold, 0.25f);
+            colors.selectedColor = Color.Lerp(paleBlue, gold, 0.15f);
+            button.colors = colors;
+            button.onClick.AddListener(() => SelectSecretWish(giftName));
+
+            Image icon = ImageAt(optionObject.transform, "Иконка варианта",
+                new Vector2(0.16f, 0.29f), new Vector2(0.84f, 0.92f),
+                GetGiftSprite(giftName), Color.white);
+
+            if (icon != null)
+            {
+                ChildLabel(optionObject.transform, displayName, 16, brown,
+                    new Vector2(0.04f, 0.04f), new Vector2(0.96f, 0.30f), TextAnchor.MiddleCenter);
+            }
+            else
+            {
+                ChildLabel(optionObject.transform, displayName, 18, brown,
+                    new Vector2(0.04f, 0.04f), new Vector2(0.96f, 0.96f), TextAnchor.MiddleCenter);
+            }
+        }
+
+        private void SelectSecretWish(string selectedGift)
+        {
+            if (currentOrder == null || !currentOrder.HasSecretWish || secretWishAnswered)
+                return;
+
+            secretWishAnswered = true;
+            bool correct = string.Equals(
+                selectedGift,
+                currentOrder.SecretWishCorrectGift,
+                StringComparison.OrdinalIgnoreCase);
+
+            int awarded = 0;
+            if (correct)
+            {
+                if (AwardSecretWishBonus != null)
+                {
+                    awarded = AwardSecretWishBonus(currentOrder.SecretWishBonusCoins);
+                }
+                else
+                {
+                    awarded = Mathf.Max(0, currentOrder.SecretWishBonusCoins);
+                    coins += awarded;
+                }
+            }
+
+            ShowSecretWishResult(correct, awarded);
+        }
+
+        private void ShowSecretWishResult(bool correct, int awarded)
+        {
+            Build(correct ? "Угаданное желание" : "Ответ на тайное желание");
+
+            string body;
+            if (correct)
+            {
+                body = "Ты угадала! Покупатель будет очень рад такому подарку.";
+                if (awarded > 0)
+                    body += "\n\n+" + awarded + " МОНЕТ ✦";
+            }
+            else
+            {
+                body = "Похоже, этот подарок не совсем подходит. Ничего страшного — заказ остаётся в силе, и ты всё равно можешь собрать коробку.";
+            }
+
+            Card(correct ? "Отличный выбор!" : "Попробуем другой подарок в следующий раз", body);
+            ButtonAt("ПЕРЕЙТИ К СБОРКЕ КОРОБКИ", green, Gameplay,
+                new Vector2(0.27f, 0.085f), new Vector2(0.73f, 0.19f));
         }
 
         private void OpenPackingMiniGame()
@@ -719,6 +897,7 @@ namespace TheLastGift.UI
             if (orderData == null)
             {
                 currentOrder = null;
+                secretWishAnswered = false;
                 return;
             }
 
@@ -732,12 +911,68 @@ namespace TheLastGift.UI
                 }
             }
 
+            string secretWishClue = null;
+            string secretWishCorrectGift = null;
+            string[] secretWishOptions = new string[0];
+            int secretWishBonusCoins = 0;
+            SecretCustomerWishDefinition secretWish = orderData.SecretWish;
+
+            if (secretWish != null && !string.IsNullOrWhiteSpace(secretWish.Clue))
+            {
+                bool validOptions = secretWish.GiftOptions != null
+                    && secretWish.GiftOptions.Count >= 2
+                    && secretWish.GiftOptions.Count <= 3;
+                List<string> options = new List<string>();
+
+                if (validOptions)
+                {
+                    for (int i = 0; i < secretWish.GiftOptions.Count; i++)
+                    {
+                        string option = string.IsNullOrWhiteSpace(secretWish.GiftOptions[i])
+                            ? string.Empty
+                            : secretWish.GiftOptions[i].Trim().ToUpperInvariant();
+
+                        if (!IsCatalogGift(option) || options.Contains(option))
+                        {
+                            validOptions = false;
+                            break;
+                        }
+
+                        options.Add(option);
+                    }
+                }
+
+                string correctGift = string.IsNullOrWhiteSpace(secretWish.CorrectGiftName)
+                    ? string.Empty
+                    : secretWish.CorrectGiftName.Trim().ToUpperInvariant();
+
+                if (validOptions && options.Contains(correctGift))
+                {
+                    secretWishClue = secretWish.Clue.Trim();
+                    secretWishCorrectGift = correctGift;
+                    secretWishOptions = options.ToArray();
+                    secretWishBonusCoins = Mathf.Max(0, secretWish.BonusCoins);
+                }
+                else
+                {
+                    Debug.LogWarning(
+                        "Тайное желание покупателя в заказе " + orderData.name
+                        + " настроено неверно. Нужны 2–3 уникальных подарка из каталога и правильный ответ среди них.",
+                        this);
+                }
+            }
+
             currentOrder = new CustomerOrderData(
                 orderData.CustomerName,
                 orderData.CustomerWish,
                 orderData.BoxSize,
-                requiredGifts.ToArray());
+                requiredGifts.ToArray(),
+                secretWishClue,
+                secretWishOptions,
+                secretWishCorrectGift,
+                secretWishBonusCoins);
 
+            secretWishAnswered = false;
             day = currentDay;
             order = currentOrderNumber;
             coins = currentBalance;
@@ -746,6 +981,17 @@ namespace TheLastGift.UI
         public void SetProgressionBalance(int currentBalance)
         {
             coins = currentBalance;
+        }
+
+        private bool IsCatalogGift(string giftName)
+        {
+            for (int i = 0; i < AllGiftNames.Length; i++)
+            {
+                if (string.Equals(AllGiftNames[i], giftName, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+
+            return false;
         }
 
         private void ClearPackingBox()
