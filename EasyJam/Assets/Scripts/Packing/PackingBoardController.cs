@@ -457,6 +457,7 @@ namespace TheLastGift.Packing
 
         private void DrawReturnToShopButton()
         {
+            const string buttonCaption = "ВЕРНУТЬСЯ В ЛАВКУ";
             var scale = Mathf.Clamp(Screen.height / 900f, 0.78f, 1.25f);
             if (returnToShopButtonStyle == null)
             {
@@ -464,7 +465,7 @@ namespace TheLastGift.Packing
                 {
                     alignment = TextAnchor.MiddleCenter,
                     fontStyle = FontStyle.Bold,
-                    padding = new RectOffset(6, 6, 2, 2),
+                    padding = new RectOffset(8, 8, 4, 4),
                     border = new RectOffset(12, 12, 8, 8),
                     wordWrap = false,
                     clipping = TextClipping.Clip
@@ -472,16 +473,25 @@ namespace TheLastGift.Packing
             }
 
             var fontScale = Mathf.Max(1.15f, scale);
+            var buttonWidth = Mathf.Min(360f, Screen.width - 32f);
             returnToShopButtonStyle.fontSize = Mathf.RoundToInt(23f * fontScale);
 
-            var buttonWidth = Mathf.Min(300f, Screen.width - 32f);
+            // Fit the full Russian caption inside the button frame on narrow windows.
+            while (returnToShopButtonStyle.fontSize > 16
+                && returnToShopButtonStyle.CalcSize(new GUIContent(buttonCaption)).x > buttonWidth - 12f)
+            {
+                returnToShopButtonStyle.fontSize--;
+            }
+
+            var preferredHeight = returnToShopButtonStyle.CalcSize(new GUIContent(buttonCaption)).y + 8f;
+            var buttonHeight = Mathf.Max(48f * fontScale, preferredHeight);
             var buttonRect = new Rect(
-                Screen.width - buttonWidth - 16f,
+                Mathf.Max(16f, Screen.width - buttonWidth - 16f),
                 172f * fontScale,
                 buttonWidth,
-                44f * fontScale);
+                buttonHeight);
 
-            if (GUI.Button(buttonRect, "ВЕРНУТЬСЯ В ЛАВКУ", returnToShopButtonStyle))
+            if (GUI.Button(buttonRect, buttonCaption, returnToShopButtonStyle))
                 LastGiftUIController.ReturnFromPackingMiniGame();
         }
 
