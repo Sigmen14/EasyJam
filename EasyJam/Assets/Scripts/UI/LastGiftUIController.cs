@@ -41,10 +41,41 @@ namespace TheLastGift.UI
 
         private void Awake()
         {
+            EnsureCamera();
             font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             LoadGiftSprites();
             SetupCanvas();
             MainMenu();
+        }
+
+        // A Screen Space Overlay canvas can display without a camera, but the
+        // Game view still reports "No cameras rendering". Supply a basic 2D
+        // camera for scenes where the prototype UI was added to an empty scene.
+        private void EnsureCamera()
+        {
+            Camera sceneCamera = Camera.main;
+            if (sceneCamera == null)
+                sceneCamera = FindObjectOfType<Camera>();
+
+            if (sceneCamera != null)
+            {
+                sceneCamera.enabled = true;
+                return;
+            }
+
+            GameObject cameraObject = new GameObject("Main Camera", typeof(Camera));
+            cameraObject.tag = "MainCamera";
+            cameraObject.transform.position = new Vector3(0f, 0f, -10f);
+
+            Camera fallbackCamera = cameraObject.GetComponent<Camera>();
+            fallbackCamera.clearFlags = CameraClearFlags.SolidColor;
+            fallbackCamera.backgroundColor = new Color32(38, 29, 25, 255);
+            fallbackCamera.orthographic = true;
+            fallbackCamera.orthographicSize = 5f;
+            fallbackCamera.nearClipPlane = 0.1f;
+            fallbackCamera.farClipPlane = 1000f;
+            fallbackCamera.depth = -10f;
+            fallbackCamera.enabled = true;
         }
 
         private void LoadGiftSprites()
