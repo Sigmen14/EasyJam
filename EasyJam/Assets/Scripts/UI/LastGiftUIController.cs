@@ -294,7 +294,7 @@ namespace TheLastGift.UI
                 new Vector2(0.055f, 0.66f), new Vector2(0.125f, 0.775f), gold);
             Label("☺", 66, red,
                 new Vector2(0.055f, 0.66f), new Vector2(0.125f, 0.775f), TextAnchor.MiddleCenter);
-            Label(currentOrder.CustomerName, 22, brown,
+            Label(currentOrder.CustomerName, 18, brown,
                 new Vector2(0.135f, 0.69f), new Vector2(0.25f, 0.77f), TextAnchor.MiddleCenter);
 
             Panel(root.transform, "Пожелание", new Vector2(0.045f, 0.47f), new Vector2(0.245f, 0.65f), cream);
