@@ -15,7 +15,7 @@ The default board is 4×4. It has four tetrominoes (two T pieces, one L piece, a
 - To remove a placed gift, drag it beyond the edge of the box; it returns to its tray position.
 - Gifts can be picked up from the tray or from the board and moved again. An invalid move of an already placed piece restores its previous position; a piece dragged from the tray returns to the tray if the drop is invalid.
 
-The winter-themed HUD uses a larger framed top panel for the covered-cell count and controls. The victory screen uses a matching rounded midnight-blue panel, gold trim, decorative snowflakes and a custom gold replay button. The puzzle is validated automatically after each drop. When all fragments are placed without overlaps and all 16 cells are covered, the completion panel appears and offers a **Play Again** button.
+The puzzle HUD and victory screen use the same festive visual language as the shop: evergreen panels, burgundy title ribbons, warm cream text, gold edging and matching gold buttons. The empty board cells use warm parchment tones with wooden borders, while the winter night background remains dark for contrast. The puzzle is validated automatically after each drop. When all fragments are placed without overlaps and all 16 cells are covered, the completion panel appears and offers a **Play Again** button.
 
 ## Integration API
 - `SetupBoard(int width, int height, List<GiftDefinition> gifts)`: replaces the board and current gifts.
