@@ -932,9 +932,14 @@ namespace TheLastGift.UI
             RectTransform rect = CreateRect(parent, objectName, position, size);
             Text label = rect.gameObject.AddComponent<Text>();
             label.font = GetIntroFont();
-            int readableFontSize = fontSize < 40
-                ? Mathf.Max(23, fontSize + 3)
+            Canvas rootCanvas = label.canvas != null ? label.canvas.rootCanvas : null;
+            CanvasScaler scaler = rootCanvas != null ? rootCanvas.GetComponent<CanvasScaler>() : null;
+            float canvasScaleFactor = GetIntroCanvasScaleFactor(rootCanvas, scaler);
+            int minimumCanvasSize = Mathf.CeilToInt(25f / canvasScaleFactor);
+            int preferredFontSize = fontSize < 40
+                ? Mathf.Max(25, fontSize + 3)
                 : fontSize;
+            int readableFontSize = Mathf.Max(minimumCanvasSize, preferredFontSize);
             // Request the complete Russian alphabet, including Ё/ё, before setting the label text.
             if (label.font != null)
                 label.font.RequestCharactersInTexture(
@@ -953,6 +958,24 @@ namespace TheLastGift.UI
             label.supportRichText = false;
             label.lineSpacing = 1.12f;
             return label;
+        }
+
+        private float GetIntroCanvasScaleFactor(Canvas rootCanvas, CanvasScaler scaler)
+        {
+            if (rootCanvas == null || scaler == null
+                || scaler.uiScaleMode != CanvasScaler.ScaleMode.ScaleWithScreenSize)
+                return rootCanvas != null ? Mathf.Max(0.01f, rootCanvas.scaleFactor) : 1f;
+
+            float widthScale = Mathf.Max(0.01f, Screen.width / Mathf.Max(1f, scaler.referenceResolution.x));
+            float heightScale = Mathf.Max(0.01f, Screen.height / Mathf.Max(1f, scaler.referenceResolution.y));
+
+            if (scaler.screenMatchMode == CanvasScaler.ScreenMatchMode.Expand)
+                return Mathf.Min(widthScale, heightScale);
+            if (scaler.screenMatchMode == CanvasScaler.ScreenMatchMode.Shrink)
+                return Mathf.Max(widthScale, heightScale);
+
+            float match = Mathf.Clamp01(scaler.matchWidthOrHeight);
+            return Mathf.Max(0.01f, Mathf.Pow(widthScale, 1f - match) * Mathf.Pow(heightScale, match));
         }
 
         private void AddPolygon(Transform parent, string objectName, Vector2 position, Vector2 size,
