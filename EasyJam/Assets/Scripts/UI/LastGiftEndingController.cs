@@ -205,8 +205,8 @@ namespace TheLastGift.UI
             RectTransform signPanel = CreateRect(
                 streetGroup,
                 "Панель вывески на фасаде",
-                new Vector2(0.285f, 0.68f),
-                new Vector2(0.715f, 0.723f));
+                new Vector2(0.285f, 0.70f),
+                new Vector2(0.715f, 0.75f));
             Image signBacking = signPanel.gameObject.AddComponent<Image>();
             signBacking.sprite = whiteSprite;
             signBacking.color = new Color32(67, 42, 37, 248);
