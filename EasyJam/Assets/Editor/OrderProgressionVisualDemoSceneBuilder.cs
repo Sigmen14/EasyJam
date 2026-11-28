@@ -75,6 +75,10 @@ public static class OrderProgressionVisualDemoSceneBuilder
         SetObjectReference(visualDemo, "campaign", campaign);
         visualDemo.enabled = true;
 
+        // Generate the complete UI hierarchy now, in Edit Mode, so its
+        // Canvas, panels, labels and buttons are visible and editable.
+        visualDemo.RebuildInterfaceForEditor();
+
         root.SetActive(true);
 
         if (!EditorSceneManager.SaveScene(scene, DemoScenePath))
