@@ -12,13 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0a2b3c4d5e6f7890a1b2c3d4e5f67890, type: 3}
   m_Name: Day2_Lily
   m_EditorClassIdentifier:
-  CustomerName: Lily
-  CustomerWish: "Something festive for the whole family. A lovely package would be perfect."
+  CustomerName: Лили
+  CustomerWish: "Что-нибудь праздничное для всей семьи. Красивая упаковка будет как раз кстати."
   CustomerPortrait: {fileID: 0}
   GiftNames:
-  - Reindeer Plush
-  - Candy Cane
-  - Bauble
+  - Плюшевый олень
+  - Леденец-трость
+  - Ёлочный шар
   BoxSize: 1
   RewardCoins: 40
   Day: 2
