@@ -61,6 +61,7 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
             return;
         }
         progression.ConfigureCampaign(campaign);
+        progression.ConfigureOrderQueue(true, 3, 120f, RushOrderBonus);
     }
 
     private void Start()
@@ -84,6 +85,8 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
         ApplyWorkshopDecorations();
 
         progression.OrderStarted += HandleOrderStarted;
+        progression.OrderQueueChanged += HandleOrderQueueChanged;
+        progression.OrderQueueTimerChanged += HandleOrderQueueTimerChanged;
         progression.OrderCompleted += HandleOrderCompleted;
         progression.DayCompleted += HandleDayCompleted;
         progression.GameCompleted += HandleGameCompleted;
@@ -94,6 +97,8 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
         if (progression != null)
         {
             progression.OrderStarted -= HandleOrderStarted;
+            progression.OrderQueueChanged -= HandleOrderQueueChanged;
+            progression.OrderQueueTimerChanged -= HandleOrderQueueTimerChanged;
             progression.OrderCompleted -= HandleOrderCompleted;
             progression.DayCompleted -= HandleDayCompleted;
             progression.GameCompleted -= HandleGameCompleted;
@@ -178,6 +183,29 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
         ApplyOrderAssignmentToUI(ui.SetProgressionOrder, order,
             progression.CurrentDay, progression.CurrentOrderNumber,
             progression.CurrentCoins, progression.TotalReputationEarned, showSecretWish);
+        ui.SetActiveOrderQueueEntry(progression.ActiveQueueEntry);
+    }
+
+    private void HandleOrderQueueChanged()
+    {
+        if (ui == null || progression == null || !progression.OrderQueueEnabled
+            || progression.CurrentOrder != null || progression.IsCompleted)
+            return;
+
+        ui.ShowOrderQueue(progression.WaitingOrders, SelectQueuedOrder);
+    }
+
+    private void HandleOrderQueueTimerChanged()
+    {
+        if (ui != null && progression != null && progression.OrderQueueEnabled
+            && progression.CurrentOrder == null && !progression.IsCompleted)
+            ui.UpdateOrderQueueWaitTimes(progression.WaitingOrders);
+    }
+
+    private void SelectQueuedOrder(GiftOrderDefinition order)
+    {
+        if (progression != null && progression.SelectQueuedOrder(order))
+            ui.Gameplay();
     }
 
     private void ConfirmPacking()
@@ -241,7 +269,8 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
             progression.AwardBonusCoins(eventBonus);
 
         bool allowWorkshop = !storyCampaignActive || result.Order == null || !result.Order.IsStoryFinaleOrder;
-        ui.OrderSuccess(result.TotalEarned + eventBonus, result.WrappingBonus, result.ReputationBonus, allowWorkshop);
+        ui.OrderSuccess(result.TotalEarned + eventBonus, result.WrappingBonus,
+            result.ReputationBonus, allowWorkshop, result.UrgencyBonus);
         ui.SetProgressionBalance(progression.CurrentCoins, progression.TotalReputationEarned);
     }
 

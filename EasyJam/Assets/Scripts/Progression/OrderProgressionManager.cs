@@ -29,6 +29,25 @@ public class OrderProgressionManager : MonoBehaviour
         campaign = campaignDefinition;
     }
 
+    /// <summary>
+    /// Enables the small customer queue without replacing the existing campaign or reward system.
+    /// The queue is deliberately capped at three visible customers.
+    /// </summary>
+    public void ConfigureOrderQueue(bool enabled, int maximumWaitingOrders = 3,
+        float urgentDeadlineSeconds = 120f, int urgencyBonusCoins = 8)
+    {
+        if (campaignStarted)
+        {
+            Debug.LogWarning("OrderProgressionManager: Queue settings cannot change after the game has started.", this);
+            return;
+        }
+
+        orderQueueEnabled = enabled;
+        maxWaitingOrders = Mathf.Clamp(maximumWaitingOrders, 1, 3);
+        urgentOrderDeadlineSeconds = Mathf.Max(1f, urgentDeadlineSeconds);
+        urgentOrderBonusCoins = Mathf.Max(0, urgencyBonusCoins);
+    }
+
     public GiftOrderDefinition CurrentOrder { get; private set; }
     public int CurrentCoins { get; private set; }
     public int CurrentDay { get; private set; }
@@ -43,6 +62,12 @@ public class OrderProgressionManager : MonoBehaviour
 
     public OrderDayDefinition CurrentDayData { get; private set; }
 
+    public bool OrderQueueEnabled => orderQueueEnabled;
+    public IReadOnlyList<OrderQueueEntry> WaitingOrders => waitingOrders;
+    public OrderQueueEntry ActiveQueueEntry => activeQueueEntry;
+
+    public event Action<IReadOnlyList<OrderQueueEntry>> OrderQueueChanged;
+    public event Action<IReadOnlyList<OrderQueueEntry>> OrderQueueTimerChanged;
     public event Action<GiftOrderDefinition, bool> OrderStarted;
     public event Action<OrderCompletionData> OrderCompleted;
     public event Action<DaySummaryData> DayCompleted;
@@ -58,6 +83,16 @@ public class OrderProgressionManager : MonoBehaviour
     private bool secretWishBonusAwarded;
     private bool[] secretWishAssignments = new bool[9];
     private bool[] previousSecretWishAssignments;
+
+    private bool orderQueueEnabled;
+    private int maxWaitingOrders = 3;
+    private float urgentOrderDeadlineSeconds = 120f;
+    private int urgentOrderBonusCoins = 8;
+    private int nextQueueOrderIndex;
+    private int activeQueueOrderIndex = -1;
+    private readonly List<OrderQueueEntry> waitingOrders = new List<OrderQueueEntry>();
+    private readonly HashSet<int> completedQueueOrderIndices = new HashSet<int>();
+    private OrderQueueEntry activeQueueEntry;
 
     public bool IsCompleted { get; private set; }
 
@@ -185,6 +220,30 @@ public class OrderProgressionManager : MonoBehaviour
         return true;
     }
 
+    private void Update()
+    {
+        if (!orderQueueEnabled || Time.deltaTime <= 0f)
+            return;
+
+        bool waitingTimerChanged = false;
+        for (int i = 0; i < waitingOrders.Count; i++)
+        {
+            OrderQueueEntry entry = waitingOrders[i];
+            int previousSecond = Mathf.FloorToInt(entry.WaitedSeconds);
+            entry.AdvanceWait(Time.deltaTime);
+            if (Mathf.FloorToInt(entry.WaitedSeconds) != previousSecond)
+                waitingTimerChanged = true;
+        }
+
+        // The selected order keeps its deadline while it is being packed. Other customers
+        // continue waiting in parallel, and Time.deltaTime naturally stops while paused.
+        if (activeQueueEntry != null && CurrentOrder != null)
+            activeQueueEntry.AdvanceWait(Time.deltaTime);
+
+        if (waitingTimerChanged)
+            OrderQueueTimerChanged?.Invoke(waitingOrders);
+    }
+
     private void GenerateSecretWishAssignments()
     {
         int seed = Guid.NewGuid().GetHashCode() ^ Environment.TickCount;
@@ -213,7 +272,9 @@ public class OrderProgressionManager : MonoBehaviour
         if (campaign == null || campaign.Days == null || dayIndex < 0 || dayIndex >= campaign.Days.Count)
             return -1;
 
-        int index = orderIndex;
+        int index = orderQueueEnabled && activeQueueOrderIndex >= 0
+            ? activeQueueOrderIndex
+            : orderIndex;
         for (int i = 0; i < dayIndex; i++)
         {
             if (campaign.Days[i] == null || campaign.Days[i].Orders == null)
@@ -275,6 +336,12 @@ public class OrderProgressionManager : MonoBehaviour
         TotalReputationEarned = 0;
         awaitingResultContinue = false;
         awaitingDayContinue = false;
+        CurrentOrder = null;
+        waitingOrders.Clear();
+        completedQueueOrderIndices.Clear();
+        activeQueueEntry = null;
+        activeQueueOrderIndex = -1;
+        nextQueueOrderIndex = 0;
         GenerateSecretWishAssignments();
         dayIndex = 0;
         orderIndex = 0;
@@ -324,6 +391,12 @@ public class OrderProgressionManager : MonoBehaviour
         secretWishShownForCurrentOrder = false;
         secretWishBonusAwarded = false;
         secretWishAssignments = new bool[0];
+        waitingOrders.Clear();
+        completedQueueOrderIndices.Clear();
+        activeQueueEntry = null;
+        activeQueueOrderIndex = -1;
+        nextQueueOrderIndex = 0;
+        OrderQueueChanged?.Invoke(waitingOrders);
         CoinsChanged?.Invoke(CurrentCoins);
     }
 
@@ -354,7 +427,10 @@ public class OrderProgressionManager : MonoBehaviour
         int wrappingBonus = success && suitableWrapping ? Mathf.Max(0, CurrentOrder.WrappingBonusCoins) : 0;
         int reputationBonus = success && suitableWrapping && perfectWrapping
             ? Mathf.Max(0, CurrentOrder.PerfectWrappingReputationBonus) : 0;
-        int earned = baseReward + tip + wrappingBonus;
+        int urgencyBonus = success && orderQueueEnabled && activeQueueEntry != null
+            && activeQueueEntry.UrgencyBonusAvailable
+            ? activeQueueEntry.UrgencyBonusCoins : 0;
+        int earned = baseReward + tip + wrappingBonus + urgencyBonus;
 
         if (earned > 0)
             AddCoins(earned);
@@ -367,12 +443,23 @@ public class OrderProgressionManager : MonoBehaviour
             TotalCoinsEarned += earned;
             TotalTipsEarned += tip;
             TotalReputationEarned += reputationBonus;
+            if (orderQueueEnabled && activeQueueOrderIndex >= 0)
+                completedQueueOrderIndices.Add(activeQueueOrderIndex);
+        }
+
+        // A failed packing attempt leaves the selected order active so it can be corrected
+        // and retried. A successful result is locked before listeners receive the callback.
+        if (!success && orderQueueEnabled)
+        {
+            OrderCompleted?.Invoke(new OrderCompletionData(
+                CurrentOrder, result, false, baseReward, tip, wrappingBonus, reputationBonus, 0, 0));
+            return;
         }
 
         // Set this before invoking listeners so repeated clicks cannot award anything twice.
         awaitingResultContinue = true;
         OrderCompleted?.Invoke(new OrderCompletionData(
-            CurrentOrder, result, success, baseReward, tip, wrappingBonus, reputationBonus, earned));
+            CurrentOrder, result, success, baseReward, tip, wrappingBonus, reputationBonus, earned, urgencyBonus));
     }
 
     /// <summary>
@@ -392,6 +479,25 @@ public class OrderProgressionManager : MonoBehaviour
             return;
 
         awaitingResultContinue = false;
+
+        if (orderQueueEnabled)
+        {
+            CurrentOrder = null;
+            activeQueueEntry = null;
+            activeQueueOrderIndex = -1;
+            FillWaitingOrderQueue();
+
+            if (CurrentDayData != null && CurrentDayData.Orders != null
+                && completedQueueOrderIndices.Count >= CurrentDayData.Orders.Count)
+            {
+                FinishCurrentDay();
+                return;
+            }
+
+            OrderQueueChanged?.Invoke(waitingOrders);
+            return;
+        }
+
         orderIndex++;
 
         if (CurrentDayData != null && CurrentDayData.Orders != null
@@ -419,7 +525,94 @@ public class OrderProgressionManager : MonoBehaviour
             return;
         }
 
+        if (orderQueueEnabled)
+        {
+            nextQueueOrderIndex = 0;
+            activeQueueOrderIndex = -1;
+            activeQueueEntry = null;
+            waitingOrders.Clear();
+            completedQueueOrderIndices.Clear();
+            FillWaitingOrderQueue();
+            OrderQueueChanged?.Invoke(waitingOrders);
+            return;
+        }
+
         StartCurrentOrder();
+    }
+
+    /// <summary>Selects a customer from the waiting list without changing campaign ownership.</summary>
+    public bool SelectQueuedOrder(GiftOrderDefinition order)
+    {
+        if (!orderQueueEnabled || !campaignStarted || order == null || CurrentOrder != null
+            || awaitingResultContinue || awaitingDayContinue || CurrentDayData == null)
+            return false;
+
+        for (int i = 0; i < waitingOrders.Count; i++)
+        {
+            OrderQueueEntry entry = waitingOrders[i];
+            if (entry == null || entry.Order != order)
+                continue;
+
+            waitingOrders.RemoveAt(i);
+            activeQueueEntry = entry;
+            activeQueueOrderIndex = entry.CampaignOrderNumber - 1;
+            orderIndex = activeQueueOrderIndex;
+            CurrentOrder = entry.Order;
+            CurrentOrderNumber = entry.CampaignOrderNumber;
+            secretWishShownForCurrentOrder = false;
+            secretWishBonusAwarded = false;
+
+            bool showSecretWish = IsSecretWishAssignedForCurrentOrder;
+            OrderQueueChanged?.Invoke(waitingOrders);
+            OrderStarted?.Invoke(CurrentOrder, showSecretWish);
+            return true;
+        }
+
+        return false;
+    }
+
+    private void FillWaitingOrderQueue()
+    {
+        if (!orderQueueEnabled || CurrentDayData == null || CurrentDayData.Orders == null)
+            return;
+
+        while (waitingOrders.Count < maxWaitingOrders
+            && nextQueueOrderIndex < CurrentDayData.Orders.Count)
+        {
+            int candidateIndex = nextQueueOrderIndex;
+            GiftOrderDefinition candidate = CurrentDayData.Orders[candidateIndex];
+            if (candidate == null)
+            {
+                Debug.LogWarning($"OrderProgressionManager: Missing order asset at day {CurrentDay}, index {candidateIndex}.", this);
+                completedQueueOrderIndices.Add(candidateIndex);
+                nextQueueOrderIndex++;
+                continue;
+            }
+
+            // The story scarf order cannot enter the queue until every earlier order
+            // has been completed. It is never randomly selected or discarded.
+            if (candidate.IsStoryFinaleOrder && !HasCompletedOrdersBefore(candidateIndex))
+                break;
+
+            bool isUrgent = !candidate.IsStoryFinaleOrder && (candidateIndex + 1) % 2 == 0;
+            // Small staggered arrival offsets make customer waiting times readable at a glance,
+            // without adding a separate spawn timer or stretching the short campaign.
+            float initialWaitSeconds = (candidateIndex % maxWaitingOrders) * 12f;
+            waitingOrders.Add(new OrderQueueEntry(candidate, candidateIndex + 1,
+                isUrgent, urgentOrderDeadlineSeconds, urgentOrderBonusCoins, initialWaitSeconds));
+            nextQueueOrderIndex++;
+        }
+    }
+
+    private bool HasCompletedOrdersBefore(int orderIndexToCheck)
+    {
+        for (int i = 0; i < orderIndexToCheck; i++)
+        {
+            if (!completedQueueOrderIndices.Contains(i))
+                return false;
+        }
+
+        return true;
     }
 
     private void StartCurrentOrder()
@@ -487,6 +680,38 @@ public class OrderProgressionManager : MonoBehaviour
     }
 }
 
+public sealed class OrderQueueEntry
+{
+    private float waitedSeconds;
+
+    public GiftOrderDefinition Order { get; }
+    public int CampaignOrderNumber { get; }
+    public bool IsUrgent { get; }
+    public float WaitedSeconds => waitedSeconds;
+    public int UrgencyBonusCoins { get; }
+    public bool UrgencyBonusAvailable => IsUrgent && waitedSeconds < urgencyDeadlineSeconds;
+    public float UrgencySecondsRemaining => Mathf.Max(0f, urgencyDeadlineSeconds - waitedSeconds);
+
+    private readonly float urgencyDeadlineSeconds;
+
+    public OrderQueueEntry(GiftOrderDefinition order, int campaignOrderNumber, bool isUrgent,
+        float urgencyDeadlineSeconds, int urgencyBonusCoins, float initialWaitSeconds = 0f)
+    {
+        Order = order;
+        CampaignOrderNumber = campaignOrderNumber;
+        IsUrgent = isUrgent;
+        this.urgencyDeadlineSeconds = Mathf.Max(1f, urgencyDeadlineSeconds);
+        UrgencyBonusCoins = Mathf.Max(0, urgencyBonusCoins);
+        waitedSeconds = Mathf.Max(0f, initialWaitSeconds);
+    }
+
+    internal void AdvanceWait(float seconds)
+    {
+        if (seconds > 0f)
+            waitedSeconds += seconds;
+    }
+}
+
 public sealed class OrderCompletionData
 {
     public GiftOrderDefinition Order { get; }
@@ -496,10 +721,17 @@ public sealed class OrderCompletionData
     public int Tip { get; }
     public int WrappingBonus { get; }
     public int ReputationBonus { get; }
+    public int UrgencyBonus { get; }
     public int TotalEarned { get; }
 
     public OrderCompletionData(GiftOrderDefinition order, PackingResult result, bool success, int baseReward,
         int tip, int wrappingBonus, int reputationBonus, int totalEarned)
+        : this(order, result, success, baseReward, tip, wrappingBonus, reputationBonus, totalEarned, 0)
+    {
+    }
+
+    public OrderCompletionData(GiftOrderDefinition order, PackingResult result, bool success, int baseReward,
+        int tip, int wrappingBonus, int reputationBonus, int totalEarned, int urgencyBonus)
     {
         Order = order;
         PackingResult = result;
@@ -508,6 +740,7 @@ public sealed class OrderCompletionData
         Tip = tip;
         WrappingBonus = wrappingBonus;
         ReputationBonus = reputationBonus;
+        UrgencyBonus = urgencyBonus;
         TotalEarned = totalEarned;
     }
 }
