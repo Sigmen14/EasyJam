@@ -5,13 +5,14 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 
 /// <summary>
-/// Creates a separate scene for visually exploring order progression.
+/// Creates or repairs a separate scene for visually exploring order progression.
 /// The existing SampleScene and build settings are left untouched.
 /// </summary>
 public static class OrderProgressionVisualDemoSceneBuilder
 {
     private const string CampaignAssetPath = "Assets/Data/Orders/ChristmasCampaign.asset";
     private const string DemoScenePath = "Assets/Scenes/OrderProgressionDemo.unity";
+    private const string RootObjectName = "Order Progression Visual Demo";
 
     [MenuItem("Tools/The Last Gift/Create / Open Visual Progression Demo")]
     private static void CreateOrOpenDemoScene()
@@ -26,35 +27,43 @@ public static class OrderProgressionVisualDemoSceneBuilder
             return;
         }
 
-        SceneAsset existingScene = AssetDatabase.LoadAssetAtPath<SceneAsset>(DemoScenePath);
-        if (existingScene != null)
-        {
-            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
-                return;
-
-            EditorSceneManager.OpenScene(DemoScenePath, OpenSceneMode.Single);
-            EditorUtility.DisplayDialog("Visual Order Demo",
-                "The visual demo scene is open. Press Play to start the demonstration.", "OK");
-            return;
-        }
-
         if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
             return;
 
-        Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-        GameObject root = new GameObject("Order Progression Visual Demo");
+        Scene scene;
+        SceneAsset existingScene = AssetDatabase.LoadAssetAtPath<SceneAsset>(DemoScenePath);
+        if (existingScene != null)
+        {
+            scene = EditorSceneManager.OpenScene(DemoScenePath, OpenSceneMode.Single);
+        }
+        else
+        {
+            scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+        }
 
-        OrderProgressionManager manager = root.AddComponent<OrderProgressionManager>();
-        SerializedObject managerData = new SerializedObject(manager);
-        managerData.FindProperty("campaign").objectReferenceValue = campaign;
-        managerData.FindProperty("startingCoins").intValue = 0;
-        managerData.ApplyModifiedPropertiesWithoutUndo();
+        GameObject root = GameObject.Find(RootObjectName);
+        if (root == null)
+            root = new GameObject(RootObjectName);
 
-        OrderProgressionVisualDemo visualDemo = root.AddComponent<OrderProgressionVisualDemo>();
-        SerializedObject demoData = new SerializedObject(visualDemo);
-        demoData.FindProperty("progression").objectReferenceValue = manager;
-        demoData.FindProperty("campaign").objectReferenceValue = campaign;
-        demoData.ApplyModifiedPropertiesWithoutUndo();
+        // Keep Awake from running until all serialized references have been assigned.
+        root.SetActive(false);
+
+        OrderProgressionManager manager = root.GetComponent<OrderProgressionManager>();
+        if (manager == null)
+            manager = root.AddComponent<OrderProgressionManager>();
+
+        SetObjectReference(manager, "campaign", campaign);
+        SetInt(manager, "startingCoins", 0);
+
+        OrderProgressionVisualDemo visualDemo = root.GetComponent<OrderProgressionVisualDemo>();
+        if (visualDemo == null)
+            visualDemo = root.AddComponent<OrderProgressionVisualDemo>();
+
+        SetObjectReference(visualDemo, "progression", manager);
+        SetObjectReference(visualDemo, "campaign", campaign);
+        visualDemo.enabled = true;
+
+        root.SetActive(true);
 
         if (!EditorSceneManager.SaveScene(scene, DemoScenePath))
         {
@@ -67,8 +76,38 @@ public static class OrderProgressionVisualDemoSceneBuilder
         Selection.activeGameObject = root;
         EditorGUIUtility.PingObject(root);
 
-        EditorUtility.DisplayDialog("Visual Order Demo Created",
-            "The separate demo scene is ready.\n\nPress Play and use the two packing-result buttons to progress through all 9 orders.\n\nThe original SampleScene was not changed.", "OK");
+        EditorUtility.DisplayDialog("Visual Order Demo Ready",
+            "The separate demo scene has been created or repaired.\n\nPress Play and use the packing-result buttons to progress through all 9 orders.\n\nThe original SampleScene was not changed.", "OK");
+    }
+
+    private static void SetObjectReference(Object target, string propertyName, Object value)
+    {
+        SerializedObject serialized = new SerializedObject(target);
+        SerializedProperty property = serialized.FindProperty(propertyName);
+        if (property == null)
+        {
+            Debug.LogError("Visual demo setup: serialized field not found: " + propertyName, target);
+            return;
+        }
+
+        property.objectReferenceValue = value;
+        serialized.ApplyModifiedPropertiesWithoutUndo();
+        serialized.UpdateIfRequiredOrScript();
+    }
+
+    private static void SetInt(Object target, string propertyName, int value)
+    {
+        SerializedObject serialized = new SerializedObject(target);
+        SerializedProperty property = serialized.FindProperty(propertyName);
+        if (property == null)
+        {
+            Debug.LogError("Visual demo setup: serialized field not found: " + propertyName, target);
+            return;
+        }
+
+        property.intValue = value;
+        serialized.ApplyModifiedPropertiesWithoutUndo();
+        serialized.UpdateIfRequiredOrScript();
     }
 }
 #endif
