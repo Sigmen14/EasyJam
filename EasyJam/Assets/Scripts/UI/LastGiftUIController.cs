@@ -9,9 +9,10 @@ using TheLastGift.Audio;
 
 namespace TheLastGift.UI
 {
-    public sealed class LastGiftUIController : MonoBehaviour
+    public sealed partial class LastGiftUIController : MonoBehaviour
     {
         public Action ConfirmPacking, Continue, StartGame, OpenWorkshop;
+        public Action LeaveGameplay;
         public Func<WorkshopUpgradeType, bool> PurchaseWorkshopUpgrade;
         public Action<GiftWrappingSelection> ConfirmWrapping;
         public Action SecretWishShown;
@@ -186,11 +187,14 @@ namespace TheLastGift.UI
                 new Vector2(0.5f, 0.5f),
                 100f);
             SetupCanvas();
+            InitializeDisplaySettings();
             MainMenu();
         }
 
         private void OnDestroy()
         {
+            RestorePausedStateOnDestroy();
+
             if (sortingEventTimerRoutine != null)
                 StopCoroutine(sortingEventTimerRoutine);
 
@@ -538,35 +542,7 @@ namespace TheLastGift.UI
         {
             LastGiftAudioManager.EnsureInstance();
             Build("Настройки");
-
-            Vector2 cardMin = new Vector2(0.16f, 0.18f);
-            Vector2 cardMax = new Vector2(0.84f, 0.89f);
-            RectTransform card = FestivePanel(root.transform, "Праздничная панель настроек",
-                cardMin, cardMax, paper);
-
-            FestiveHeader(card, "Заголовок настроек", "НАСТРОЙКИ",
-                new Vector2(0.08f, 0.835f), new Vector2(0.92f, 0.975f), red, 34);
-
-            FestivePanel(card, "Карточка общей громкости",
-                new Vector2(0.08f, 0.55f), new Vector2(0.92f, 0.80f), cream);
-            FestivePanel(card, "Карточка музыки",
-                new Vector2(0.08f, 0.32f), new Vector2(0.92f, 0.57f), cream);
-            FestivePanel(card, "Карточка звуковых эффектов",
-                new Vector2(0.08f, 0.09f), new Vector2(0.92f, 0.34f), cream);
-
-            CreateVolumeControl(card, "ОБЩАЯ ГРОМКОСТЬ",
-                LastGiftAudioManager.MasterVolume, 0.68f,
-                LastGiftAudioManager.SetMasterVolume);
-            CreateVolumeControl(card, "МУЗЫКА",
-                LastGiftAudioManager.MusicVolume, 0.45f,
-                LastGiftAudioManager.SetMusicVolume);
-            CreateVolumeControl(card, "ЗВУКОВЫЕ ЭФФЕКТЫ",
-                LastGiftAudioManager.SfxVolume, 0.22f,
-                LastGiftAudioManager.SetSfxVolume);
-
-            Action returnAction = onBack ?? (Action)MainMenu;
-            ButtonAt("НАЗАД", wood, returnAction,
-                new Vector2(0.38f, 0.085f), new Vector2(0.62f, 0.16f));
+            BuildSettingsPanel(root.transform, onBack, "НАЗАД");
         }
 
         public void ShowTutorial()
@@ -641,7 +617,7 @@ namespace TheLastGift.UI
             feedback = Label("Перетащи подарки с правой полки в коробку по центру.",
                 18, brown, new Vector2(0.285f, 0.18f), new Vector2(0.715f, 0.235f), TextAnchor.MiddleCenter);
 
-            ButtonAt("В МЕНЮ", wood, MainMenu,
+            ButtonAt("В МЕНЮ", wood, LeaveGameplayToMenu,
                 new Vector2(0.035f, 0.075f), new Vector2(0.19f, 0.145f));
 
             ButtonAt("ПРОВЕРИТЬ ЗАКАЗ", green, CheckOrder,
@@ -1870,7 +1846,7 @@ namespace TheLastGift.UI
                 if (sortingEventTimer != null)
                     sortingEventTimer.text = "ОСТАЛОСЬ: " + sortingEventSecondsRemaining + " С";
 
-                yield return new WaitForSecondsRealtime(1f);
+                yield return new WaitForSeconds(1f);
                 sortingEventSecondsRemaining--;
             }
 
@@ -1894,7 +1870,7 @@ namespace TheLastGift.UI
                 sortingEventTimer.text = "ГОТОВО!";
             SetSortingEventStatus("✦ УРА! ВСЕ ПОДАРКИ РАССОРТИРОВАНЫ! ✦", true);
 
-            yield return new WaitForSecondsRealtime(0.75f);
+            yield return new WaitForSeconds(0.75f);
 
             Action completed = sortingEventCompleted;
             sortingEventCompleted = null;
@@ -2541,7 +2517,7 @@ namespace TheLastGift.UI
 
             while (elapsed < 0.2f)
             {
-                elapsed += Time.unscaledDeltaTime;
+                elapsed += Time.deltaTime;
                 if (target != null)
                     target.localScale = Vector3.Lerp(Vector3.one * 0.85f, Vector3.one, elapsed / 0.2f);
                 yield return null;

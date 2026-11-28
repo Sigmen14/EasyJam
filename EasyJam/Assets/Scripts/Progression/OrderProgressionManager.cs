@@ -297,6 +297,36 @@ public class OrderProgressionManager : MonoBehaviour
         StartGame();
     }
 
+    /// <summary>
+    /// Ends the current run without destroying the manager or its event subscriptions.
+    /// The next StartGame call begins a clean campaign while preserving the previous
+    /// secret-wish pattern used to avoid an identical consecutive run.
+    /// </summary>
+    public void ReturnToMenu()
+    {
+        campaignStarted = false;
+        IsCompleted = false;
+        CurrentOrder = null;
+        CurrentDayData = null;
+        CurrentCoins = startingCoins;
+        CurrentDay = 0;
+        CurrentOrderNumber = 0;
+        DayOrdersCompleted = 0;
+        DayCoinsEarned = 0;
+        TotalOrdersCompleted = 0;
+        TotalCoinsEarned = 0;
+        TotalTipsEarned = 0;
+        TotalReputationEarned = 0;
+        dayIndex = 0;
+        orderIndex = 0;
+        awaitingResultContinue = false;
+        awaitingDayContinue = false;
+        secretWishShownForCurrentOrder = false;
+        secretWishBonusAwarded = false;
+        secretWishAssignments = new bool[0];
+        CoinsChanged?.Invoke(CurrentCoins);
+    }
+
     /// <summary>Called by the packing feature after a packing attempt has ended.</summary>
     public void CompleteCurrentOrder(PackingResult result)
     {
