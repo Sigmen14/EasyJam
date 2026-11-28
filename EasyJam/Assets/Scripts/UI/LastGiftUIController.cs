@@ -1116,7 +1116,7 @@ namespace TheLastGift.UI
             FestivePanel(root.transform, "Коробка — декоративная рамка",
                 new Vector2(0.300f, 0.280f), new Vector2(0.700f, 0.710f), paper);
             packingRect = Panel(root.transform, "Коробка",
-                new Vector2(0.315f, 0.295f), new Vector2(0.685f, 0.695f), paper);
+                new Vector2(0.315f, 0.295f), new Vector2(0.685f, 0.695f), cream);
 
             int columns = GetBoxColumns(currentOrder.BoxSize);
             int rows = GetBoxRows(currentOrder.BoxSize);
@@ -1124,13 +1124,13 @@ namespace TheLastGift.UI
             {
                 float p = i / (float)columns;
                 Panel(packingRect, "Вертикальная линия",
-                    new Vector2(p - 0.0015f, 0f), new Vector2(p + 0.0015f, 1f), new Color32(225, 209, 181, 255));
+                    new Vector2(p - 0.0015f, 0f), new Vector2(p + 0.0015f, 1f), new Color32(204, 174, 123, 255));
             }
             for (int i = 1; i < rows; i++)
             {
                 float p = i / (float)rows;
                 Panel(packingRect, "Горизонтальная линия",
-                    new Vector2(0f, p - 0.002f), new Vector2(1f, p + 0.002f), new Color32(225, 209, 181, 255));
+                    new Vector2(0f, p - 0.002f), new Vector2(1f, p + 0.002f, 1f), new Color32(204, 174, 123, 255));
             }
 
             packingHint = Label("ПЕРЕТАЩИ СЮДА ПОДАРОК", 19, wood,
@@ -1160,7 +1160,14 @@ namespace TheLastGift.UI
 
         private void AddRequestedGift(Sprite sprite, string caption, Vector2 min, Vector2 max)
         {
-            Image image = ImageAt(root.transform, "Подарок в заказе", min, max, sprite, Color.white);
+            Panel(root.transform, "Золотая рамка требуемого подарка", min, max, gold);
+            Vector2 tileInset = new Vector2(0.004f, 0.004f);
+            Panel(root.transform, "Кремовая подложка требуемого подарка",
+                min + tileInset, max - tileInset, cream);
+
+            Vector2 imageInset = new Vector2(0.008f, 0.012f);
+            Image image = ImageAt(root.transform, "Подарок в заказе",
+                min + imageInset, max - imageInset, sprite, Color.white);
             if (image == null)
             {
                 Label(caption, 13, brown, min, max, TextAnchor.MiddleCenter);
@@ -2020,8 +2027,8 @@ namespace TheLastGift.UI
             Vector2 bodyMax = isOrderSuccess
                 ? new Vector2(0.925f, 0.79f)
                 : new Vector2(0.925f, isTutorial ? 0.81f : 0.70f);
-            Vector2 insetMin = bodyMin - new Vector2(0.018f, 0.025f);
-            Vector2 insetMax = bodyMax + new Vector2(0.018f, 0.025f);
+            Vector2 insetMin = bodyMin - new Vector2(0.018f, 0.015f);
+            Vector2 insetMax = bodyMax + new Vector2(0.018f, 0.012f);
             FestivePanel(card, "Светлая область текста — " + title,
                 insetMin, insetMax, cream);
 
@@ -2206,6 +2213,7 @@ namespace TheLastGift.UI
             Image handleImage = handleObject.GetComponent<Image>();
             handleImage.color = paper;
             handleImage.raycastTarget = true;
+            AddGoldOutline(handleObject, 1.5f);
 
             Slider slider = sliderObject.GetComponent<Slider>();
             slider.minValue = 0f;
