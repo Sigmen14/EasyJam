@@ -652,13 +652,18 @@ namespace TheLastGift.Packing
             GUI.Label(new Rect(panel.x + 24f, panel.y + 76f * scale, panel.width - 48f, 58f * scale),
                 "ПОЗДРАВЛЯЕМ!", completionTitleStyle);
             GUI.Label(new Rect(panel.x + 28f, panel.y + 137f * scale, panel.width - 56f, 40f * scale),
-                "КОРОБКА ЗАПОЛНЕНА", completionSubtitleStyle);
+                activeOrder == null ? "КОРОБКА ЗАПОЛНЕНА" : "ВСЕ УСЛОВИЯ ВЫПОЛНЕНЫ", completionSubtitleStyle);
             GUI.Label(new Rect(panel.x + 42f, panel.y + 183f * scale, panel.width - 84f, 54f * scale),
-                "Все подарки аккуратно уложены.\nНи одной пустой клеточки!", completionBodyStyle);
+                activeOrder == null
+                    ? "Все подарки аккуратно уложены.\nНи одной пустой клеточки!"
+                    : "Заказ собран правильно.\nКаждое особое условие соблюдено!", completionBodyStyle);
 
             var badge = new Rect(panel.x + panel.width * 0.24f, panel.y + 242f * scale,
                 panel.width * 0.52f, 30f * scale);
-            GUI.Label(badge, $"ИДЕАЛЬНАЯ УПАКОВКА  •  {width * height}/{width * height}", completionKickerStyle);
+            GUI.Label(badge, activeOrder == null
+                ? $"ИДЕАЛЬНАЯ УПАКОВКА  •  {width * height}/{width * height}"
+                : $"УСЛОВИЯ СОБЛЮДЕНЫ  •  {width * height}/{width * height}",
+                completionKickerStyle);
 
             var button = new Rect(panel.x + panel.width * 0.18f, panel.y + 282f * scale,
                 panel.width * 0.64f, 44f * scale);
