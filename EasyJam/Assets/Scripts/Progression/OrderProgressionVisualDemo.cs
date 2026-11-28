@@ -120,8 +120,7 @@ public sealed class OrderProgressionVisualDemo : MonoBehaviour
         CreateStretchPanel("Warm Background", canvas.transform, new Color32(244, 239, 229, 255));
 
         RectTransform header = CreateRect("Header", canvas.transform,
-            new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-            Vector2.zero, new Vector2(0f, 112f));
+            new Vector2(0f, 394f), new Vector2(1600f, 112f));
         Image headerImage = header.gameObject.AddComponent<Image>();
         headerImage.color = new Color32(34, 48, 69, 255);
 
