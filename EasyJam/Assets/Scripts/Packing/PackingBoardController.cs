@@ -18,11 +18,21 @@ namespace TheLastGift.Packing
         [Header("Prototype")]
         [SerializeField] private bool runDemoOnStart = true;
         [SerializeField] private Color emptyCellColor = new Color(0.88f, 0.9f, 0.95f, 1f);
-        [SerializeField] private Color boardBackgroundColor = new Color(0.18f, 0.24f, 0.3f, 1f);
+        [SerializeField] private Color boardBackgroundColor = new Color(0.045f, 0.12f, 0.2f, 1f);
 
         private readonly List<GiftPieceView> pieces = new List<GiftPieceView>();
         private readonly List<GameObject> boardVisuals = new List<GameObject>();
+        private readonly List<GameObject> christmasVisuals = new List<GameObject>();
+        private readonly List<Transform> snowflakeTransforms = new List<Transform>();
+        private readonly List<float> snowflakeSpeeds = new List<float>();
+        private readonly List<float> snowflakePhases = new List<float>();
         private Sprite cellSprite;
+        private Sprite snowflakeSprite;
+        private Sprite pineTreeSprite;
+        private bool christmasBackgroundBuilt;
+        private float snowTop;
+        private float snowBottom;
+        private float snowHalfWidth;
         private GiftPieceView draggedPiece;
         private Vector2 dragOffset;
         private Vector2Int previewAnchor;
@@ -48,6 +58,7 @@ namespace TheLastGift.Packing
         private void Start()
         {
             EnsureCamera();
+            BuildChristmasBackground();
             if (!hasBeenConfigured)
             {
                 if (runDemoOnStart) SetupBoard(defaultWidth, defaultHeight, CreateDemoGifts());
@@ -65,7 +76,12 @@ namespace TheLastGift.Packing
                     targetCamera = mainCamera;
             }
 
-            if (targetCamera != null && targetCamera.isActiveAndEnabled) return;
+            if (targetCamera != null && targetCamera.isActiveAndEnabled)
+            {
+                targetCamera.clearFlags = CameraClearFlags.SolidColor;
+                targetCamera.backgroundColor = new Color(0.025f, 0.07f, 0.16f, 1f);
+                return;
+            }
 
             // Safety net for scenes opened without an enabled Main Camera.
             var cameraObject = new GameObject("Packing Runtime Camera");
@@ -79,7 +95,7 @@ namespace TheLastGift.Packing
             targetCamera.nearClipPlane = 0.1f;
             targetCamera.farClipPlane = 1000f;
             targetCamera.clearFlags = CameraClearFlags.SolidColor;
-            targetCamera.backgroundColor = boardBackgroundColor;
+            targetCamera.backgroundColor = new Color(0.025f, 0.07f, 0.16f, 1f);
             targetCamera.cullingMask = ~0;
             targetCamera.depth = 0f;
 
@@ -88,6 +104,8 @@ namespace TheLastGift.Packing
 
         private void Update()
         {
+            UpdateSnowfall();
+
             // Validation must work even on platforms without a mouse device.
             if (Keyboard.current != null && Keyboard.current.vKey.wasPressedThisFrame)
                 ValidateAndReport();
@@ -350,6 +368,291 @@ namespace TheLastGift.Packing
             texture.SetPixels32(data);
             texture.Apply();
             cellSprite = Sprite.Create(texture, new Rect(0, 0, pixels, pixels), new Vector2(0.5f, 0.5f), pixels);
+        }
+
+        private void BuildChristmasBackground()
+        {
+            if (christmasBackgroundBuilt || targetCamera == null || !targetCamera.orthographic) return;
+            christmasBackgroundBuilt = true;
+
+            var viewHeight = targetCamera.orthographicSize * 2f;
+            var viewWidth = viewHeight * targetCamera.aspect;
+            snowTop = targetCamera.transform.position.y + viewHeight * 0.5f + 0.2f;
+            snowBottom = targetCamera.transform.position.y - viewHeight * 0.5f - 0.2f;
+            snowHalfWidth = viewWidth * 0.5f;
+
+            // Deep winter sky with a soft teal aurora instead of a flat brown fill.
+            var skyTexture = new Texture2D(512, 512, TextureFormat.RGBA32, false);
+            skyTexture.name = "WinterNightSkyTexture";
+            skyTexture.filterMode = FilterMode.Bilinear;
+            skyTexture.wrapMode = TextureWrapMode.Clamp;
+            var skyPixels = new Color32[512 * 512];
+            for (var y = 0; y < 512; y++)
+            {
+                var v = y / 511f;
+                for (var x = 0; x < 512; x++)
+                {
+                    var u = x / 511f;
+                    var baseColor = Color.Lerp(
+                        new Color(0.018f, 0.055f, 0.14f, 1f),
+                        new Color(0.035f, 0.20f, 0.25f, 1f), v);
+
+                    var auroraLine = 0.58f + 0.075f * Mathf.Sin(u * 7f + 0.4f)
+                                           + 0.035f * Mathf.Sin(u * 15f + 1.2f);
+                    var aurora = Mathf.Exp(-Mathf.Pow((v - auroraLine) * 17f, 2f));
+                    var glow = Mathf.Exp(-Mathf.Pow((v - 0.78f) * 5f, 2f))
+                               * Mathf.Exp(-Mathf.Pow((u - 0.5f) * 2.4f, 2f));
+                    baseColor += new Color(0.025f * aurora + 0.018f * glow,
+                                           0.16f * aurora + 0.035f * glow,
+                                           0.12f * aurora + 0.055f * glow, 0f);
+                    skyPixels[y * 512 + x] = baseColor;
+                }
+            }
+            skyTexture.SetPixels32(skyPixels);
+            skyTexture.Apply(false, false);
+
+            var skySprite = Sprite.Create(skyTexture, new Rect(0, 0, 512, 512),
+                new Vector2(0.5f, 0.5f), 100f);
+            var sky = CreateChristmasSprite("Winter Night Sky", skySprite,
+                new Vector3(targetCamera.transform.position.x, targetCamera.transform.position.y, 9f),
+                new Vector3(viewWidth / 5.12f, viewHeight / 5.12f, 1f), -100);
+
+            snowflakeSprite = CreateSnowflakeSprite();
+            pineTreeSprite = CreatePineTreeSprite();
+
+            // Snowy fir trees frame the play area without covering the board or gifts.
+            CreateChristmasSprite("Snowy Fir Left", pineTreeSprite,
+                new Vector3(-viewWidth * 0.43f, -viewHeight * 0.30f, 8.5f),
+                new Vector3(1.05f, 1.8f, 1f), -90);
+            CreateChristmasSprite("Snowy Fir Right", pineTreeSprite,
+                new Vector3(viewWidth * 0.43f, -viewHeight * 0.30f, 8.5f),
+                new Vector3(1.05f, 1.8f, 1f), -90);
+            CreateChristmasSprite("Small Fir Left", pineTreeSprite,
+                new Vector3(-viewWidth * 0.34f, -viewHeight * 0.43f, 8.4f),
+                new Vector3(0.62f, 1.12f, 1f), -89);
+            CreateChristmasSprite("Small Fir Right", pineTreeSprite,
+                new Vector3(viewWidth * 0.34f, -viewHeight * 0.43f, 8.4f),
+                new Vector3(0.62f, 1.12f, 1f), -89);
+
+            CreateHolidayGarland(viewWidth, viewHeight);
+            CreateSnowfall(viewWidth, viewHeight, 34);
+        }
+
+        private Sprite CreateSnowflakeSprite()
+        {
+            const int size = 32;
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            texture.name = "SnowflakeTexture";
+            var pixels = new Color32[size * size];
+            var center = (size - 1) * 0.5f;
+            for (var y = 0; y < size; y++)
+            for (var x = 0; x < size; x++)
+            {
+                var dx = x - center;
+                var dy = y - center;
+                var radius = Mathf.Sqrt(dx * dx + dy * dy);
+                var onArm = Mathf.Abs(dx) < 1.35f || Mathf.Abs(dy) < 1.35f ||
+                            Mathf.Abs(dx - dy) < 1.35f || Mathf.Abs(dx + dy) < 1.35f;
+                if (radius < 13f && onArm)
+                    pixels[y * size + x] = new Color32(226, 246, 255, 235);
+            }
+            texture.SetPixels32(pixels);
+            texture.Apply(false, false);
+            return Sprite.Create(texture, new Rect(0, 0, size, size),
+                new Vector2(0.5f, 0.5f), 100f);
+        }
+
+        private Sprite CreatePineTreeSprite()
+        {
+            const int width = 128;
+            const int height = 192;
+            var texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+            texture.name = "SnowCoveredPineTexture";
+            var pixels = new Color32[width * height];
+
+            FillPixelRect(pixels, width, height, 57, 0, 71, 33,
+                new Color32(91, 56, 38, 255));
+            FillTriangle(pixels, width, height, new Vector2(64, 112),
+                new Vector2(6, 20), new Vector2(122, 20),
+                new Color32(10, 76, 62, 255));
+            FillTriangle(pixels, width, height, new Vector2(64, 151),
+                new Vector2(18, 68), new Vector2(110, 68),
+                new Color32(12, 91, 72, 255));
+            FillTriangle(pixels, width, height, new Vector2(64, 184),
+                new Vector2(32, 119), new Vector2(96, 119),
+                new Color32(15, 108, 83, 255));
+
+            // Soft snow caps on each tier.
+            FillTriangle(pixels, width, height, new Vector2(64, 181),
+                new Vector2(52, 157), new Vector2(76, 157),
+                new Color32(221, 241, 249, 255));
+            FillTriangle(pixels, width, height, new Vector2(64, 146),
+                new Vector2(43, 111), new Vector2(85, 111),
+                new Color32(205, 232, 243, 255));
+            FillTriangle(pixels, width, height, new Vector2(64, 106),
+                new Vector2(31, 57), new Vector2(97, 57),
+                new Color32(213, 237, 247, 255));
+
+            texture.SetPixels32(pixels);
+            texture.Apply(false, false);
+            return Sprite.Create(texture, new Rect(0, 0, width, height),
+                new Vector2(0.5f, 0.5f), 100f);
+        }
+
+        private void FillPixelRect(Color32[] pixels, int width, int height,
+            int xMin, int yMin, int xMax, int yMax, Color32 color)
+        {
+            for (var y = Mathf.Max(0, yMin); y < Mathf.Min(height, yMax); y++)
+            for (var x = Mathf.Max(0, xMin); x < Mathf.Min(width, xMax); x++)
+                pixels[y * width + x] = color;
+        }
+
+        private void FillTriangle(Color32[] pixels, int width, int height,
+            Vector2 a, Vector2 b, Vector2 c, Color32 color)
+        {
+            var minX = Mathf.Clamp(Mathf.FloorToInt(Mathf.Min(a.x, Mathf.Min(b.x, c.x))), 0, width - 1);
+            var maxX = Mathf.Clamp(Mathf.CeilToInt(Mathf.Max(a.x, Mathf.Max(b.x, c.x))), 0, width - 1);
+            var minY = Mathf.Clamp(Mathf.FloorToInt(Mathf.Min(a.y, Mathf.Min(b.y, c.y))), 0, height - 1);
+            var maxY = Mathf.Clamp(Mathf.CeilToInt(Mathf.Max(a.y, Mathf.Max(b.y, c.y))), 0, height - 1);
+
+            for (var y = minY; y <= maxY; y++)
+            for (var x = minX; x <= maxX; x++)
+                if (PointInTriangle(new Vector2(x, y), a, b, c))
+                    pixels[y * width + x] = color;
+        }
+
+        private bool PointInTriangle(Vector2 p, Vector2 a, Vector2 b, Vector2 c)
+        {
+            var d1 = (p.x - b.x) * (a.y - b.y) + (a.x - b.x) * (b.y - p.y);
+            var d2 = (p.x - c.x) * (b.y - c.y) + (b.x - c.x) * (c.y - p.y);
+            var d3 = (p.x - a.x) * (c.y - a.y) + (c.x - a.x) * (a.y - p.y);
+            var hasNegative = d1 < 0f || d2 < 0f || d3 < 0f;
+            var hasPositive = d1 > 0f || d2 > 0f || d3 > 0f;
+            return !(hasNegative && hasPositive);
+        }
+
+        private GameObject CreateChristmasSprite(string objectName, Sprite sprite,
+            Vector3 position, Vector3 scale, int sortingOrder)
+        {
+            var obj = new GameObject(objectName);
+            obj.transform.position = position;
+            obj.transform.localScale = scale;
+            var renderer = obj.AddComponent<SpriteRenderer>();
+            renderer.sprite = sprite;
+            renderer.sortingOrder = sortingOrder;
+            christmasVisuals.Add(obj);
+            return obj;
+        }
+
+        private void CreateHolidayGarland(float viewWidth, float viewHeight)
+        {
+            var shader = Shader.Find("Sprites/Default");
+            if (shader == null) return;
+
+            var wireObject = new GameObject("Christmas Garland Wire");
+            var line = wireObject.AddComponent<LineRenderer>();
+            line.material = new Material(shader);
+            line.useWorldSpace = true;
+            line.positionCount = 15;
+            line.startWidth = 0.025f;
+            line.endWidth = 0.025f;
+            line.startColor = new Color(0.05f, 0.28f, 0.22f, 1f);
+            line.endColor = line.startColor;
+            line.sortingOrder = -86;
+            line.numCapVertices = 3;
+
+            var top = targetCamera.transform.position.y + viewHeight * 0.5f - 0.42f;
+            var left = -viewWidth * 0.46f;
+            var bulbSprite = CreateSoftCircleSprite();
+            var bulbColors = new[]
+            {
+                new Color(1f, 0.28f, 0.27f, 1f),
+                new Color(1f, 0.78f, 0.28f, 1f),
+                new Color(0.28f, 0.9f, 0.7f, 1f),
+                new Color(0.55f, 0.72f, 1f, 1f)
+            };
+
+            for (var i = 0; i < 15; i++)
+            {
+                var t = i / 14f;
+                var x = left + viewWidth * 0.92f * t;
+                var y = top - 0.17f * Mathf.Sin(t * Mathf.PI);
+                var point = new Vector3(x, y, 8.2f);
+                line.SetPosition(i, point);
+
+                if (i % 1 == 0)
+                {
+                    var bulb = CreateChristmasSprite("Garland Light", bulbSprite,
+                        point + new Vector3(0f, -0.07f, -0.05f),
+                        Vector3.one * 0.42f, -85);
+                    bulb.GetComponent<SpriteRenderer>().color = bulbColors[i % bulbColors.Length];
+                }
+            }
+
+            christmasVisuals.Add(wireObject);
+        }
+
+        private Sprite CreateSoftCircleSprite()
+        {
+            const int size = 32;
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            texture.name = "HolidayLightTexture";
+            var pixels = new Color32[size * size];
+            var center = (size - 1) * 0.5f;
+            for (var y = 0; y < size; y++)
+            for (var x = 0; x < size; x++)
+            {
+                var distance = Vector2.Distance(new Vector2(x, y), new Vector2(center, center));
+                var alpha = Mathf.Clamp01((14f - distance) / 3f);
+                if (distance <= 14f)
+                    pixels[y * size + x] = new Color32(255, 255, 255, (byte)(alpha * 255f));
+            }
+            texture.SetPixels32(pixels);
+            texture.Apply(false, false);
+            return Sprite.Create(texture, new Rect(0, 0, size, size),
+                new Vector2(0.5f, 0.5f), 100f);
+        }
+
+        private void CreateSnowfall(float viewWidth, float viewHeight, int count)
+        {
+            for (var i = 0; i < count; i++)
+            {
+                var x = targetCamera.transform.position.x + Random.Range(-viewWidth * 0.48f, viewWidth * 0.48f);
+                var y = targetCamera.transform.position.y + Random.Range(-viewHeight * 0.48f, viewHeight * 0.48f);
+                var scale = Random.Range(0.035f, 0.09f);
+                var flake = CreateChristmasSprite("Falling Snow", snowflakeSprite,
+                    new Vector3(x, y, 8f), Vector3.one * scale, -80);
+                flake.GetComponent<SpriteRenderer>().color =
+                    new Color(0.82f, 0.94f, 1f, Random.Range(0.35f, 0.85f));
+
+                snowflakeTransforms.Add(flake.transform);
+                snowflakeSpeeds.Add(Random.Range(0.16f, 0.42f));
+                snowflakePhases.Add(Random.Range(0f, Mathf.PI * 2f));
+            }
+        }
+
+        private void UpdateSnowfall()
+        {
+            if (snowflakeTransforms.Count == 0) return;
+
+            for (var i = 0; i < snowflakeTransforms.Count; i++)
+            {
+                var flake = snowflakeTransforms[i];
+                if (flake == null) continue;
+
+                var position = flake.position;
+                position.y -= snowflakeSpeeds[i] * Time.deltaTime;
+                position.x += Mathf.Sin(Time.time * 0.7f + snowflakePhases[i]) * Time.deltaTime * 0.12f;
+
+                if (position.y < snowBottom)
+                {
+                    position.y = snowTop;
+                    position.x = targetCamera.transform.position.x
+                                 + Random.Range(-snowHalfWidth * 0.95f, snowHalfWidth * 0.95f);
+                }
+
+                flake.position = position;
+            }
         }
 
         private void BuildBoardVisuals()
