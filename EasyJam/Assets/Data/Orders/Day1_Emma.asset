@@ -12,13 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0a2b3c4d5e6f7890a1b2c3d4e5f67890, type: 3}
   m_Name: Day1_Emma
   m_EditorClassIdentifier:
-  CustomerName: Emma
-  CustomerWish: "I want to give these things to my mom. Please wrap the snow globe carefully!"
+  CustomerName: Эмма
+  CustomerWish: "Я хочу подарить эти вещи маме. Пожалуйста, бережно упакуйте снежный шар!"
   CustomerPortrait: {fileID: 0}
   GiftNames:
-  - Snow Globe
-  - Bear
-  - Gingerbread
+  - Снежный шар
+  - Медвежонок
+  - Пряничный человечек
   BoxSize: 1
   RewardCoins: 30
   Day: 1
