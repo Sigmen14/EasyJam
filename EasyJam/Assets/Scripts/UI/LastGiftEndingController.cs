@@ -35,6 +35,8 @@ namespace TheLastGift.UI
         private GameObject overlayRoot;
         private CanvasGroup overlayGroup;
         private RectTransform interiorGroup;
+        private RectTransform shopBoy;
+        private RectTransform shopkeeper;
         private RectTransform streetGroup;
         private RectTransform streetBackground;
         private RectTransform streetBoy;
@@ -110,13 +112,14 @@ namespace TheLastGift.UI
             yield return Fade(overlayGroup, 0f, 1f, 1.0f);
             if (!skipRequested)
             {
-                SetCaption("Хозяин лавки бережно протягивает мальчику его подарок.");
+                SetCaption("Хозяин лавки бережно протягивает мальчику красиво упакованный шарф для мамы.");
                 yield return Hold(1.0f);
             }
 
             if (!skipRequested)
             {
                 yield return HandOverGift();
+                yield return ThankShopkeeper();
                 SetCaption("«Спасибо! Мама будет очень рада», — тихо говорит мальчик.");
                 yield return Hold(2.2f);
             }
@@ -129,7 +132,7 @@ namespace TheLastGift.UI
 
             if (!skipRequested)
             {
-                SetCaption("Он спешит встретить маму после её рождественской смены.");
+                SetCaption("Он спешит встретить маму-медсестру после её ночной рождественской смены.");
                 yield return WalkIntoNight();
                 yield return Hold(1.0f);
             }
@@ -165,9 +168,9 @@ namespace TheLastGift.UI
             AddShape(interiorGroup, "Золотой край стойки",
                 new Vector2(0.5f, 0.193f), new Vector2(1120f, 7f), Gold);
 
-            CreateCharacter(interiorGroup, "Мальчик", new Vector2(0.355f, 0.235f), 0.92f, false);
-            CreateCharacter(interiorGroup, "Хозяин лавки", new Vector2(0.69f, 0.235f), 0.92f, true);
-            gift = CreateGift(interiorGroup, new Vector2(0.505f, 0.315f), 1f, "Подарок для мамы");
+            shopBoy = CreateCharacter(interiorGroup, "Мальчик", new Vector2(0.355f, 0.235f), 0.92f, false);
+            shopkeeper = CreateCharacter(interiorGroup, "Хозяин лавки", new Vector2(0.69f, 0.235f), 0.92f, true);
+            gift = CreateGift(interiorGroup, new Vector2(0.505f, 0.315f), 1f, "Шарф для мамы");
 
             streetGroup = CreateLayer(overlayRoot.transform, "Снежная улица");
             streetGroup.gameObject.AddComponent<CanvasGroup>().alpha = 0f;
@@ -268,6 +271,33 @@ namespace TheLastGift.UI
             gift.anchorMax = end;
             gift.anchoredPosition = Vector2.zero;
             gift.localRotation = Quaternion.identity;
+        }
+
+        private IEnumerator ThankShopkeeper()
+        {
+            if (shopBoy == null || shopkeeper == null)
+                yield break;
+
+            float elapsed = 0f;
+            const float duration = 1.05f;
+            Vector3 boyRotation = shopBoy.localEulerAngles;
+            Vector3 ownerRotation = shopkeeper.localEulerAngles;
+            Vector2 ownerPosition = shopkeeper.anchoredPosition;
+
+            while (elapsed < duration && !skipRequested)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(elapsed / duration);
+                float bow = Mathf.Sin(t * Mathf.PI) * 5f;
+                shopBoy.localRotation = Quaternion.Euler(0f, 0f, -bow);
+                shopkeeper.localRotation = Quaternion.Euler(0f, 0f, bow * 0.55f);
+                shopkeeper.anchoredPosition = ownerPosition + new Vector2(0f, Mathf.Sin(t * Mathf.PI) * 5f);
+                yield return null;
+            }
+
+            shopBoy.localEulerAngles = boyRotation;
+            shopkeeper.localEulerAngles = ownerRotation;
+            shopkeeper.anchoredPosition = ownerPosition;
         }
 
         private IEnumerator CrossToStreet()
