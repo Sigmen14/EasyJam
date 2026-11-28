@@ -200,11 +200,20 @@ namespace TheLastGift.UI
             streetBackground = streetImage.rectTransform;
             streetBackground.localScale = Vector3.one * 1.12f;
 
-            CreateText(streetGroup, "Вывеска лавки", "РОЖДЕСТВЕНСКАЯ ЛАВКА",
-                34, Gold, new Vector2(0.34f, 0.755f), new Vector2(0.66f, 0.825f),
-                TextAnchor.MiddleCenter);
-            CreateText(streetGroup, "Дата рождественского вечера", "24 ДЕКАБРЯ  •  РОЖДЕСТВЕНСКИЙ ВЕЧЕР",
-                20, WarmCream, new Vector2(0.24f, 0.91f), new Vector2(0.76f, 0.965f),
+            // The shop sign sits on the painted awning (texture y=365..392),
+            // not over the roof or the house windows.
+            RectTransform signPanel = CreateRect(
+                streetGroup,
+                "Панель вывески на фасаде",
+                new Vector2(0.285f, 0.68f),
+                new Vector2(0.715f, 0.723f));
+            Image signBacking = signPanel.gameObject.AddComponent<Image>();
+            signBacking.sprite = whiteSprite;
+            signBacking.color = new Color32(67, 42, 37, 248);
+            signBacking.raycastTarget = false;
+
+            CreateText(signPanel, "Вывеска лавки", "РОЖДЕСТВЕНСКАЯ ЛАВКА",
+                19, Gold, new Vector2(0.02f, 0.04f), new Vector2(0.98f, 0.96f),
                 TextAnchor.MiddleCenter);
 
             streetBoy = CreateCharacter(streetGroup, "Мальчик с подарком", new Vector2(0.56f, 0.20f), 0.62f, false);
