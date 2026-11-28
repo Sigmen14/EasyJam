@@ -2173,6 +2173,7 @@ namespace TheLastGift.UI
         {
             bool isTutorial = title == "Как играть";
             bool isOrderSuccess = title == "Заказ выполнен!";
+            bool isFinalGift = title == "Последний подарок";
             Vector2 cardMin = isTutorial
                 ? new Vector2(0.10f, 0.28f)
                 : isOrderSuccess ? new Vector2(0.12f, 0.26f) : new Vector2(0.12f, 0.36f);
@@ -2225,8 +2226,15 @@ namespace TheLastGift.UI
             Vector2 bodyMax = isOrderSuccess
                 ? new Vector2(0.925f, 0.79f)
                 : new Vector2(0.925f, isTutorial ? 0.81f : 0.70f);
-            Vector2 insetMin = bodyMin - new Vector2(0.018f, 0.015f);
-            Vector2 insetMax = bodyMax + new Vector2(0.018f, 0.012f);
+            // The final card has no body copy, so extend its cream surface almost
+            // across the full inner board area to keep every seam between the wooden
+            // layers covered, while leaving a clear gap below the header ribbon.
+            Vector2 insetMin = isFinalGift
+                ? new Vector2(0.018f, 0.018f)
+                : bodyMin - new Vector2(0.018f, 0.015f);
+            Vector2 insetMax = isFinalGift
+                ? new Vector2(0.982f, 0.81f)
+                : bodyMax + new Vector2(0.018f, 0.012f);
             FestivePanel(card, "Светлая область текста — " + title,
                 insetMin, insetMax, cream);
 
