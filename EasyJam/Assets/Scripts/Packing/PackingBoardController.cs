@@ -14,6 +14,7 @@ namespace TheLastGift.Packing
         [SerializeField] private Vector2 boardCenter = Vector2.zero;
         [SerializeField] private float trayGap = 0.65f;
         [SerializeField] private Camera targetCamera;
+
         [Header("Prototype")]
         [SerializeField] private bool runDemoOnStart = true;
         [SerializeField] private Color emptyCellColor = new Color(0.88f, 0.9f, 0.95f, 1f);
@@ -28,6 +29,13 @@ namespace TheLastGift.Packing
         private bool previewValid;
         private int width, height;
         private bool hasBeenConfigured;
+        private bool puzzleCompleted;
+        private bool showValidationMessage;
+        private string feedbackMessage = "Перетащите фрагменты в коробку.";
+        private Vector2Int dragStartGridPosition;
+        private int dragStartRotation;
+        private bool dragStartedPlaced;
+        private GUIStyle hudStyle;
 
         public int Width => width;
         public int Height => height;
@@ -45,27 +53,55 @@ namespace TheLastGift.Packing
 
         private void Update()
         {
+            // Validation must work even on platforms without a mouse device.
+            if (Keyboard.current != null && Keyboard.current.vKey.wasPressedThisFrame)
+                ValidateAndReport();
+
             var mouse = Mouse.current;
             if (mouse == null || targetCamera == null) return;
+
             var world = targetCamera.ScreenToWorldPoint(mouse.position.ReadValue());
             world.z = 0f;
 
             if (mouse.leftButton.wasPressedThisFrame) BeginDrag(world);
-            if (Keyboard.current != null && Keyboard.current.vKey.wasPressedThisFrame)
-            {
-                var isValid = TryValidate(out var result);
-                if (isValid) Debug.Log($"[Packing] SUCCESS: {result.Message} ({result.PlacedCount}/{result.TotalCount})", this);
-                else Debug.LogWarning($"[Packing] NOT READY: {result.Message} ({result.PlacedCount}/{result.TotalCount})", this);
-            }
             if (draggedPiece != null)
             {
                 var dragPosition = (Vector2)world + dragOffset;
                 draggedPiece.transform.position = new Vector3(dragPosition.x, dragPosition.y, 0f);
                 UpdatePreview(dragPosition);
-                if (mouse.rightButton.wasPressedThisFrame || Keyboard.current != null && (Keyboard.current.rKey.wasPressedThisFrame || Keyboard.current.spaceKey.wasPressedThisFrame))
+
+                if (mouse.rightButton.wasPressedThisFrame ||
+                    Keyboard.current != null &&
+                    (Keyboard.current.rKey.wasPressedThisFrame || Keyboard.current.spaceKey.wasPressedThisFrame))
                     RotateDraggedPiece();
+
                 if (mouse.leftButton.wasReleasedThisFrame) EndDrag();
             }
+        }
+
+        private void OnGUI()
+        {
+            if (pieces.Count == 0 || width <= 0 || height <= 0) return;
+
+            if (hudStyle == null)
+            {
+                hudStyle = new GUIStyle(GUI.skin.label)
+                {
+                    alignment = TextAnchor.MiddleCenter,
+                    fontSize = Mathf.Clamp(Screen.height / 24, 11, 16),
+                    fontStyle = FontStyle.Bold
+                };
+                hudStyle.normal.textColor = Color.white;
+            }
+
+            var cells = CountPlacedCells();
+            var placed = CountPlacedPieces();
+            GUI.Label(new Rect(4f, 2f, Screen.width - 8f, 22f),
+                $"Ячейки: {cells}/{width * height}    Фрагменты: {placed}/{pieces.Count}", hudStyle);
+
+            if (showValidationMessage || puzzleCompleted)
+                GUI.Label(new Rect(4f, 22f, Screen.width - 8f, 24f),
+                    puzzleCompleted ? "КОРОБКА ЗАПОЛНЕНА! Отличная работа!" : feedbackMessage, hudStyle);
         }
 
         public void SetupBoard(int boardWidth, int boardHeight, List<GiftDefinition> gifts)
@@ -73,6 +109,9 @@ namespace TheLastGift.Packing
             hasBeenConfigured = true;
             width = Mathf.Max(1, boardWidth);
             height = Mathf.Max(1, boardHeight);
+            puzzleCompleted = false;
+            showValidationMessage = false;
+            feedbackMessage = "Перетащите все фрагменты в коробку.";
             ClearBoard();
             CreateCellSprite();
             BuildBoardVisuals();
@@ -88,10 +127,14 @@ namespace TheLastGift.Packing
 
             foreach (var piece in pieces)
             {
-                if (!piece.IsPlaced) { allPlaced = false; continue; }
+                if (!piece.IsPlaced)
+                {
+                    allPlaced = false;
+                    continue;
+                }
+
                 placed++;
-                var cells = piece.GetRotatedCells();
-                foreach (var cell in cells)
+                foreach (var cell in piece.GetRotatedCells())
                 {
                     var x = piece.GridPosition.x + cell.x;
                     var y = piece.GridPosition.y + cell.y;
@@ -104,19 +147,77 @@ namespace TheLastGift.Packing
                 }
             }
 
-            valid &= allPlaced;
-            var message = pieces.Count == 0 ? "No gifts to pack." :
-                !allPlaced ? $"Placed {placed} of {pieces.Count} gifts." :
-                valid ? "All gifts fit in the box!" : "Some gifts overlap or are outside the box.";
+            var filledCells = 0;
+            for (var y = 0; y < height; y++)
+            for (var x = 0; x < width; x++)
+                if (occupied[x, y]) filledCells++;
+
+            var emptyCells = width * height - filledCells;
+            valid &= allPlaced && emptyCells == 0;
+
+            var message = pieces.Count == 0 ? "Нет фрагментов для упаковки." :
+                !allPlaced ? $"Размещено фрагментов: {placed}/{pieces.Count}." :
+                !valid && filledCells < width * height && emptyCells > 0
+                    ? $"Коробка заполнена не полностью: осталось пустых ячеек — {emptyCells}."
+                    : !valid ? "Есть наложения или фрагмент выходит за границы коробки."
+                    : "Все фрагменты помещены. Коробка заполнена!";
+
             result = new PackingResult(valid, allPlaced, placed, pieces.Count, message);
             return valid;
         }
 
+        private void ValidateAndReport()
+        {
+            var wasCompleted = puzzleCompleted;
+            var valid = TryValidate(out var result);
+            puzzleCompleted = valid;
+            feedbackMessage = result.Message;
+            showValidationMessage = true;
+
+            if (valid && !wasCompleted)
+                Debug.Log($"[Packing] SUCCESS: {result.Message} ({result.PlacedCount}/{result.TotalCount})", this);
+            else if (!valid)
+                Debug.LogWarning($"[Packing] NOT READY: {result.Message} ({result.PlacedCount}/{result.TotalCount})", this);
+        }
+
+        private void RefreshProgress()
+        {
+            var valid = TryValidate(out var result);
+            puzzleCompleted = valid;
+
+            // Keep the HUD quiet while the player is still arranging the pieces.
+            showValidationMessage = valid || result.AllItemsPlaced;
+            if (showValidationMessage) feedbackMessage = result.Message;
+
+            if (valid)
+                Debug.Log($"[Packing] SUCCESS: {result.Message}", this);
+        }
+
+        private int CountPlacedPieces()
+        {
+            var count = 0;
+            foreach (var piece in pieces)
+                if (piece != null && piece.IsPlaced) count++;
+            return count;
+        }
+
+        private int CountPlacedCells()
+        {
+            var count = 0;
+            foreach (var piece in pieces)
+                if (piece != null && piece.IsPlaced)
+                    count += piece.GetRotatedCells().Length;
+            return count;
+        }
+
         private void ClearBoard()
         {
-            foreach (var visual in boardVisuals) if (visual != null) Destroy(visual);
+            foreach (var visual in boardVisuals)
+                if (visual != null) Destroy(visual);
             boardVisuals.Clear();
-            foreach (var piece in pieces) if (piece != null) Destroy(piece.gameObject);
+
+            foreach (var piece in pieces)
+                if (piece != null) Destroy(piece.gameObject);
             pieces.Clear();
             draggedPiece = null;
         }
@@ -141,12 +242,15 @@ namespace TheLastGift.Packing
         private void BuildBoardVisuals()
         {
             var bottomLeft = GetBoardBottomLeft();
-            var background = CreateSpriteObject("BoardBackground", boardBackgroundColor, new Vector3(boardCenter.x, boardCenter.y, 0.2f));
+            var background = CreateSpriteObject("BoardBackground", boardBackgroundColor,
+                new Vector3(boardCenter.x, boardCenter.y, 0.2f));
             background.transform.localScale = new Vector3(width * cellSize + 0.15f, height * cellSize + 0.15f, 1f);
+
             for (var y = 0; y < height; y++)
             for (var x = 0; x < width; x++)
             {
-                var cell = CreateSpriteObject($"Cell_{x}_{y}", emptyCellColor, new Vector3(bottomLeft.x + (x + 0.5f) * cellSize, bottomLeft.y + (y + 0.5f) * cellSize, 0f));
+                var cell = CreateSpriteObject($"Cell_{x}_{y}", emptyCellColor,
+                    new Vector3(bottomLeft.x + (x + 0.5f) * cellSize, bottomLeft.y + (y + 0.5f) * cellSize, 0f));
                 cell.transform.localScale = Vector3.one * cellSize * 0.96f;
             }
         }
@@ -166,30 +270,41 @@ namespace TheLastGift.Packing
 
         private void CreatePieces(List<GiftDefinition> gifts)
         {
-            if (gifts == null) return;
             for (var i = 0; i < gifts.Count; i++)
             {
                 if (gifts[i] == null) continue;
                 var obj = new GameObject(gifts[i].GiftName);
                 obj.transform.SetParent(transform, false);
                 var view = obj.AddComponent<GiftPieceView>();
-                var trayPosition = GetTrayPosition(i, gifts.Count);
+                var trayPosition = GetTrayPosition(i, gifts.Count, gifts[i]);
                 view.Initialize(this, gifts[i], trayPosition, cellSize, cellSprite, i + 10);
                 pieces.Add(view);
             }
         }
 
-        private Vector2 GetTrayPosition(int index, int count)
+        private Vector2 GetTrayPosition(int index, int count, GiftDefinition definition)
         {
+            var cells = definition.Cells;
+            if (cells == null || cells.Length == 0) cells = new[] { Vector2Int.zero };
+
+            var minX = int.MaxValue;
+            var maxX = int.MinValue;
+            foreach (var cell in cells)
+            {
+                minX = Mathf.Min(minX, cell.x);
+                maxX = Mathf.Max(maxX, cell.x);
+            }
+
+            var pieceWidth = (maxX - minX + 1) * cellSize;
             var left = GetBoardBottomLeft().x;
             var right = left + width * cellSize;
-            var columns = Mathf.Max(1, Mathf.Min(2, count));
-            var column = index % columns;
-            var row = index / columns;
-            var x = column == 0
-                ? left - cellSize * 0.5f - trayGap
-                : right + cellSize * 0.5f + trayGap;
-            var y = boardCenter.y + (row == 0 ? cellSize * 1.8f : -cellSize * 1.8f) - Mathf.Max(0, row - 1) * (cellSize * 2.8f);
+            var side = index % 2;
+            var row = index / 2;
+            var sideGap = Mathf.Max(0.18f, trayGap * 0.4f);
+            var x = side == 0
+                ? left - pieceWidth * 0.5f - sideGap
+                : right + pieceWidth * 0.5f + sideGap;
+            var y = boardCenter.y + (row == 0 ? 1.3f : -1.3f) * cellSize;
             return new Vector2(x, y);
         }
 
@@ -197,8 +312,13 @@ namespace TheLastGift.Packing
         {
             var candidate = FindPieceAtWorld(world);
             if (candidate == null) return;
+
             draggedPiece = candidate;
             dragOffset = (Vector2)candidate.transform.position - world;
+            dragStartedPlaced = candidate.IsPlaced;
+            dragStartGridPosition = candidate.GridPosition;
+            dragStartRotation = candidate.RotationQuarterTurns;
+
             candidate.IsDragging = true;
             candidate.SetSortingOrder(100);
             if (candidate.IsPlaced) RemovePlacement(candidate);
@@ -209,20 +329,31 @@ namespace TheLastGift.Packing
         private void EndDrag()
         {
             if (draggedPiece == null) return;
+
             draggedPiece.IsDragging = false;
             if (previewValid)
             {
                 PlacePiece(draggedPiece, previewAnchor);
                 draggedPiece.SetDefaultTint();
             }
-            else
+            else if (dragStartedPlaced)
             {
-                draggedPiece.RestoreToTray();
+                // Invalid moves restore the previous board placement instead of losing the piece.
+                draggedPiece.SetPlacement(dragStartGridPosition, dragStartRotation, true, draggedPiece.transform.position);
+                var originalCenter = AnchorToWorldCenter(dragStartGridPosition, draggedPiece);
+                draggedPiece.SetPlacement(dragStartGridPosition, dragStartRotation, true, originalCenter);
                 draggedPiece.SetDefaultTint();
             }
+            else
+            {
+                draggedPiece.SetPlacement(new Vector2Int(-1, -1), dragStartRotation, false, draggedPiece.TrayPosition);
+                draggedPiece.SetDefaultTint();
+            }
+
             draggedPiece.SetSortingOrder(pieces.IndexOf(draggedPiece) + 10);
             draggedPiece = null;
             RefreshBoardColors();
+            RefreshProgress();
         }
 
         private void UpdatePreview(Vector2 worldCenter)
@@ -250,13 +381,16 @@ namespace TheLastGift.Packing
                 if (other == piece || !other.IsPlaced) continue;
                 foreach (var cell in other.GetRotatedCells())
                 {
-                    var x = other.GridPosition.x + cell.x; var y = other.GridPosition.y + cell.y;
+                    var x = other.GridPosition.x + cell.x;
+                    var y = other.GridPosition.y + cell.y;
                     if (x >= 0 && y >= 0 && x < width && y < height) occupied[x, y] = true;
                 }
             }
+
             foreach (var cell in piece.GetRotatedCells())
             {
-                var x = anchor.x + cell.x; var y = anchor.y + cell.y;
+                var x = anchor.x + cell.x;
+                var y = anchor.y + cell.y;
                 if (x < 0 || y < 0 || x >= width || y >= height || occupied[x, y]) return false;
             }
             return true;
@@ -271,7 +405,10 @@ namespace TheLastGift.Packing
         {
             var size = piece.GetFootprintSize();
             var bottomLeft = GetBoardBottomLeft();
-            return new Vector3(bottomLeft.x + (anchor.x + size.x * 0.5f) * cellSize, bottomLeft.y + (anchor.y + size.y * 0.5f) * cellSize, -0.1f);
+            return new Vector3(
+                bottomLeft.x + (anchor.x + size.x * 0.5f) * cellSize,
+                bottomLeft.y + (anchor.y + size.y * 0.5f) * cellSize,
+                -0.1f);
         }
 
         private void RemovePlacement(GiftPieceView piece)
@@ -285,11 +422,12 @@ namespace TheLastGift.Packing
             {
                 var piece = pieces[i];
                 if (piece == null) continue;
-                var cells = piece.GetRotatedCells();
+
                 var size = piece.GetFootprintSize();
                 var center = piece.transform.position;
                 var half = new Vector2(size.x, size.y) * cellSize * 0.5f;
-                if (world.x >= center.x - half.x && world.x <= center.x + half.x && world.y >= center.y - half.y && world.y <= center.y + half.y)
+                if (world.x >= center.x - half.x && world.x <= center.x + half.x &&
+                    world.y >= center.y - half.y && world.y <= center.y + half.y)
                     return piece;
             }
             return null;
@@ -312,12 +450,15 @@ namespace TheLastGift.Packing
         private void RefreshBoardColors()
         {
             if (boardVisuals.Count < width * height + 1) return;
+
             for (var i = 1; i < boardVisuals.Count; i++)
             {
                 var cell = boardVisuals[i];
                 if (cell == null) continue;
+
                 var renderer = cell.GetComponent<SpriteRenderer>();
-                var x = (i - 1) % width; var y = (i - 1) / width;
+                var x = (i - 1) % width;
+                var y = (i - 1) / width;
                 var occupied = false;
                 foreach (var piece in pieces)
                 {
@@ -327,29 +468,52 @@ namespace TheLastGift.Packing
                 }
                 renderer.color = occupied ? new Color(0.6f, 0.72f, 0.8f, 1f) : emptyCellColor;
             }
+
             if (draggedPiece != null)
             {
                 foreach (var local in draggedPiece.GetRotatedCells())
                 {
                     var cellPos = previewAnchor + local;
                     if (cellPos.x < 0 || cellPos.y < 0 || cellPos.x >= width || cellPos.y >= height) continue;
+
                     var index = 1 + cellPos.y * width + cellPos.x;
                     var renderer = boardVisuals[index].GetComponent<SpriteRenderer>();
-                    renderer.color = previewValid ? new Color(0.3f, 0.85f, 0.45f, 0.6f) : new Color(0.95f, 0.25f, 0.25f, 0.6f);
+                    renderer.color = previewValid
+                        ? new Color(0.3f, 0.85f, 0.45f, 0.6f)
+                        : new Color(0.95f, 0.25f, 0.25f, 0.6f);
                 }
             }
         }
 
-        private Vector2 GetBoardBottomLeft() => new Vector2(boardCenter.x - width * cellSize * 0.5f, boardCenter.y - height * cellSize * 0.5f);
+        private Vector2 GetBoardBottomLeft() =>
+            new Vector2(boardCenter.x - width * cellSize * 0.5f, boardCenter.y - height * cellSize * 0.5f);
 
         private List<GiftDefinition> CreateDemoGifts()
         {
+            // Four tetrominoes have exactly 16 cells total, so a valid solution fills the 4x4 box.
+            // Two T pieces, one L piece, and one S piece require rotation and spatial planning.
             return new List<GiftDefinition>
             {
-                GiftDefinition.CreateRuntime("Bear", new[] { new Vector2Int(0,0), new Vector2Int(1,0), new Vector2Int(0,1), new Vector2Int(1,1) }, new Color(0.75f,0.48f,0.3f)),
-                GiftDefinition.CreateRuntime("Candle", new[] { new Vector2Int(0,0), new Vector2Int(0,1), new Vector2Int(0,2) }, new Color(0.95f,0.83f,0.38f), false),
-                GiftDefinition.CreateRuntime("Candy Cane", new[] { new Vector2Int(0,0), new Vector2Int(0,1), new Vector2Int(1,1) }, new Color(0.9f,0.3f,0.35f)),
-                GiftDefinition.CreateRuntime("Ornament", new[] { Vector2Int.zero }, new Color(0.85f,0.3f,0.55f))
+                GiftDefinition.CreateRuntime("Tangerine T", new[]
+                {
+                    new Vector2Int(0,0), new Vector2Int(1,0),
+                    new Vector2Int(2,0), new Vector2Int(1,1)
+                }, new Color(0.78f, 0.43f, 0.27f)),
+                GiftDefinition.CreateRuntime("Golden T", new[]
+                {
+                    new Vector2Int(0,0), new Vector2Int(1,0),
+                    new Vector2Int(2,0), new Vector2Int(1,1)
+                }, new Color(0.95f, 0.78f, 0.28f)),
+                GiftDefinition.CreateRuntime("Red L", new[]
+                {
+                    new Vector2Int(0,0), new Vector2Int(0,1),
+                    new Vector2Int(0,2), new Vector2Int(1,0)
+                }, new Color(0.88f, 0.25f, 0.31f)),
+                GiftDefinition.CreateRuntime("Pink S", new[]
+                {
+                    new Vector2Int(1,0), new Vector2Int(2,0),
+                    new Vector2Int(0,1), new Vector2Int(1,1)
+                }, new Color(0.82f, 0.25f, 0.52f))
             };
         }
     }
