@@ -65,6 +65,7 @@ namespace TheLastGift.Packing
         private GUIStyle hudTitleStyle;
         private GUIStyle hudStyle;
         private GUIStyle controlStyle;
+        private GUIStyle trayLabelStyle;
         private GUIStyle completionKickerStyle;
         private GUIStyle completionTitleStyle;
         private GUIStyle completionSubtitleStyle;
@@ -209,6 +210,7 @@ namespace TheLastGift.Packing
 
             if (pieces.Count == 0) return;
             DrawTopHud();
+            DrawTrayLabels();
             if (puzzleCompleted)
                 DrawCompletionOverlay();
             DrawReturnToShopButton();
@@ -244,6 +246,15 @@ namespace TheLastGift.Packing
                 wordWrap = true
             };
             controlStyle.normal.textColor = new Color32(82, 52, 36, 255);
+
+            trayLabelStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = Mathf.RoundToInt(14f * scale),
+                fontStyle = FontStyle.Bold,
+                wordWrap = false
+            };
+            trayLabelStyle.normal.textColor = new Color32(82, 52, 36, 255);
 
             orderCardTitleStyle = new GUIStyle(GUI.skin.label)
             {
@@ -501,6 +512,53 @@ namespace TheLastGift.Packing
                 "ВЫНУТЬ ФИГУРУ: ПЕРЕТАЩИ ЗА КРАЙ КОРОБКИ     •     V — ПРОВЕРКА", controlStyle);
 
             DrawConstraintStatus(panel, scale);
+        }
+
+        private void DrawTrayLabels()
+        {
+            if (targetCamera == null || trayLabelStyle == null) return;
+
+            var pixelsPerWorldUnit = Screen.height / Mathf.Max(0.01f, targetCamera.orthographicSize * 2f);
+            foreach (var piece in pieces)
+            {
+                if (piece == null || piece.IsPlaced || piece.IsDragging || piece.Definition == null)
+                    continue;
+
+                var cells = piece.Definition.Cells;
+                var minY = int.MaxValue;
+                var maxY = int.MinValue;
+                var minX = int.MaxValue;
+                var maxX = int.MinValue;
+                if (cells == null || cells.Length == 0)
+                {
+                    minY = maxY = minX = maxX = 0;
+                }
+                else
+                {
+                    foreach (var cell in cells)
+                    {
+                        minY = Mathf.Min(minY, cell.y);
+                        maxY = Mathf.Max(maxY, cell.y);
+                        minX = Mathf.Min(minX, cell.x);
+                        maxX = Mathf.Max(maxX, cell.x);
+                    }
+                }
+
+                var shapeHeight = (maxY - minY + 1) * cellSize;
+                var shapeWidth = (maxX - minX + 1) * cellSize;
+                var labelWorldPosition = piece.TrayPosition +
+                    Vector2.up * (shapeHeight * 0.5f + 0.22f);
+                var screenPosition = targetCamera.WorldToScreenPoint(labelWorldPosition);
+                if (screenPosition.z <= 0f) continue;
+
+                var labelWidth = Mathf.Clamp(shapeWidth * pixelsPerWorldUnit, 96f, 280f);
+                var labelRect = new Rect(
+                    screenPosition.x - labelWidth * 0.5f,
+                    Screen.height - screenPosition.y - 13f,
+                    labelWidth,
+                    26f);
+                GUI.Label(labelRect, piece.Definition.GiftName.ToUpperInvariant(), trayLabelStyle);
+            }
         }
 
         private void DrawConstraintStatus(Rect panel, float scale)

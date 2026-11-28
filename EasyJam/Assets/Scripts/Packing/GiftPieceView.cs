@@ -53,16 +53,25 @@ namespace TheLastGift.Packing
                 cellRenderers.Add(renderer);
             }
 
-            if (Definition.Sprite != null)
+            var giftSprite = Definition.Sprite != null
+                ? Definition.Sprite
+                : GiftIllustrationFactory.CreateFor(Definition);
+            if (giftSprite != null)
             {
                 var iconObject = new GameObject("GiftIcon");
                 iconObject.transform.SetParent(transform, false);
                 iconObject.transform.localPosition = Vector3.zero;
                 iconRenderer = iconObject.AddComponent<SpriteRenderer>();
-                iconRenderer.sprite = Definition.Sprite;
+                iconRenderer.sprite = giftSprite;
                 iconRenderer.color = Color.white;
                 iconRenderer.sortingOrder = sortingOrder + 1;
-                iconObject.transform.localScale = Vector3.one * cellSize * Mathf.Min(1.6f, Mathf.Max(width, height) * 0.42f);
+                var spriteSize = iconRenderer.sprite.bounds.size;
+                var availableWidth = Mathf.Max(0.1f, width * cellSize * 0.90f);
+                var availableHeight = Mathf.Max(0.1f, height * cellSize * 0.90f);
+                var fitScale = Mathf.Min(
+                    availableWidth / Mathf.Max(0.01f, spriteSize.x),
+                    availableHeight / Mathf.Max(0.01f, spriteSize.y));
+                iconObject.transform.localScale = Vector3.one * fitScale;
             }
         }
 
