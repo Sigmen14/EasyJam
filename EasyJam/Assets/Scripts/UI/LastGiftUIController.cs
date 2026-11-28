@@ -42,25 +42,25 @@ namespace TheLastGift.UI
         // повторов, пока игрок не увидит весь набор.
         private static readonly CustomerOrderData[] OrderCatalog =
         {
-            new CustomerOrderData("Аня", "Мама любит уют и зимние вечера. Положи в коробку мишку и снежный шар.",
+            new CustomerOrderData("Аня", "Для мамы:\nмишка и снежный шар",
                 "МИШКА", "СНЕЖНЫЙ ШАР"),
-            new CustomerOrderData("Максим", "Друг обожает сладости. Ему нужны подарок и леденец.",
+            new CustomerOrderData("Максим", "Для друга:\nподарок и леденец",
                 "ПОДАРОК", "ЛЕДЕНЕЦ"),
-            new CustomerOrderData("София", "Для маленькой сестры собери мишку, подарок и леденец.",
+            new CustomerOrderData("София", "Для сестры:\nмишка, подарок, леденец",
                 "МИШКА", "ПОДАРОК", "ЛЕДЕНЕЦ"),
-            new CustomerOrderData("Дедушка", "Хочу волшебный зимний сюрприз. Добавь снежный шар и леденец.",
+            new CustomerOrderData("Дедушка", "Зимний сюрприз:\nшар и леденец",
                 "СНЕЖНЫЙ ШАР", "ЛЕДЕНЕЦ"),
-            new CustomerOrderData("Лиза", "Подруге понравятся мишка и красивая коробка-подарок.",
+            new CustomerOrderData("Лиза", "Для подруги:\nмишка и подарок",
                 "МИШКА", "ПОДАРОК"),
-            new CustomerOrderData("Артём", "Нужен один волшебный снежный шар.",
+            new CustomerOrderData("Артём", "Один подарок:\nснежный шар",
                 "СНЕЖНЫЙ ШАР"),
-            new CustomerOrderData("Вера", "Племянник любит игрушки. Собери мишку и леденец.",
+            new CustomerOrderData("Вера", "Для племянника:\nмишка и леденец",
                 "МИШКА", "ЛЕДЕНЕЦ"),
-            new CustomerOrderData("Николай", "Небольшой праздничный набор: подарок, леденец и снежный шар.",
+            new CustomerOrderData("Николай", "Праздничный набор:\nподарок, леденец, шар",
                 "ПОДАРОК", "ЛЕДЕНЕЦ", "СНЕЖНЫЙ ШАР"),
-            new CustomerOrderData("Маша", "Для коллеги упакуй только коробку-подарок.",
+            new CustomerOrderData("Маша", "Для коллеги:\nодин подарок",
                 "ПОДАРОК"),
-            new CustomerOrderData("Егор", "Собери зимний набор из мишки, снежного шара и подарка.",
+            new CustomerOrderData("Егор", "Зимний набор:\nмишка, шар и подарок",
                 "МИШКА", "СНЕЖНЫЙ ШАР", "ПОДАРОК")
         };
 
@@ -297,12 +297,12 @@ namespace TheLastGift.UI
             Label(currentOrder.CustomerName, 22, brown,
                 new Vector2(0.135f, 0.69f), new Vector2(0.25f, 0.77f), TextAnchor.MiddleCenter);
 
-            Panel(root.transform, "Пожелание", new Vector2(0.045f, 0.515f), new Vector2(0.245f, 0.635f), cream);
-            Label("«" + currentOrder.Wish + "»", 19, brown,
-                new Vector2(0.05f, 0.52f), new Vector2(0.24f, 0.63f), TextAnchor.MiddleCenter);
+            Panel(root.transform, "Пожелание", new Vector2(0.045f, 0.47f), new Vector2(0.245f, 0.65f), cream);
+            Label(currentOrder.Wish, 17, brown,
+                new Vector2(0.05f, 0.475f), new Vector2(0.24f, 0.645f), TextAnchor.MiddleCenter);
 
             Label("В ЗАКАЗЕ НУЖНО", 17, green,
-                new Vector2(0.045f, 0.435f), new Vector2(0.245f, 0.49f), TextAnchor.MiddleCenter);
+                new Vector2(0.045f, 0.425f), new Vector2(0.245f, 0.465f), TextAnchor.MiddleCenter);
 
             float itemWidth = 0.06f;
             float itemGap = 0.006f;
