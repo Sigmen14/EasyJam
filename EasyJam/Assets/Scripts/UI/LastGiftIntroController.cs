@@ -2,7 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SceneManagement;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace TheLastGift.UI
@@ -14,11 +14,12 @@ namespace TheLastGift.UI
     [DisallowMultipleComponent]
     public sealed class LastGiftIntroController : MonoBehaviour
     {
-        private const string EntrySceneName = "OrderProgressionDemo";
         private const float IntroDuration = 25.5f;
         private const float FadeOutDuration = 1.3f;
 
-        private static bool hasPlayedThisSession;
+        private static LastGiftIntroController activeIntro;
+        private Action completionCallback;
+        private bool hasCompleted;
 
         private CanvasGroup canvasGroup;
         private CanvasGroup titleGroup;
@@ -49,30 +50,22 @@ namespace TheLastGift.UI
             public float Phase;
         }
 
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetRuntimeState()
-        {
-            hasPlayedThisSession = false;
-            SceneManager.sceneLoaded -= HandleSceneLoaded;
-        }
+        public static bool IsPlaying => activeIntro != null;
 
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-        private static void RegisterSceneHook()
+        /// <summary>
+        /// Starts the intro only when the menu explicitly requests it.
+        /// The callback resumes the existing tutorial/gameplay flow after the fade.
+        /// </summary>
+        public static bool TryPlay(Action onCompleted)
         {
-            SceneManager.sceneLoaded -= HandleSceneLoaded;
-            SceneManager.sceneLoaded += HandleSceneLoaded;
-        }
-
-        private static void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
-        {
-            if (hasPlayedThisSession || !string.Equals(scene.name, EntrySceneName, StringComparison.Ordinal))
-                return;
-
-            hasPlayedThisSession = true;
-            SceneManager.sceneLoaded -= HandleSceneLoaded;
+            if (activeIntro != null)
+                return false;
 
             GameObject introObject = new GameObject("The Last Gift — Christmas Eve Intro");
-            introObject.AddComponent<LastGiftIntroController>();
+            LastGiftIntroController intro = introObject.AddComponent<LastGiftIntroController>();
+            intro.completionCallback = onCompleted;
+            activeIntro = intro;
+            return true;
         }
 
         private void Awake()
@@ -83,13 +76,20 @@ namespace TheLastGift.UI
             BuildSnowfall();
             BuildTitleCard();
             BuildFadeCurtain();
-            BuildSkipButton();
+            BuildSkipPrompt();
         }
 
         private void Update()
         {
             if (exiting)
                 return;
+
+            Keyboard keyboard = Keyboard.current;
+            if (keyboard != null && keyboard.spaceKey.wasPressedThisFrame)
+            {
+                SkipIntro();
+                return;
+            }
 
             elapsed += Time.unscaledDeltaTime;
             UpdateCamera();
@@ -109,7 +109,7 @@ namespace TheLastGift.UI
             }
 
             if (elapsed >= IntroDuration)
-                Destroy(gameObject);
+                CompleteAndClose();
         }
 
         private void OnDestroy()
@@ -183,8 +183,14 @@ namespace TheLastGift.UI
 
             canvasGroup = canvasObject.GetComponent<CanvasGroup>();
             canvasGroup.alpha = 1f;
-            canvasGroup.interactable = true;
+            canvasGroup.interactable = false;
             canvasGroup.blocksRaycasts = true;
+
+            // This transparent graphic prevents clicks from reaching the game menu below the cinematic.
+            Image inputBlocker = AddImage(canvasObject.transform, "Intro input blocker",
+                Vector2.zero, new Vector2(1920f, 1080f), new Color(0f, 0f, 0f, 0f));
+            inputBlocker.raycastTarget = true;
+            inputBlocker.transform.SetAsFirstSibling();
         }
 
         private void BuildTownAndShop()
@@ -234,7 +240,7 @@ namespace TheLastGift.UI
             BuildStreetLamp(worldRoot, -570f, -290f);
             BuildShop();
 
-            AddText(worldRoot, "Opening date", "24 DECEMBER  ·  CHRISTMAS EVE", 20,
+            AddText(worldRoot, "Opening date", "24 ДЕКАБРЯ  ·  РОЖДЕСТВЕНСКИЙ ВЕЧЕР", 20,
                 new Vector2(0f, 490f), new Vector2(650f, 45f), new Color32(250, 225, 185, 225),
                 TextAnchor.MiddleCenter, FontStyle.Bold);
         }
@@ -354,7 +360,7 @@ namespace TheLastGift.UI
                 new Color32(60, 42, 35, 255));
             AddImage(worldRoot, "Shop sign", new Vector2(0f, 300f), new Vector2(570f, 72f),
                 new Color32(36, 76, 59, 255));
-            AddText(worldRoot, "Shop sign text", "THE CHRISTMAS SHOP", 32,
+            AddText(worldRoot, "Shop sign text", "РОЖДЕСТВЕНСКАЯ ЛАВКА", 32,
                 new Vector2(0f, 300f), new Vector2(550f, 60f), new Color32(250, 224, 179, 255),
                 TextAnchor.MiddleCenter, FontStyle.Bold);
 
@@ -539,15 +545,15 @@ namespace TheLastGift.UI
                 new Color32(202, 158, 85, 235));
             AddImage(titleRoot, "Title dark wooden plaque", new Vector2(0f, 5f), new Vector2(1174f, 374f),
                 new Color32(48, 38, 35, 245));
-            AddText(titleRoot, "Title date", "24 DECEMBER  ·  CHRISTMAS EVE", 22,
+            AddText(titleRoot, "Title date", "24 ДЕКАБРЯ  ·  РОЖДЕСТВЕНСКИЙ ВЕЧЕР", 22,
                 new Vector2(0f, 137f), new Vector2(950f, 42f), new Color32(238, 204, 145, 255),
                 TextAnchor.MiddleCenter, FontStyle.Bold);
-            AddText(titleRoot, "Game title", "THE LAST GIFT", 88,
+            AddText(titleRoot, "Game title", "ПОСЛЕДНИЙ ПОДАРОК", 88,
                 new Vector2(0f, 42f), new Vector2(1060f, 118f), new Color32(250, 225, 179, 255),
                 TextAnchor.MiddleCenter, FontStyle.Bold);
             AddImage(titleRoot, "Title gold divider", new Vector2(0f, -33f), new Vector2(490f, 3f),
                 new Color32(205, 157, 83, 255));
-            AddText(titleRoot, "Story subtitle", "FOR THE NURSE WORKING THROUGH CHRISTMAS NIGHT\nA LITTLE BOY HAS ONE LAST GIFT TO GIVE.", 25,
+            AddText(titleRoot, "Story subtitle", "ЕГО МАМА — МЕДСЕСТРА. ЭТОЙ НОЧЬЮ ОНА НА СМЕНЕ.\nМАЛЬЧИК ИЩЕТ ДЛЯ НЕЁ ОСОБЕННЫЙ ПОДАРОК.", 25,
                 new Vector2(0f, -110f), new Vector2(980f, 90f), new Color32(244, 235, 216, 255),
                 TextAnchor.MiddleCenter, FontStyle.Normal);
             AddText(titleRoot, "Title ornament", "✦     ❄     ✦", 25,
@@ -562,27 +568,18 @@ namespace TheLastGift.UI
             fadeCurtain.raycastTarget = false;
         }
 
-        private void BuildSkipButton()
+        private void BuildSkipPrompt()
         {
-            RectTransform buttonRect = CreateRect(transform.Find("Intro Canvas"), "Skip intro button",
-                new Vector2(812f, 474f), new Vector2(190f, 54f));
-            AddImage(buttonRect, "Skip button gold edge", Vector2.zero, new Vector2(190f, 54f),
-                new Color32(208, 164, 91, 230));
-            Image fill = AddImage(buttonRect, "Skip button fill", Vector2.zero, new Vector2(184f, 48f),
-                new Color32(55, 45, 41, 235));
-
-            Button button = buttonRect.gameObject.AddComponent<Button>();
-            button.targetGraphic = fill;
-            button.transition = Selectable.Transition.ColorTint;
-            ColorBlock colors = button.colors;
-            colors.normalColor = Color.white;
-            colors.highlightedColor = new Color(1f, 0.93f, 0.78f, 1f);
-            colors.pressedColor = new Color(0.84f, 0.72f, 0.54f, 1f);
-            button.colors = colors;
-            button.onClick.AddListener(SkipIntro);
-
-            AddText(buttonRect, "Skip label", "ПРОПУСТИТЬ  ›", 18,
-                Vector2.zero, new Vector2(178f, 42f), new Color32(250, 232, 199, 255),
+            RectTransform prompt = CreateRect(transform.Find("Intro Canvas"),
+                "Space skip prompt", new Vector2(0f, -474f), new Vector2(470f, 62f));
+            AddImage(prompt, "Prompt gold frame", Vector2.zero, new Vector2(470f, 62f),
+                new Color32(208, 164, 91, 238));
+            AddImage(prompt, "Prompt wooden plaque", Vector2.zero, new Vector2(462f, 54f),
+                new Color32(55, 45, 41, 245));
+            AddImage(prompt, "Prompt red accent", new Vector2(-224f, 0f), new Vector2(5f, 48f),
+                new Color32(169, 54, 49, 255));
+            AddText(prompt, "Prompt label", "ПРОБЕЛ — пропустить заставку", 21,
+                Vector2.zero, new Vector2(438f, 48f), new Color32(250, 232, 199, 255),
                 TextAnchor.MiddleCenter, FontStyle.Bold);
         }
 
@@ -667,8 +664,26 @@ namespace TheLastGift.UI
                 yield return null;
             }
 
+            CompleteAndClose();
+        }
+
+        private void CompleteAndClose()
+        {
+            if (hasCompleted)
+                return;
+
+            hasCompleted = true;
             canvasGroup.alpha = 0f;
+            canvasGroup.interactable = false;
+            canvasGroup.blocksRaycasts = false;
+
+            if (activeIntro == this)
+                activeIntro = null;
+
+            Action callback = completionCallback;
+            completionCallback = null;
             Destroy(gameObject);
+            callback?.Invoke();
         }
 
         private static float Smooth01(float value)
@@ -706,6 +721,11 @@ namespace TheLastGift.UI
             RectTransform rect = CreateRect(parent, objectName, position, size);
             Text label = rect.gameObject.AddComponent<Text>();
             label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            // Request the complete Russian alphabet, including Ё/ё, before setting the label text.
+            label.font.RequestCharactersInTexture(
+                "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя" + value,
+                fontSize,
+                style);
             label.text = value;
             label.fontSize = fontSize;
             label.color = color;
