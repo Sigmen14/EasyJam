@@ -19,7 +19,7 @@ namespace TheLastGift.Packing
         [Header("Prototype")]
         [SerializeField] private bool runDemoOnStart = true;
         [SerializeField] private Color emptyCellColor = new Color(0.96f, 0.89f, 0.75f, 1f);
-        [SerializeField] private Color boardBackgroundColor = new Color(0.045f, 0.12f, 0.2f, 1f);
+        [SerializeField] private Color boardBackgroundColor = new Color(0.08f, 0.23f, 0.14f, 1f);
 
         private readonly List<GiftPieceView> pieces = new List<GiftPieceView>();
         private readonly List<GameObject> boardVisuals = new List<GameObject>();
@@ -28,7 +28,11 @@ namespace TheLastGift.Packing
         private readonly List<float> snowflakeSpeeds = new List<float>();
         private readonly List<float> snowflakePhases = new List<float>();
         private Sprite cellSprite;
+        private Texture2D cellTexture;
         private Sprite snowflakeSprite;
+        private Texture2D snowflakeTexture;
+        private Texture2D workshopBackgroundTexture;
+        private Sprite workshopBackgroundSprite;
         private Sprite pineTreeSprite;
         private bool christmasBackgroundBuilt;
         private float snowTop;
@@ -75,6 +79,16 @@ namespace TheLastGift.Packing
             if (completionRibbonTexture != null) Destroy(completionRibbonTexture);
             if (completionButtonTexture != null) Destroy(completionButtonTexture);
             if (completionButtonHoverTexture != null) Destroy(completionButtonHoverTexture);
+
+            foreach (var visual in christmasVisuals)
+                if (visual != null) Destroy(visual);
+
+            if (workshopBackgroundSprite != null) Destroy(workshopBackgroundSprite);
+            if (workshopBackgroundTexture != null) Destroy(workshopBackgroundTexture);
+            if (snowflakeSprite != null) Destroy(snowflakeSprite);
+            if (snowflakeTexture != null) Destroy(snowflakeTexture);
+            if (cellSprite != null) Destroy(cellSprite);
+            if (cellTexture != null) Destroy(cellTexture);
         }
 
         private void Start()
@@ -101,7 +115,7 @@ namespace TheLastGift.Packing
             if (targetCamera != null && targetCamera.isActiveAndEnabled)
             {
                 targetCamera.clearFlags = CameraClearFlags.SolidColor;
-                targetCamera.backgroundColor = new Color(0.025f, 0.07f, 0.16f, 1f);
+                targetCamera.backgroundColor = new Color(0.37f, 0.22f, 0.17f, 1f);
                 return;
             }
 
@@ -117,7 +131,7 @@ namespace TheLastGift.Packing
             targetCamera.nearClipPlane = 0.1f;
             targetCamera.farClipPlane = 1000f;
             targetCamera.clearFlags = CameraClearFlags.SolidColor;
-            targetCamera.backgroundColor = new Color(0.025f, 0.07f, 0.16f, 1f);
+            targetCamera.backgroundColor = new Color(0.37f, 0.22f, 0.17f, 1f);
             targetCamera.cullingMask = ~0;
             targetCamera.depth = 0f;
 
@@ -559,17 +573,19 @@ namespace TheLastGift.Packing
         {
             if (cellSprite != null) return;
             const int pixels = 32;
-            var texture = new Texture2D(pixels, pixels, TextureFormat.RGBA32, false);
-            texture.filterMode = FilterMode.Point;
+            cellTexture = new Texture2D(pixels, pixels, TextureFormat.RGBA32, false);
+            cellTexture.name = "Тёплая ячейка с деревянной окантовкой";
+            cellTexture.filterMode = FilterMode.Point;
             var fill = new Color32(250, 239, 215, 255);
-            var border = new Color32(125, 82, 52, 255);
+            var border = new Color32(110, 67, 43, 255);
             var data = new Color32[pixels * pixels];
             for (var y = 0; y < pixels; y++)
             for (var x = 0; x < pixels; x++)
-                data[y * pixels + x] = (x < 2 || y < 2 || x >= pixels - 2 || y >= pixels - 2) ? border : fill;
-            texture.SetPixels32(data);
-            texture.Apply();
-            cellSprite = Sprite.Create(texture, new Rect(0, 0, pixels, pixels), new Vector2(0.5f, 0.5f), pixels);
+                data[y * pixels + x] = (x < 3 || y < 3 || x >= pixels - 3 || y >= pixels - 3) ? border : fill;
+            cellTexture.SetPixels32(data);
+            cellTexture.Apply();
+            cellSprite = Sprite.Create(cellTexture, new Rect(0, 0, pixels, pixels),
+                new Vector2(0.5f, 0.5f), pixels);
         }
 
         private void BuildChristmasBackground()
@@ -583,74 +599,32 @@ namespace TheLastGift.Packing
             snowBottom = targetCamera.transform.position.y - viewHeight * 0.5f - 0.2f;
             snowHalfWidth = viewWidth * 0.5f;
 
-            // Deep winter sky with a soft teal aurora instead of a flat brown fill.
-            var skyTexture = new Texture2D(512, 512, TextureFormat.RGBA32, false);
-            skyTexture.name = "WinterNightSkyTexture";
-            skyTexture.filterMode = FilterMode.Bilinear;
-            skyTexture.wrapMode = TextureWrapMode.Clamp;
-            var skyPixels = new Color32[512 * 512];
-            for (var y = 0; y < 512; y++)
-            {
-                var v = y / 511f;
-                for (var x = 0; x < 512; x++)
-                {
-                    var u = x / 511f;
-                    var baseColor = Color.Lerp(
-                        new Color(0.018f, 0.055f, 0.14f, 1f),
-                        new Color(0.035f, 0.20f, 0.25f, 1f), v);
+            // Reuse the exact procedural workshop illustration shown behind the shop UI.
+            // This keeps the mini-game inside the same place instead of switching to a
+            // separate aurora/night-sky scene.
+            workshopBackgroundTexture = LastGiftChristmasBackground.CreateTexture();
+            workshopBackgroundSprite = Sprite.Create(
+                workshopBackgroundTexture,
+                new Rect(0f, 0f, workshopBackgroundTexture.width, workshopBackgroundTexture.height),
+                new Vector2(0.5f, 0.5f),
+                100f);
 
-                    var auroraLine = 0.58f + 0.075f * Mathf.Sin(u * 7f + 0.4f)
-                                           + 0.035f * Mathf.Sin(u * 15f + 1.2f);
-                    var aurora = Mathf.Exp(-Mathf.Pow((v - auroraLine) * 17f, 2f));
-                    var glow = Mathf.Exp(-Mathf.Pow((v - 0.78f) * 5f, 2f))
-                               * Mathf.Exp(-Mathf.Pow((u - 0.5f) * 2.4f, 2f));
-                    baseColor += new Color(0.025f * aurora + 0.018f * glow,
-                                           0.16f * aurora + 0.035f * glow,
-                                           0.12f * aurora + 0.055f * glow, 0f);
-                    skyPixels[y * 512 + x] = baseColor;
-                }
-            }
-            skyTexture.SetPixels32(skyPixels);
-            skyTexture.Apply(false, false);
-
-            var skySprite = Sprite.Create(skyTexture, new Rect(0, 0, 512, 512),
-                new Vector2(0.5f, 0.5f), 100f);
-            CreateChristmasSprite("Winter Night Sky", skySprite,
+            CreateChristmasSprite("Общий фон рождественской мастерской",
+                workshopBackgroundSprite,
                 new Vector3(targetCamera.transform.position.x, targetCamera.transform.position.y, 9f),
-                new Vector3(viewWidth / 5.12f, viewHeight / 5.12f, 1f), -100);
+                new Vector3(viewWidth / 9.6f, viewHeight / 5.4f, 1f),
+                -100);
 
+            // A little animated snowfall adds life without changing the shop's backdrop.
             snowflakeSprite = CreateSnowflakeSprite();
-            pineTreeSprite = CreatePineTreeSprite();
-            var snowBankSprite = CreateSnowBankSprite();
-
-            CreateChristmasSprite("Snowy Ground", snowBankSprite,
-                new Vector3(targetCamera.transform.position.x,
-                    targetCamera.transform.position.y - viewHeight * 0.5f + 0.48f, 8.3f),
-                new Vector3(viewWidth / 5.12f, 1f, 1f), -87);
-
-            // Snowy fir trees frame the play area without covering the board or gifts.
-            CreateChristmasSprite("Snowy Fir Left", pineTreeSprite,
-                new Vector3(-viewWidth * 0.43f, -viewHeight * 0.30f, 8.5f),
-                new Vector3(1.05f, 1.8f, 1f), -90);
-            CreateChristmasSprite("Snowy Fir Right", pineTreeSprite,
-                new Vector3(viewWidth * 0.43f, -viewHeight * 0.30f, 8.5f),
-                new Vector3(1.05f, 1.8f, 1f), -90);
-            CreateChristmasSprite("Small Fir Left", pineTreeSprite,
-                new Vector3(-viewWidth * 0.34f, -viewHeight * 0.43f, 8.4f),
-                new Vector3(0.62f, 1.12f, 1f), -89);
-            CreateChristmasSprite("Small Fir Right", pineTreeSprite,
-                new Vector3(viewWidth * 0.34f, -viewHeight * 0.43f, 8.4f),
-                new Vector3(0.62f, 1.12f, 1f), -89);
-
-            CreateHolidayGarland(viewWidth, viewHeight);
-            CreateSnowfall(viewWidth, viewHeight, 34);
+            CreateSnowfall(viewWidth, viewHeight, 20);
         }
 
         private Sprite CreateSnowflakeSprite()
         {
             const int size = 32;
-            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
-            texture.name = "SnowflakeTexture";
+            snowflakeTexture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            snowflakeTexture.name = "Снежинка мастерской";
             var pixels = new Color32[size * size];
             var center = (size - 1) * 0.5f;
             for (var y = 0; y < size; y++)
@@ -662,11 +636,11 @@ namespace TheLastGift.Packing
                 var onArm = Mathf.Abs(dx) < 1.35f || Mathf.Abs(dy) < 1.35f ||
                             Mathf.Abs(dx - dy) < 1.35f || Mathf.Abs(dx + dy) < 1.35f;
                 if (radius < 13f && onArm)
-                    pixels[y * size + x] = new Color32(226, 246, 255, 235);
+                    pixels[y * size + x] = new Color32(255, 246, 220, 235);
             }
-            texture.SetPixels32(pixels);
-            texture.Apply(false, false);
-            return Sprite.Create(texture, new Rect(0, 0, size, size),
+            snowflakeTexture.SetPixels32(pixels);
+            snowflakeTexture.Apply(false, false);
+            return Sprite.Create(snowflakeTexture, new Rect(0, 0, size, size),
                 new Vector2(0.5f, 0.5f), 100f);
         }
 
@@ -855,7 +829,7 @@ namespace TheLastGift.Packing
                 var flake = CreateChristmasSprite("Falling Snow", snowflakeSprite,
                     new Vector3(x, y, 8f), Vector3.one * scale, -80);
                 flake.GetComponent<SpriteRenderer>().color =
-                    new Color(0.82f, 0.94f, 1f, Random.Range(0.35f, 0.85f));
+                    new Color(1f, 0.96f, 0.84f, Random.Range(0.30f, 0.68f));
 
                 snowflakeTransforms.Add(flake.transform);
                 snowflakeSpeeds.Add(Random.Range(0.16f, 0.42f));
@@ -890,16 +864,40 @@ namespace TheLastGift.Packing
         private void BuildBoardVisuals()
         {
             var bottomLeft = GetBoardBottomLeft();
-            var background = CreateSpriteObject("BoardBackground", boardBackgroundColor,
+            var boardSize = new Vector2(width * cellSize, height * cellSize);
+
+            // Layered board: soft shadow, walnut wood, gold trim and evergreen inset.
+            var shadow = CreateSpriteObject("BoardShadow",
+                new Color(0.13f, 0.075f, 0.045f, 0.55f),
+                new Vector3(boardCenter.x, boardCenter.y - 0.08f, 0.30f));
+            shadow.transform.localScale = new Vector3(boardSize.x + 0.58f, boardSize.y + 0.58f, 1f);
+            shadow.GetComponent<SpriteRenderer>().sortingOrder = -16;
+
+            var woodenFrame = CreateSpriteObject("BoardWalnutFrame",
+                new Color32(82, 52, 36, 255),
+                new Vector3(boardCenter.x, boardCenter.y, 0.25f));
+            woodenFrame.transform.localScale = new Vector3(boardSize.x + 0.42f, boardSize.y + 0.42f, 1f);
+            woodenFrame.GetComponent<SpriteRenderer>().sortingOrder = -15;
+
+            var goldTrim = CreateSpriteObject("BoardGoldTrim",
+                new Color32(218, 166, 74, 255),
+                new Vector3(boardCenter.x, boardCenter.y, 0.22f));
+            goldTrim.transform.localScale = new Vector3(boardSize.x + 0.28f, boardSize.y + 0.28f, 1f);
+            goldTrim.GetComponent<SpriteRenderer>().sortingOrder = -14;
+
+            var background = CreateSpriteObject("BoardEvergreenInset", boardBackgroundColor,
                 new Vector3(boardCenter.x, boardCenter.y, 0.2f));
-            background.transform.localScale = new Vector3(width * cellSize + 0.15f, height * cellSize + 0.15f, 1f);
+            background.transform.localScale = new Vector3(boardSize.x + 0.14f, boardSize.y + 0.14f, 1f);
+            background.GetComponent<SpriteRenderer>().sortingOrder = -13;
 
             for (var y = 0; y < height; y++)
             for (var x = 0; x < width; x++)
             {
                 var cell = CreateSpriteObject($"Cell_{x}_{y}", emptyCellColor,
-                    new Vector3(bottomLeft.x + (x + 0.5f) * cellSize, bottomLeft.y + (y + 0.5f) * cellSize, 0f));
+                    new Vector3(bottomLeft.x + (x + 0.5f) * cellSize,
+                        bottomLeft.y + (y + 0.5f) * cellSize, 0f));
                 cell.transform.localScale = Vector3.one * cellSize * 0.96f;
+                cell.GetComponent<SpriteRenderer>().sortingOrder = -10;
             }
         }
 
@@ -921,13 +919,53 @@ namespace TheLastGift.Packing
             for (var i = 0; i < gifts.Count; i++)
             {
                 if (gifts[i] == null) continue;
+                var trayPosition = GetTrayPosition(i, gifts[i]);
+                CreateGiftTrayCard(gifts[i], trayPosition);
+
                 var obj = new GameObject(gifts[i].GiftName);
                 obj.transform.SetParent(transform, false);
                 var view = obj.AddComponent<GiftPieceView>();
-                var trayPosition = GetTrayPosition(i, gifts[i]);
                 view.Initialize(this, gifts[i], trayPosition, cellSize, cellSprite, i + 10);
                 pieces.Add(view);
             }
+        }
+
+        private void CreateGiftTrayCard(GiftDefinition definition, Vector2 center)
+        {
+            var cells = definition.Cells;
+            if (cells == null || cells.Length == 0) cells = new[] { Vector2Int.zero };
+
+            var minX = int.MaxValue;
+            var minY = int.MaxValue;
+            var maxX = int.MinValue;
+            var maxY = int.MinValue;
+            foreach (var cell in cells)
+            {
+                minX = Mathf.Min(minX, cell.x);
+                minY = Mathf.Min(minY, cell.y);
+                maxX = Mathf.Max(maxX, cell.x);
+                maxY = Mathf.Max(maxY, cell.y);
+            }
+
+            var size = new Vector2(
+                Mathf.Max(1.35f, (maxX - minX + 1) * cellSize + 0.34f),
+                Mathf.Max(1.35f, (maxY - minY + 1) * cellSize + 0.34f));
+            var position = new Vector3(center.x, center.y, 0.1f);
+
+            var woodCard = CreateSpriteObject(definition.GiftName + "_TrayWood",
+                new Color32(82, 52, 36, 255), position + new Vector3(0f, -0.035f, 0f));
+            woodCard.transform.localScale = new Vector3(size.x + 0.16f, size.y + 0.16f, 1f);
+            woodCard.GetComponent<SpriteRenderer>().sortingOrder = -9;
+
+            var goldCard = CreateSpriteObject(definition.GiftName + "_TrayGold",
+                new Color32(218, 166, 74, 255), position);
+            goldCard.transform.localScale = new Vector3(size.x + 0.07f, size.y + 0.07f, 1f);
+            goldCard.GetComponent<SpriteRenderer>().sortingOrder = -8;
+
+            var paperCard = CreateSpriteObject(definition.GiftName + "_TrayPaper",
+                new Color32(250, 239, 215, 255), position + new Vector3(0f, 0f, -0.01f));
+            paperCard.transform.localScale = new Vector3(size.x, size.y, 1f);
+            paperCard.GetComponent<SpriteRenderer>().sortingOrder = -7;
         }
 
         private Vector2 GetTrayPosition(int index, GiftDefinition definition)
@@ -1132,7 +1170,7 @@ namespace TheLastGift.Packing
                     foreach (var local in piece.GetRotatedCells())
                         if (piece.GridPosition + local == new Vector2Int(x, y)) occupied = true;
                 }
-                renderer.color = occupied ? new Color(0.6f, 0.72f, 0.8f, 1f) : emptyCellColor;
+                renderer.color = occupied ? new Color32(218, 166, 74, 255) : emptyCellColor;
             }
 
             if (draggedPiece != null)
@@ -1145,8 +1183,8 @@ namespace TheLastGift.Packing
                     var index = 1 + cellPos.y * width + cellPos.x;
                     var renderer = boardVisuals[index].GetComponent<SpriteRenderer>();
                     renderer.color = previewValid
-                        ? new Color(0.3f, 0.85f, 0.45f, 0.6f)
-                        : new Color(0.95f, 0.25f, 0.25f, 0.6f);
+                        ? new Color(0.19f, 0.48f, 0.28f, 0.78f)
+                        : new Color(0.62f, 0.15f, 0.16f, 0.82f);
                 }
             }
         }
@@ -1160,26 +1198,26 @@ namespace TheLastGift.Packing
             // Two T pieces, one L piece, and one S piece require rotation and spatial planning.
             return new List<GiftDefinition>
             {
-                GiftDefinition.CreateRuntime("Tangerine T", new[]
+                GiftDefinition.CreateRuntime("Бордовая Т", new[]
                 {
                     new Vector2Int(0,0), new Vector2Int(1,0),
                     new Vector2Int(2,0), new Vector2Int(1,1)
-                }, new Color(0.78f, 0.43f, 0.27f)),
-                GiftDefinition.CreateRuntime("Golden T", new[]
+                }, new Color32(159, 52, 48, 255)),
+                GiftDefinition.CreateRuntime("Золотая Т", new[]
                 {
                     new Vector2Int(0,0), new Vector2Int(1,0),
                     new Vector2Int(2,0), new Vector2Int(1,1)
-                }, new Color(0.95f, 0.78f, 0.28f)),
-                GiftDefinition.CreateRuntime("Red L", new[]
+                }, new Color32(218, 166, 74, 255)),
+                GiftDefinition.CreateRuntime("Хвойная Г", new[]
                 {
                     new Vector2Int(0,0), new Vector2Int(0,1),
                     new Vector2Int(0,2), new Vector2Int(1,0)
-                }, new Color(0.88f, 0.25f, 0.31f)),
-                GiftDefinition.CreateRuntime("Pink S", new[]
+                }, new Color32(48, 96, 65, 255)),
+                GiftDefinition.CreateRuntime("Ореховая S", new[]
                 {
                     new Vector2Int(1,0), new Vector2Int(2,0),
                     new Vector2Int(0,1), new Vector2Int(1,1)
-                }, new Color(0.82f, 0.25f, 0.52f))
+                }, new Color32(125, 82, 52, 255))
             };
         }
     }
