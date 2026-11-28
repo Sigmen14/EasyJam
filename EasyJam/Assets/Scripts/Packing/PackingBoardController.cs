@@ -45,11 +45,18 @@ namespace TheLastGift.Packing
         private Vector2Int dragStartGridPosition;
         private int dragStartRotation;
         private bool dragStartedPlaced;
+        private GUIStyle hudTitleStyle;
         private GUIStyle hudStyle;
         private GUIStyle controlStyle;
+        private GUIStyle completionKickerStyle;
         private GUIStyle completionTitleStyle;
+        private GUIStyle completionSubtitleStyle;
         private GUIStyle completionBodyStyle;
         private GUIStyle completionButtonStyle;
+        private Texture2D hudPanelTexture;
+        private Texture2D completionPanelTexture;
+        private Texture2D completionButtonTexture;
+        private Texture2D completionButtonHoverTexture;
 
         public int Width => width;
         public int Height => height;
@@ -141,20 +148,7 @@ namespace TheLastGift.Packing
             if (pieces.Count == 0 || width <= 0 || height <= 0) return;
 
             EnsureGuiStyles();
-
-            var cells = CountPlacedCells();
-            var placed = CountPlacedPieces();
-            GUI.Label(new Rect(4f, 2f, Screen.width - 8f, 22f),
-                $"Ячейки: {cells}/{width * height}    Фрагменты: {placed}/{pieces.Count}", hudStyle);
-            GUI.Label(new Rect(4f, 25f, Screen.width - 8f, 22f),
-                "ПОВОРОТ НА 90°: R или ПРОБЕЛ (также правая кнопка мыши)", controlStyle);
-            GUI.Label(new Rect(4f, 48f, Screen.width - 8f, 22f),
-                "Вынуть фигуру: перетащите её за пределы коробки", controlStyle);
-            GUI.Label(new Rect(4f, 71f, Screen.width - 8f, 22f),
-                "V — проверить заполнение вручную", controlStyle);
-
-            if (showValidationMessage && !puzzleCompleted)
-                GUI.Label(new Rect(4f, 94f, Screen.width - 8f, 24f), feedbackMessage, hudStyle);
+            DrawTopHud();
 
             if (puzzleCompleted)
                 DrawCompletionOverlay();
@@ -164,67 +158,211 @@ namespace TheLastGift.Packing
         {
             if (hudStyle != null) return;
 
+            var scale = Mathf.Clamp(Screen.height / 900f, 0.78f, 1.25f);
+
+            hudTitleStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = Mathf.RoundToInt(19f * scale),
+                fontStyle = FontStyle.Bold,
+                letterSpacing = 1
+            };
+            hudTitleStyle.normal.textColor = new Color(0.78f, 0.91f, 1f, 1f);
+
             hudStyle = new GUIStyle(GUI.skin.label)
             {
                 alignment = TextAnchor.MiddleCenter,
-                fontSize = Mathf.Clamp(Screen.height / 30, 12, 17),
+                fontSize = Mathf.RoundToInt(27f * scale),
                 fontStyle = FontStyle.Bold
             };
-            hudStyle.normal.textColor = Color.white;
+            hudStyle.normal.textColor = new Color(1f, 0.86f, 0.48f, 1f);
 
-            controlStyle = new GUIStyle(hudStyle)
+            controlStyle = new GUIStyle(GUI.skin.label)
             {
-                fontSize = Mathf.Clamp(Screen.height / 42, 10, 14),
-                fontStyle = FontStyle.Normal
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = Mathf.RoundToInt(15f * scale),
+                fontStyle = FontStyle.Normal,
+                wordWrap = true
             };
-            controlStyle.normal.textColor = new Color(1f, 1f, 1f, 0.95f);
+            controlStyle.normal.textColor = new Color(0.91f, 0.96f, 1f, 1f);
+
+            completionKickerStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = Mathf.RoundToInt(16f * scale),
+                fontStyle = FontStyle.Bold,
+                letterSpacing = 2
+            };
+            completionKickerStyle.normal.textColor = new Color(0.58f, 0.89f, 0.83f, 1f);
 
             completionTitleStyle = new GUIStyle(GUI.skin.label)
             {
                 alignment = TextAnchor.MiddleCenter,
-                fontSize = Mathf.Clamp(Screen.height / 13, 24, 42),
+                fontSize = Mathf.RoundToInt(39f * scale),
                 fontStyle = FontStyle.Bold,
                 wordWrap = true
             };
-            completionTitleStyle.normal.textColor = new Color(1f, 0.88f, 0.36f, 1f);
+            completionTitleStyle.normal.textColor = new Color(1f, 0.84f, 0.39f, 1f);
+
+            completionSubtitleStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = Mathf.RoundToInt(24f * scale),
+                fontStyle = FontStyle.Bold
+            };
+            completionSubtitleStyle.normal.textColor = new Color(0.91f, 0.96f, 1f, 1f);
 
             completionBodyStyle = new GUIStyle(GUI.skin.label)
             {
                 alignment = TextAnchor.MiddleCenter,
-                fontSize = Mathf.Clamp(Screen.height / 32, 13, 19),
+                fontSize = Mathf.RoundToInt(18f * scale),
                 wordWrap = true
             };
-            completionBodyStyle.normal.textColor = Color.white;
+            completionBodyStyle.normal.textColor = new Color(0.82f, 0.89f, 0.96f, 1f);
 
             completionButtonStyle = new GUIStyle(GUI.skin.button)
             {
-                fontSize = Mathf.Clamp(Screen.height / 34, 14, 20),
-                fontStyle = FontStyle.Bold
+                fontSize = Mathf.RoundToInt(18f * scale),
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter,
+                border = new RectOffset(18, 18, 12, 12),
+                padding = new RectOffset(16, 16, 8, 8)
             };
+            completionButtonStyle.normal.textColor = new Color(0.035f, 0.13f, 0.18f, 1f);
+            completionButtonStyle.hover.textColor = new Color(0.025f, 0.10f, 0.15f, 1f);
+            completionButtonStyle.active.textColor = Color.black;
+            completionButtonStyle.normal.background = completionButtonTexture =
+                CreateRoundedUiTexture(512, 96, 22, 4,
+                    new Color(1f, 0.88f, 0.57f, 1f),
+                    new Color(0.91f, 0.62f, 0.23f, 1f),
+                    new Color(1f, 0.96f, 0.78f, 1f));
+            completionButtonStyle.hover.background = completionButtonHoverTexture =
+                CreateRoundedUiTexture(512, 96, 22, 4,
+                    new Color(1f, 0.96f, 0.72f, 1f),
+                    new Color(1f, 0.76f, 0.32f, 1f),
+                    new Color(1f, 1f, 0.9f, 1f));
+            completionButtonStyle.active.background = completionButtonTexture;
+
+            hudPanelTexture = CreateRoundedUiTexture(512, 160, 26, 4,
+                new Color(0.025f, 0.12f, 0.21f, 0.94f),
+                new Color(0.015f, 0.055f, 0.12f, 0.96f),
+                new Color(0.73f, 0.58f, 0.30f, 0.95f));
+
+            completionPanelTexture = CreateRoundedUiTexture(640, 360, 34, 6,
+                new Color(0.035f, 0.16f, 0.24f, 0.99f),
+                new Color(0.012f, 0.055f, 0.12f, 0.99f),
+                new Color(0.91f, 0.70f, 0.33f, 1f));
+        }
+
+        private Texture2D CreateRoundedUiTexture(int width, int height, int radius,
+            int borderThickness, Color topColor, Color bottomColor, Color borderColor)
+        {
+            var texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+            texture.name = "PackingUiPanel";
+            texture.filterMode = FilterMode.Bilinear;
+            texture.wrapMode = TextureWrapMode.Clamp;
+            texture.hideFlags = HideFlags.HideAndDontSave;
+
+            var pixels = new Color32[width * height];
+            var innerWidth = width - borderThickness * 2;
+            var innerHeight = height - borderThickness * 2;
+            var innerRadius = Mathf.Max(1, radius - borderThickness);
+
+            for (var y = 0; y < height; y++)
+            for (var x = 0; x < width; x++)
+            {
+                if (!IsInsideRoundedRect(x, y, width, height, radius)) continue;
+
+                var isInner = IsInsideRoundedRect(
+                    x - borderThickness, y - borderThickness,
+                    innerWidth, innerHeight, innerRadius);
+                var vertical = y / (float)(height - 1);
+                var fill = Color.Lerp(bottomColor, topColor, vertical);
+                pixels[y * width + x] = isInner ? fill : borderColor;
+            }
+
+            texture.SetPixels32(pixels);
+            texture.Apply(false, true);
+            return texture;
+        }
+
+        private bool IsInsideRoundedRect(int x, int y, int width, int height, int radius)
+        {
+            if (x < 0 || y < 0 || x >= width || y >= height) return false;
+
+            var nearestX = Mathf.Clamp(x, radius, width - radius - 1);
+            var nearestY = Mathf.Clamp(y, radius, height - radius - 1);
+            var dx = x - nearestX;
+            var dy = y - nearestY;
+            return dx * dx + dy * dy <= radius * radius;
+        }
+
+        private void DrawTopHud()
+        {
+            var scale = Mathf.Clamp(Screen.height / 900f, 0.78f, 1.25f);
+            var panelWidth = Mathf.Min(960f, Screen.width - 24f);
+            var panelHeight = 154f * scale;
+            var panel = new Rect((Screen.width - panelWidth) * 0.5f, 10f, panelWidth, panelHeight);
+
+            GUI.DrawTexture(panel, hudPanelTexture);
+            GUI.Label(new Rect(panel.x + 16f, panel.y + 7f, panel.width - 32f, 27f * scale),
+                "РОЖДЕСТВЕНСКАЯ МАСТЕРСКАЯ ПОДАРКОВ", hudTitleStyle);
+
+            var cells = CountPlacedCells();
+            var placed = CountPlacedPieces();
+            GUI.Label(new Rect(panel.x + 12f, panel.y + 35f * scale, panel.width - 24f, 38f * scale),
+                $"ЯЧЕЙКИ  {cells}/{width * height}     •     ФИГУРЫ  {placed}/{pieces.Count}", hudStyle);
+
+            GUI.Label(new Rect(panel.x + 18f, panel.y + 77f * scale, panel.width - 36f, 25f * scale),
+                "ПОВОРОТ НА 90°:  R  /  ПРОБЕЛ  /  ПРАВАЯ КНОПКА МЫШИ", controlStyle);
+            GUI.Label(new Rect(panel.x + 18f, panel.y + 103f * scale, panel.width - 36f, 25f * scale),
+                "ВЫНУТЬ ФИГУРУ: ПЕРЕТАЩИ ЗА КРАЙ КОРОБКИ     •     V — ПРОВЕРКА", controlStyle);
         }
 
         private void DrawCompletionOverlay()
         {
-            var panelWidth = Mathf.Min(560f, Screen.width - 32f);
-            var panelHeight = 210f;
+            GUI.color = new Color(0.005f, 0.025f, 0.065f, 0.74f);
+            GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), Texture2D.whiteTexture);
+            GUI.color = Color.white;
+
+            var scale = Mathf.Clamp(Screen.height / 900f, 0.78f, 1.2f);
+            var panelWidth = Mathf.Min(660f, Screen.width - 36f);
+            var panelHeight = 338f * scale;
             var panel = new Rect(
                 (Screen.width - panelWidth) * 0.5f,
                 (Screen.height - panelHeight) * 0.5f,
                 panelWidth,
                 panelHeight);
 
-            GUI.color = new Color(0.035f, 0.055f, 0.08f, 0.94f);
-            GUI.DrawTexture(panel, Texture2D.whiteTexture);
+            var shadow = new Rect(panel.x + 8f, panel.y + 10f, panel.width, panel.height);
+            GUI.color = new Color(0f, 0f, 0f, 0.38f);
+            GUI.DrawTexture(shadow, completionPanelTexture);
             GUI.color = Color.white;
+            GUI.DrawTexture(panel, completionPanelTexture);
 
-            GUI.Label(new Rect(panel.x + 12f, panel.y + 16f, panel.width - 24f, 58f),
-                "КОРОБКА ЗАПОЛНЕНА!", completionTitleStyle);
-            GUI.Label(new Rect(panel.x + 24f, panel.y + 78f, panel.width - 48f, 48f),
-                "Отличная работа! Все фрагменты уложены без пустых клеток и наложений.",
-                completionBodyStyle);
+            if (snowflakeSprite != null)
+            {
+                GUI.color = new Color(0.7f, 0.9f, 1f, 0.88f);
+                GUI.DrawTexture(new Rect(panel.x + 42f, panel.y + 36f, 34f, 34f), snowflakeSprite.texture);
+                GUI.DrawTexture(new Rect(panel.x + panel.width - 76f, panel.y + 36f, 34f, 34f), snowflakeSprite.texture);
+                GUI.color = Color.white;
+            }
 
-            var button = new Rect(panel.x + panel.width * 0.2f, panel.y + 145f,
-                panel.width * 0.6f, 44f);
+            GUI.Label(new Rect(panel.x + 28f, panel.y + 28f * scale, panel.width - 56f, 32f * scale),
+                "ПРАЗДНИЧНЫЙ УСПЕХ", completionKickerStyle);
+            GUI.Label(new Rect(panel.x + 24f, panel.y + 76f * scale, panel.width - 48f, 58f * scale),
+                "ПОЗДРАВЛЯЕМ!", completionTitleStyle);
+            GUI.Label(new Rect(panel.x + 28f, panel.y + 137f * scale, panel.width - 56f, 40f * scale),
+                "КОРОБКА ЗАПОЛНЕНА", completionSubtitleStyle);
+            GUI.Label(new Rect(panel.x + 42f, panel.y + 183f * scale, panel.width - 84f, 54f * scale),
+                "Все подарки аккуратно уложены.\nНи одной пустой клеточки!", completionBodyStyle);
+
+            var badge = new Rect(panel.x + panel.width * 0.24f, panel.y + 242f * scale,
+                panel.width * 0.52f, 30f * scale);
+            GUI.Label(badge, $"ИДЕАЛЬНАЯ УПАКОВКА  •  {width * height}/{width * height}", completionKickerStyle);
+
+            var button = new Rect(panel.x + panel.width * 0.18f, panel.y + 282f * scale,
+                panel.width * 0.64f, 44f * scale);
             if (GUI.Button(button, "СЫГРАТЬ ЕЩЁ РАЗ", completionButtonStyle))
                 RestartPuzzle();
         }
