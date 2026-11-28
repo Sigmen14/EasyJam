@@ -3,7 +3,7 @@ using UnityEngine;
 
 /// <summary>
 /// Drives order/day progression and rewards. UI and the packing controller subscribe to the events.
-/// The packing API (GiftDefinition/PackingResult) is provided by the separate packing feature.
+/// GiftDefinition is owned by the packing feature; PackingResult is the shared result contract.
 /// </summary>
 public class OrderProgressionManager : MonoBehaviour
 {
@@ -59,7 +59,14 @@ public class OrderProgressionManager : MonoBehaviour
         if (!campaignStarted || CurrentOrder == null || awaitingResultContinue)
             return;
 
+        if (result == null)
+        {
+            Debug.LogError("OrderProgressionManager: Packing returned a null result.", this);
+            result = new PackingResult(false, false, 0, 0);
+        }
+
         bool success = result.IsValid && result.AllItemsPlaced
+            && result.PlacedCount >= 0 && result.TotalCount >= 0
             && result.PlacedCount == result.TotalCount;
 
         int baseReward = success ? Mathf.Max(0, CurrentOrder.RewardCoins) : 0;
