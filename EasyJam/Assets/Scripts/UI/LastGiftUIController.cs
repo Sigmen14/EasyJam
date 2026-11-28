@@ -26,6 +26,8 @@ namespace TheLastGift.UI
 
         private Canvas canvas;
         private Font font;
+        private Texture2D christmasBackgroundTexture;
+        private Sprite christmasBackground;
         private GameObject root;
         private Text feedback;
         private RectTransform packingRect;
@@ -82,8 +84,22 @@ namespace TheLastGift.UI
                 ? customFont
                 : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             LoadGiftSprites();
+            christmasBackgroundTexture = LastGiftChristmasBackground.CreateTexture();
+            christmasBackground = Sprite.Create(
+                christmasBackgroundTexture,
+                new Rect(0f, 0f, christmasBackgroundTexture.width, christmasBackgroundTexture.height),
+                new Vector2(0.5f, 0.5f),
+                100f);
             SetupCanvas();
             MainMenu();
+        }
+
+        private void OnDestroy()
+        {
+            if (christmasBackground != null)
+                Destroy(christmasBackground);
+            if (christmasBackgroundTexture != null)
+                Destroy(christmasBackgroundTexture);
         }
 
         // A Screen Space Overlay canvas can display without a camera, but the
@@ -197,9 +213,25 @@ namespace TheLastGift.UI
             rootRect.offsetMin = Vector2.zero;
             rootRect.offsetMax = Vector2.zero;
 
-            Panel(root.transform, "Фон", Vector2.zero, Vector2.one, cream);
-            Panel(root.transform, "Деревянная рамка", new Vector2(0.012f, 0.012f), new Vector2(0.988f, 0.988f), wood);
-            Panel(root.transform, "Бумажный фон", new Vector2(0.019f, 0.019f), new Vector2(0.981f, 0.981f), cream);
+            Image background = ImageAt(
+                root.transform,
+                "Рождественский фон мастерской",
+                Vector2.zero,
+                Vector2.one,
+                christmasBackground,
+                Color.white);
+
+            if (background == null)
+                Panel(root.transform, "Фон", Vector2.zero, Vector2.one, cream);
+            else
+                background.transform.SetAsFirstSibling();
+
+            // A slim wooden frame keeps the art visible while preserving a
+            // clear edge around the customer, packing and gift panels.
+            Panel(root.transform, "Рамка — верх", new Vector2(0f, 0.986f), new Vector2(1f, 1f), wood);
+            Panel(root.transform, "Рамка — низ", new Vector2(0f, 0f), new Vector2(1f, 0.014f), wood);
+            Panel(root.transform, "Рамка — слева", new Vector2(0f, 0.014f), new Vector2(0.012f, 0.986f), wood);
+            Panel(root.transform, "Рамка — справа", new Vector2(0.988f, 0.014f), new Vector2(1f, 0.986f), wood);
 
             Label("❄     ✦     ❅     ✦     ❄     ✦     ❅     ✦     ❄", 20, red,
                 new Vector2(0.02f, 0.925f), new Vector2(0.98f, 0.985f), TextAnchor.MiddleCenter);
