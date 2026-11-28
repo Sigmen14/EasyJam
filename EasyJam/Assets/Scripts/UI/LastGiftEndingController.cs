@@ -42,6 +42,8 @@ namespace TheLastGift.UI
         private RectTransform streetBackground;
         private RectTransform streetBoy;
         private RectTransform gift;
+        private RectTransform safeAreaRoot;
+        private RectTransform captionUiRoot;
         private RectTransform captionPanel;
         private Text captionText;
         private GameObject skipButton;
@@ -60,6 +62,8 @@ namespace TheLastGift.UI
         private bool skipRequested;
         private bool finalCardShown;
         private bool restarting;
+        private bool waitingForCaption;
+        private bool captionAdvanceRequested;
 
         /// <summary>Starts the ending. Safe to call once after GameCompleted.</summary>
         public void Play(LastGiftUIController uiController)
@@ -85,17 +89,17 @@ namespace TheLastGift.UI
             if (restarting || overlayRoot == null)
                 return;
 
-            // The project uses the new Input System (with legacy input enabled as well).
-            // Read Space only while the story animation is still active.
-            if (!finalCardShown && !skipRequested
+            // Space acknowledges the currently visible story line only.
+            // Full skipping remains exclusive to the on-screen button.
+            if (!finalCardShown && !skipRequested && waitingForCaption
                 && Keyboard.current != null
                 && Keyboard.current.spaceKey.wasPressedThisFrame)
             {
-                Skip();
+                captionAdvanceRequested = true;
             }
 
-            // A skip freezes the moving snow together with the story animation.
-            if (skipRequested || finalCardShown || snowParticles.Count == 0)
+            // Freeze the scene and snow while a caption is waiting for the player.
+            if (skipRequested || finalCardShown || waitingForCaption || snowParticles.Count == 0)
                 return;
 
             RectTransform rootRect = overlayRoot.GetComponent<RectTransform>();
@@ -124,31 +128,29 @@ namespace TheLastGift.UI
         private IEnumerator PlaySequence()
         {
             yield return Fade(overlayGroup, 0f, 1f, 1.0f);
+
             if (!skipRequested)
-            {
-                SetCaption("Хозяин лавки бережно протягивает мальчику красиво упакованный шарф для мамы.");
-                yield return Hold(1.0f);
-            }
+                yield return WaitForCaption("Хозяин лавки бережно протягивает мальчику красиво упакованный шарф для мамы.");
 
             if (!skipRequested)
             {
                 yield return HandOverGift();
                 yield return ThankShopkeeper();
-                SetCaption("«Спасибо! Мама будет очень рада», — тихо говорит мальчик.");
-                yield return Hold(2.2f);
             }
 
             if (!skipRequested)
+                yield return WaitForCaption("«Спасибо! Мама будет очень рада», — тихо говорит мальчик.");
+
+            if (!skipRequested)
             {
-                SetCaption("С подарком в руках он выходит в рождественскую ночь.");
+                yield return WaitForCaption("С подарком в руках он выходит в рождественскую ночь.");
                 yield return CrossToStreet();
             }
 
             if (!skipRequested)
             {
-                SetCaption("Он спешит встретить маму-медсестру после её ночной рождественской смены.");
+                yield return WaitForCaption("Он спешит встретить маму-медсестру после её ночной рождественской смены.");
                 yield return WalkIntoNight();
-                yield return Hold(1.0f);
             }
 
             yield return ShowFinalCard();
@@ -213,29 +215,105 @@ namespace TheLastGift.UI
             skipButton = CreateSkipButton();
 
             // The ending overlay is already the last child of the shop Canvas.
-            // Keep the skip control as its last child so snow and scene layers
-            // can never cover its hit area or its gold frame.
+            // Keep the safe-area container and its skip control above scene layers.
+            safeAreaRoot.transform.SetAsLastSibling();
             skipButton.transform.SetAsLastSibling();
         }
 
         private void BuildCaption()
         {
-            captionPanel = CreateCenteredRect(overlayRoot.transform, "Подпись к сцене",
-                new Vector2(0.5f, 0.075f), new Vector2(1380f, 100f));
+            // Anchor all ending controls to the device safe area rather than fixed pixel sizes.
+            Rect safePixels = Screen.safeArea;
+            float screenWidth = Mathf.Max(1f, Screen.width);
+            float screenHeight = Mathf.Max(1f, Screen.height);
+            Vector2 safeMin = new Vector2(
+                Mathf.Clamp01(safePixels.xMin / screenWidth),
+                Mathf.Clamp01(safePixels.yMin / screenHeight));
+            Vector2 safeMax = new Vector2(
+                Mathf.Clamp01(safePixels.xMax / screenWidth),
+                Mathf.Clamp01(safePixels.yMax / screenHeight));
+
+            safeAreaRoot = CreateRect(
+                overlayRoot.transform,
+                "Безопасная область финальной заставки",
+                safeMin,
+                safeMax);
+            captionUiRoot = CreateRect(
+                safeAreaRoot,
+                "Сюжетный текст и подсказка",
+                Vector2.zero,
+                Vector2.one);
+            CanvasGroup captionUiGroup = captionUiRoot.gameObject.AddComponent<CanvasGroup>();
+            captionUiGroup.alpha = 1f;
+            captionUiGroup.interactable = false;
+            captionUiGroup.blocksRaycasts = false;
+
+            // Keep the story line in a centered reading area; on portrait displays
+            // it receives extra height so wrapped lines remain inside their panel.
+            bool portrait = safePixels.height > safePixels.width;
+            Vector2 storyMin = portrait
+                ? new Vector2(0.035f, 0.405f)
+                : new Vector2(0.035f, 0.405f);
+            Vector2 storyMax = portrait
+                ? new Vector2(0.965f, 0.665f)
+                : new Vector2(0.965f, 0.585f);
+
+            captionPanel = CreateRect(
+                captionUiRoot,
+                "Область сюжетной реплики",
+                storyMin,
+                storyMax);
             Image backing = captionPanel.gameObject.AddComponent<Image>();
             backing.sprite = whiteSprite;
-            backing.color = new Color32(29, 42, 42, 226);
+            backing.color = new Color32(29, 42, 42, 232);
             backing.raycastTarget = false;
 
-            AddShape(captionPanel, "Золотая линия подписи",
-                new Vector2(0.5f, 0.08f), new Vector2(1380f, 4f), Gold);
-            captionText = CreateText(captionPanel, "Текст подписи", string.Empty,
-                27, WarmCream, new Vector2(0.035f, 0.31f), new Vector2(0.965f, 0.97f),
+            RectTransform storyAccent = CreateRect(
+                captionPanel,
+                "Золотой акцент сюжетного текста",
+                new Vector2(0.025f, 0.965f),
+                new Vector2(0.975f, 0.99f));
+            AddImage(storyAccent, "Золотая линия сюжетного текста", whiteSprite, Gold, true);
+
+            captionText = CreateText(
+                captionPanel,
+                "Текст сюжетной реплики",
+                string.Empty,
+                27,
+                WarmCream,
+                new Vector2(0.04f, 0.07f),
+                new Vector2(0.96f, 0.93f),
                 TextAnchor.MiddleCenter);
-            CreateText(captionPanel, "Подсказка клавиши пропуска",
-                "ПРОБЕЛ — пропустить заставку",
-                17, Gold, new Vector2(0.15f, 0.015f), new Vector2(0.85f, 0.29f),
+            captionText.resizeTextMinSize = 16;
+
+            // The continue hint has its own bottom panel, with a clear gap from dialogue.
+            RectTransform hintPanel = CreateRect(
+                captionUiRoot,
+                "Нижняя подсказка продолжения",
+                new Vector2(0.16f, 0.025f),
+                new Vector2(0.84f, 0.095f));
+            Image hintBacking = hintPanel.gameObject.AddComponent<Image>();
+            hintBacking.sprite = whiteSprite;
+            hintBacking.color = new Color32(29, 42, 42, 232);
+            hintBacking.raycastTarget = false;
+
+            RectTransform hintAccent = CreateRect(
+                hintPanel,
+                "Золотая линия подсказки",
+                new Vector2(0.035f, 0.91f),
+                new Vector2(0.965f, 0.96f));
+            AddImage(hintAccent, "Золотой акцент подсказки", whiteSprite, Gold, true);
+
+            Text hintText = CreateText(
+                hintPanel,
+                "Подсказка клавиши продолжения",
+                "ПРОБЕЛ — продолжить",
+                17,
+                WarmCream,
+                new Vector2(0.03f, 0.06f),
+                new Vector2(0.97f, 0.86f),
                 TextAnchor.MiddleCenter);
+            hintText.resizeTextMinSize = 13;
         }
 
         private void CreateSnow()
@@ -358,17 +436,19 @@ namespace TheLastGift.UI
                 yield break;
 
             finalCardShown = true;
+            waitingForCaption = false;
+            captionAdvanceRequested = false;
             if (skipButton != null)
                 skipButton.SetActive(false);
 
-            if (captionPanel != null)
+            if (captionUiRoot != null)
             {
-                CanvasGroup captionCanvas = captionPanel.GetComponent<CanvasGroup>();
+                CanvasGroup captionCanvas = captionUiRoot.GetComponent<CanvasGroup>();
                 if (captionCanvas == null)
-                    captionCanvas = captionPanel.gameObject.AddComponent<CanvasGroup>();
+                    captionCanvas = captionUiRoot.gameObject.AddComponent<CanvasGroup>();
                 yield return Fade(captionCanvas, captionCanvas.alpha, 0f,
                     skipRequested ? 0.22f : 0.45f, skipRequested);
-                captionPanel.gameObject.SetActive(false);
+                captionUiRoot.gameObject.SetActive(false);
             }
 
             finalCardGroup = CreateFinalCard();
@@ -447,12 +527,32 @@ namespace TheLastGift.UI
                 captionText.text = message;
         }
 
+        private IEnumerator WaitForCaption(string message)
+        {
+            if (skipRequested || finalCardShown)
+                yield break;
+
+            captionAdvanceRequested = false;
+            SetCaption(message);
+            waitingForCaption = true;
+
+            // The coroutine, scene animation and snow remain paused until a fresh
+            // Space press acknowledges this exact line, or the skip button is used.
+            while (!captionAdvanceRequested && !skipRequested && !finalCardShown)
+                yield return null;
+
+            waitingForCaption = false;
+            captionAdvanceRequested = false;
+        }
+
         private void Skip()
         {
             if (restarting || finalCardShown || skipRequested)
                 return;
 
             skipRequested = true;
+            waitingForCaption = false;
+            captionAdvanceRequested = false;
             if (skipButton != null)
                 skipButton.SetActive(false);
 
@@ -475,10 +575,13 @@ namespace TheLastGift.UI
 
         private GameObject CreateSkipButton()
         {
+            // Parent the control to the safe-area container so it stays clear
+            // of notches, rounded corners and screen edges on every aspect ratio.
+            float left = Screen.safeArea.height > Screen.safeArea.width ? 0.68f : 0.79f;
             RectTransform frame = CreateRect(
-                overlayRoot.transform,
+                safeAreaRoot,
                 "Кнопка пропустить заставку",
-                new Vector2(0.81f, 0.91f),
+                new Vector2(left, 0.90f),
                 new Vector2(0.985f, 0.985f));
 
             // A separate gold image remains visible as a real border,
@@ -519,7 +622,7 @@ namespace TheLastGift.UI
                 Vector2.zero,
                 Vector2.one,
                 TextAnchor.MiddleCenter);
-            label.resizeTextMinSize = 17;
+            label.resizeTextMinSize = 14;
 
             return frame.gameObject;
         }
