@@ -1130,7 +1130,7 @@ namespace TheLastGift.UI
             {
                 float p = i / (float)rows;
                 Panel(packingRect, "Горизонтальная линия",
-                    new Vector2(0f, p - 0.002f), new Vector2(1f, p + 0.002f, 1f), new Color32(204, 174, 123, 255));
+                    new Vector2(0f, p - 0.002f), new Vector2(1f, p + 0.002f), new Color32(204, 174, 123, 255));
             }
 
             packingHint = Label("ПЕРЕТАЩИ СЮДА ПОДАРОК", 19, wood,
