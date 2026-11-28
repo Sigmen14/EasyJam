@@ -12,15 +12,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0a2b3c4d5e6f7890a1b2c3d4e5f67890, type: 3}
   m_Name: Day3_Freya
   m_EditorClassIdentifier:
-  CustomerName: Freya
-  CustomerWish: "These are my last presents to wrap. A perfect fit would mean so much!"
+  CustomerName: Фрея
+  CustomerWish: "Это последние подарки, которые мне нужно упаковать. Идеальная упаковка очень много для меня значит!"
   CustomerPortrait: {fileID: 0}
   GiftNames:
-  - Puzzle Cube
-  - Tea Set
-  - Mini Tree
-  - Candy Cane
-  - Mittens
+  - Головоломка-кубик
+  - Чайный сервиз
+  - Миниатюрная ёлка
+  - Леденец-трость
+  - Варежки
   BoxSize: 2
   RewardCoins: 65
   Day: 3
