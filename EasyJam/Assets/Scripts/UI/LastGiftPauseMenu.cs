@@ -386,11 +386,11 @@ namespace TheLastGift.UI
                 new Vector2(0.08f, 0.855f), new Vector2(0.92f, 0.98f), red, 30);
 
             CreateVolumeControl(card, "ОБЩАЯ ГРОМКОСТЬ",
-                LastGiftAudioManager.MasterVolume, 0.70f, LastGiftAudioManager.SetMasterVolume);
+                LastGiftAudioManager.MasterVolume, 0.72f, LastGiftAudioManager.SetMasterVolume);
             CreateVolumeControl(card, "МУЗЫКА",
-                LastGiftAudioManager.MusicVolume, 0.54f, LastGiftAudioManager.SetMusicVolume);
+                LastGiftAudioManager.MusicVolume, 0.57f, LastGiftAudioManager.SetMusicVolume);
             CreateVolumeControl(card, "ЗВУКОВЫЕ ЭФФЕКТЫ",
-                LastGiftAudioManager.SfxVolume, 0.38f, LastGiftAudioManager.SetSfxVolume);
+                LastGiftAudioManager.SfxVolume, 0.42f, LastGiftAudioManager.SetSfxVolume);
 
             CreateFullscreenControl(card);
             CreateResolutionControl(card);
