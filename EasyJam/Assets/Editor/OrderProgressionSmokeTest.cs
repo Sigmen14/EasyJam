@@ -64,7 +64,9 @@ public static class OrderProgressionSmokeTest
                     ? new PackingResult(false, false, 0, giftCount)
                     : new PackingResult(true, true, giftCount, giftCount);
 
-                manager.CompleteCurrentOrder(result, !deliberatelyFail, !deliberatelyFail);
+                bool suitableWrapping = !deliberatelyFail && attemptIndex != 1;
+                bool perfectWrapping = suitableWrapping && attemptIndex != 2;
+                manager.CompleteCurrentOrder(result, suitableWrapping, perfectWrapping);
 
                 int coinsAfterFirstCompletion = manager.CurrentCoins;
                 int reputationAfterFirstCompletion = manager.TotalReputationEarned;
@@ -89,11 +91,15 @@ public static class OrderProgressionSmokeTest
                 else
                 {
                     Require(completion.Success, "A simulated successful order was marked as failed: " + currentOrder.name);
+                    int expectedWrappingBonus = suitableWrapping ? Mathf.Max(0, currentOrder.WrappingBonusCoins) : 0;
+                    int expectedReputationBonus = perfectWrapping
+                        ? Mathf.Max(0, currentOrder.PerfectWrappingReputationBonus) : 0;
                     Require(completion.TotalEarned == Mathf.Max(0, currentOrder.RewardCoins)
-                        + Mathf.Max(0, currentOrder.PerfectPackingTip)
-                        + Mathf.Max(0, currentOrder.WrappingBonusCoins),
+                        + Mathf.Max(0, currentOrder.PerfectPackingTip) + expectedWrappingBonus,
                         "The order reward, packing tip or wrapping bonus is incorrect for " + currentOrder.name + ".");
-                    Require(completion.ReputationBonus == Mathf.Max(0, currentOrder.PerfectWrappingReputationBonus),
+                    Require(completion.WrappingBonus == expectedWrappingBonus,
+                        "Wrapping bonus did not respect the selected wrapping quality for " + currentOrder.name + ".");
+                    Require(completion.ReputationBonus == expectedReputationBonus,
                         "The perfect-wrapping reputation bonus is incorrect for " + currentOrder.name + ".");
                 }
 
@@ -160,6 +166,8 @@ public static class OrderProgressionSmokeTest
             report.AppendLine("Successful orders: " + expectedSuccessfulOrders);
             report.AppendLine("Final coin balance: " + expectedCoins);
             report.AppendLine("Perfect wrapping reputation: " + manager.TotalReputationEarned);
+            report.AppendLine("Unsuitable wrapping still completes the order without a bonus: OK");
+            report.AppendLine("Suitable wrapping awards coins; perfect wrapping awards reputation: OK");
             report.AppendLine("Repeated completion does not duplicate rewards: OK");
             report.AppendLine("Day transitions and campaign completion: OK");
             report.AppendLine("Restart campaign: OK");
@@ -233,7 +241,9 @@ public static class OrderProgressionSmokeTest
                 {
                     expectedCoins += Mathf.Max(0, order.RewardCoins);
                     expectedCoins += Mathf.Max(0, order.PerfectPackingTip);
-                    expectedCoins += Mathf.Max(0, order.WrappingBonusCoins);
+                    // The second order is deliberately wrapped poorly to verify it still completes.
+                    if (totalOrders > 2)
+                        expectedCoins += Mathf.Max(0, order.WrappingBonusCoins);
                 }
 
                 firstOrder = false;
@@ -265,16 +275,17 @@ public static class OrderProgressionSmokeTest
     private static int SumWrappingReputationBonusesForSuccessfulOrders(OrderCampaignDefinition campaign)
     {
         int total = 0;
-        bool firstOrder = true;
+        int processedOrders = 0;
 
         foreach (OrderDayDefinition day in campaign.Days)
         {
             foreach (GiftOrderDefinition order in day.Orders)
             {
-                if (!firstOrder)
+                // First order fails, second has unsuitable wrapping, third is suitable but not perfect.
+                if (processedOrders >= 3)
                     total += Mathf.Max(0, order.PerfectWrappingReputationBonus);
 
-                firstOrder = false;
+                processedOrders++;
             }
         }
 
