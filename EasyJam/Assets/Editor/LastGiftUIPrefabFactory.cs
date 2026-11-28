@@ -44,7 +44,7 @@ namespace TheLastGift.Editor
 
             // The old command only saved the prefab asset. It did not put anything
             // into the open scene, so pressing Play could show an empty Game view.
-            if (Object.FindObjectOfType<LastGiftUIController>() == null)
+            if (Object.FindFirstObjectByType<LastGiftUIController>() == null)
             {
                 GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(prefabAsset);
                 Undo.RegisterCreatedObjectUndo(instance, "Add The Last Gift UI to Scene");
@@ -61,7 +61,7 @@ namespace TheLastGift.Editor
 
         private static void EnsureSceneCamera()
         {
-            Camera sceneCamera = Object.FindObjectOfType<Camera>();
+            Camera sceneCamera = Object.FindFirstObjectByType<Camera>();
             if (sceneCamera != null)
             {
                 sceneCamera.enabled = true;
