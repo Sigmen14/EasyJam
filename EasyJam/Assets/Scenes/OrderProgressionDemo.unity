@@ -225,7 +225,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4710324936015223044, guid: c6307303afb02cd449beee990229ca08, type: 3}
       propertyPath: minimumFontScale
-      value: 0.9
+      value: 1.2
       objectReference: {fileID: 0}
     - target: {fileID: 8273331767511886081, guid: c6307303afb02cd449beee990229ca08, type: 3}
       propertyPath: m_Pivot.x
