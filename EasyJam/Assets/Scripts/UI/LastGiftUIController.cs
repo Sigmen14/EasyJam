@@ -368,6 +368,7 @@ namespace TheLastGift.UI
                 case "АВА": portraitIndex = 6; break;    // red-haired woman
                 case "ФРЕЯ": portraitIndex = 8; break;   // woman in cream sweater
                 case "ТЕО": portraitIndex = 7; break;    // young man in red sweater
+                case "МИША": portraitIndex = 7; break;   // use the closest existing youthful male portrait
                 default:
                     // Keep a deterministic fallback for any future customer.
                     portraitIndex = ((Mathf.Max(1, day) - 1) * 3
