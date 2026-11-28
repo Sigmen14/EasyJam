@@ -39,6 +39,8 @@ namespace TheLastGift.Packing
         private bool previewValid;
         private int width, height;
         private bool hasBeenConfigured;
+        private bool campaignMode;
+        private bool inputEnabled = true;
         private bool puzzleCompleted;
         private bool showValidationMessage;
         private string feedbackMessage = "Перетащите фрагменты в коробку.";
@@ -61,6 +63,38 @@ namespace TheLastGift.Packing
         public int Width => width;
         public int Height => height;
         public IReadOnlyList<GiftPieceView> Gifts => pieces;
+
+        /// <summary>Prepares this existing puzzle board to be driven by the customer campaign UI.</summary>
+        public void ConfigureForCampaign(Camera camera, float boardCellSize, Vector2 center)
+        {
+            campaignMode = true;
+            runDemoOnStart = false;
+            targetCamera = camera;
+            cellSize = Mathf.Max(0.1f, boardCellSize);
+            boardCenter = center;
+            inputEnabled = true;
+        }
+
+        public void SetInputEnabled(bool enabled)
+        {
+            inputEnabled = enabled;
+            if (!enabled)
+                draggedPiece = null;
+        }
+
+        public void ResetAllPiecesToTray()
+        {
+            puzzleCompleted = false;
+            showValidationMessage = false;
+            feedbackMessage = "Перетащите все фрагменты в коробку.";
+            foreach (var piece in pieces)
+            {
+                if (piece == null) continue;
+                piece.RestoreToTray();
+                piece.SetDefaultTint();
+            }
+            RefreshBoardColors();
+        }
 
         private void Start()
         {
@@ -113,8 +147,10 @@ namespace TheLastGift.Packing
         {
             UpdateSnowfall();
 
-            // Validation must work even on platforms without a mouse device.
-            if (Keyboard.current != null && Keyboard.current.vKey.wasPressedThisFrame)
+            if (!inputEnabled) return;
+
+            // Standalone prototype keeps its keyboard validation shortcut.
+            if (!campaignMode && Keyboard.current != null && Keyboard.current.vKey.wasPressedThisFrame)
                 ValidateAndReport();
 
             // Once solved, keep the completed board visible until the player chooses
@@ -145,7 +181,8 @@ namespace TheLastGift.Packing
 
         private void OnGUI()
         {
-            if (pieces.Count == 0 || width <= 0 || height <= 0) return;
+            // In campaign mode, the UGUI campaign screen owns all prompts and buttons.
+            if (campaignMode || pieces.Count == 0 || width <= 0 || height <= 0) return;
 
             EnsureGuiStyles();
             DrawTopHud();
