@@ -100,6 +100,7 @@ namespace TheLastGift.UI
             CreateSprites();
             CreateCanvas();
             BuildTownAndShop();
+            Canvas.ForceUpdateCanvases();
             FitWorldToViewport();
             BuildSnowfall();
             BuildTitleCard();
