@@ -61,6 +61,7 @@ namespace TheLastGift.Packing
         private GUIStyle completionButtonStyle;
         private GUIStyle returnToShopButtonStyle;
         private Texture2D hudPanelTexture;
+        private Texture2D hudPanelShadowTexture;
         private Texture2D hudRibbonTexture;
         private Texture2D completionPanelTexture;
         private Texture2D completionRibbonTexture;
@@ -75,6 +76,7 @@ namespace TheLastGift.Packing
         {
             // These textures are generated for the IMGUI panels and are owned by this controller.
             if (hudPanelTexture != null) Destroy(hudPanelTexture);
+            if (hudPanelShadowTexture != null) Destroy(hudPanelShadowTexture);
             if (hudRibbonTexture != null) Destroy(hudRibbonTexture);
             if (completionPanelTexture != null) Destroy(completionPanelTexture);
             if (completionRibbonTexture != null) Destroy(completionRibbonTexture);
@@ -206,7 +208,7 @@ namespace TheLastGift.Packing
                 fontSize = Mathf.RoundToInt(27f * scale),
                 fontStyle = FontStyle.Bold
             };
-            hudStyle.normal.textColor = new Color(1f, 0.79f, 0.37f, 1f);
+            hudStyle.normal.textColor = new Color32(82, 52, 36, 255);
 
             controlStyle = new GUIStyle(GUI.skin.label)
             {
@@ -215,7 +217,7 @@ namespace TheLastGift.Packing
                 fontStyle = FontStyle.Normal,
                 wordWrap = true
             };
-            controlStyle.normal.textColor = new Color(0.97f, 0.92f, 0.82f, 1f);
+            controlStyle.normal.textColor = new Color32(82, 52, 36, 255);
 
             completionKickerStyle = new GUIStyle(GUI.skin.label)
             {
@@ -273,14 +275,12 @@ namespace TheLastGift.Packing
                     new Color(1f, 1f, 0.9f, 1f));
             completionButtonStyle.active.background = completionButtonTexture;
 
-            hudPanelTexture = CreateRoundedUiTexture(512, 160, 26, 4,
-                new Color(0.075f, 0.24f, 0.15f, 0.97f),
-                new Color(0.018f, 0.075f, 0.052f, 0.98f),
-                new Color(0.88f, 0.68f, 0.34f, 1f));
-            hudRibbonTexture = CreateRoundedUiTexture(512, 84, 20, 4,
-                new Color(0.67f, 0.16f, 0.15f, 1f),
-                new Color(0.43f, 0.055f, 0.065f, 1f),
-                new Color(0.93f, 0.73f, 0.39f, 1f));
+            hudPanelShadowTexture = CreateRoundedUiTexture(512, 160, 26, 1,
+                new Color(0.12f, 0.075f, 0.05f, 0.32f),
+                new Color(0.12f, 0.075f, 0.05f, 0.32f),
+                new Color(0.12f, 0.075f, 0.05f, 0.32f));
+            hudPanelTexture = CreateFestivePanelTexture(512, 160);
+            hudRibbonTexture = CreateFestiveHeaderTexture(512, 84);
 
             completionPanelTexture = CreateRoundedUiTexture(640, 360, 34, 6,
                 new Color(0.085f, 0.28f, 0.18f, 0.99f),
@@ -324,6 +324,91 @@ namespace TheLastGift.Packing
             return texture;
         }
 
+        private Texture2D CreateFestivePanelTexture(int width, int height)
+        {
+            var texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+            texture.name = "PackingFestiveHudPanel";
+            texture.filterMode = FilterMode.Bilinear;
+            texture.wrapMode = TextureWrapMode.Clamp;
+            texture.hideFlags = HideFlags.HideAndDontSave;
+
+            const int woodBorder = 7;
+            const int goldBorder = 5;
+            const int radius = 26;
+            var wood = new Color32(82, 52, 36, 255);
+            var gold = new Color32(218, 166, 74, 255);
+            var pixels = new Color32[width * height];
+
+            for (var y = 0; y < height; y++)
+            for (var x = 0; x < width; x++)
+            {
+                if (!IsInsideRoundedRect(x, y, width, height, radius)) continue;
+
+                var color = wood;
+                if (IsInsideRoundedRect(x - woodBorder, y - woodBorder,
+                    width - woodBorder * 2, height - woodBorder * 2, radius - woodBorder))
+                    color = gold;
+
+                if (IsInsideRoundedRect(x - woodBorder - goldBorder, y - woodBorder - goldBorder,
+                    width - (woodBorder + goldBorder) * 2,
+                    height - (woodBorder + goldBorder) * 2,
+                    radius - woodBorder - goldBorder))
+                {
+                    var vertical = y / (float)(height - 1);
+                    color = Color32.Lerp(
+                        new Color32(250, 239, 215, 255),
+                        new Color32(255, 249, 235, 255), vertical);
+                }
+
+                pixels[y * width + x] = color;
+            }
+
+            texture.SetPixels32(pixels);
+            texture.Apply(false, true);
+            return texture;
+        }
+
+        private Texture2D CreateFestiveHeaderTexture(int width, int height)
+        {
+            var texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+            texture.name = "PackingFestiveHudHeader";
+            texture.filterMode = FilterMode.Bilinear;
+            texture.wrapMode = TextureWrapMode.Clamp;
+            texture.hideFlags = HideFlags.HideAndDontSave;
+
+            const int goldBorder = 7;
+            const int radius = 20;
+            var gold = new Color32(218, 166, 74, 255);
+            var red = new Color32(159, 52, 48, 255);
+            var pixels = new Color32[width * height];
+
+            for (var y = 0; y < height; y++)
+            for (var x = 0; x < width; x++)
+            {
+                if (!IsInsideRoundedRect(x, y, width, height, radius)) continue;
+
+                var color = gold;
+                if (IsInsideRoundedRect(x - goldBorder, y - goldBorder,
+                    width - goldBorder * 2, height - goldBorder * 2, radius - goldBorder))
+                {
+                    color = red;
+
+                    // Fine gold rails mirror the trim used on the other festive headers.
+                    var insideSideMargins = x >= 20 && x < width - 20;
+                    if (insideSideMargins &&
+                        (y >= goldBorder + 5 && y < goldBorder + 8 ||
+                         y >= height - goldBorder - 8 && y < height - goldBorder - 5))
+                        color = gold;
+                }
+
+                pixels[y * width + x] = color;
+            }
+
+            texture.SetPixels32(pixels);
+            texture.Apply(false, true);
+            return texture;
+        }
+
         private bool IsInsideRoundedRect(int x, int y, int width, int height, int radius)
         {
             if (x < 0 || y < 0 || x >= width || y >= height) return false;
@@ -342,6 +427,7 @@ namespace TheLastGift.Packing
             var panelHeight = 154f * scale;
             var panel = new Rect((Screen.width - panelWidth) * 0.5f, 10f, panelWidth, panelHeight);
 
+            GUI.DrawTexture(new Rect(panel.x + 8f, panel.y + 7f, panel.width, panel.height), hudPanelShadowTexture);
             GUI.DrawTexture(panel, hudPanelTexture);
             var titleRibbon = new Rect(
                 panel.x + panel.width * 0.16f,
