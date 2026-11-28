@@ -31,11 +31,11 @@ namespace TheLastGift.UI
         [Header("Настройки интерфейса")]
         [SerializeField, Range(1f, 1.8f)]
         [Tooltip("Общий размер шрифта игрового интерфейса. Увеличен для комфортного чтения.")]
-        private float uiFontScale = 1.5f;
+        private float uiFontScale = 1.6f;
 
         [SerializeField, Range(1f, 1.15f)]
         [Tooltip("Минимальный масштаб текста. Не позволяет мелким подписям становиться меньше исходного размера.")]
-        private float minimumFontScale = 1f;
+        private float minimumFontScale = 1.15f;
 
         [SerializeField]
         [Tooltip("Необязательно: собственный шрифт. Если поле пустое, используется встроенный шрифт Unity.")]
@@ -2607,9 +2607,9 @@ namespace TheLastGift.UI
             Text text = textObject.GetComponent<Text>();
             text.font = font;
             text.text = value;
-            int readableSize = Mathf.Max(18, Mathf.RoundToInt(size * Mathf.Max(1.5f, uiFontScale)));
+            int readableSize = Mathf.Max(21, Mathf.RoundToInt(size * Mathf.Max(1.6f, uiFontScale)));
             int minimumReadableSize = Mathf.Min(readableSize,
-                Mathf.Max(18, Mathf.RoundToInt(size * Mathf.Max(1f, minimumFontScale))));
+                Mathf.Max(21, Mathf.RoundToInt(size * Mathf.Max(1.15f, minimumFontScale))));
             text.fontSize = readableSize;
             text.resizeTextForBestFit = true;
             text.resizeTextMinSize = minimumReadableSize;
