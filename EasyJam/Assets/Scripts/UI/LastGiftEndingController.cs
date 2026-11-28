@@ -184,8 +184,8 @@ namespace TheLastGift.UI
             AddShape(interiorGroup, "Золотой край стойки",
                 new Vector2(0.5f, 0.193f), new Vector2(1120f, 7f), Gold);
 
-            shopBoy = CreateCharacter(interiorGroup, "Мальчик", new Vector2(0.355f, 0.235f), 0.92f, false);
-            shopkeeper = CreateCharacter(interiorGroup, "Хозяин лавки", new Vector2(0.69f, 0.235f), 0.92f, true);
+            shopBoy = CreateCharacter(interiorGroup, "Мальчик", new Vector2(0.355f, 0.36f), 0.92f, false);
+            shopkeeper = CreateCharacter(interiorGroup, "Хозяин лавки", new Vector2(0.69f, 0.36f), 0.92f, true);
             gift = CreateGift(interiorGroup, new Vector2(0.505f, 0.315f), 1f, "Шарф для мамы");
 
             streetGroup = CreateLayer(overlayRoot.transform, "Снежная улица");
@@ -200,7 +200,7 @@ namespace TheLastGift.UI
             streetBackground = streetImage.rectTransform;
             streetBackground.localScale = Vector3.one * 1.12f;
 
-            streetBoy = CreateCharacter(streetGroup, "Мальчик с подарком", new Vector2(0.56f, 0.20f), 0.62f, false);
+            streetBoy = CreateCharacter(streetGroup, "Мальчик с подарком", new Vector2(0.56f, 0.31f), 0.62f, false);
             CreateGift(streetBoy, new Vector2(0.82f, 0.42f), 0.52f, "Упакованный шарф");
 
             CreateSnow();
@@ -245,11 +245,11 @@ namespace TheLastGift.UI
             // The opaque backing prevents any letters from showing through house gaps.
             bool portrait = safePixels.height > safePixels.width;
             Vector2 storyMin = portrait
-                ? new Vector2(0.035f, 0.10f)
-                : new Vector2(0.035f, 0.085f);
+                ? new Vector2(0.035f, 0.045f)
+                : new Vector2(0.035f, 0.045f);
             Vector2 storyMax = portrait
-                ? new Vector2(0.965f, 0.28f)
-                : new Vector2(0.965f, 0.255f);
+                ? new Vector2(0.965f, 0.205f)
+                : new Vector2(0.965f, 0.19f);
 
             captionPanel = CreateRect(
                 captionUiRoot,
@@ -276,21 +276,23 @@ namespace TheLastGift.UI
                 captionPanel,
                 "Текст сюжетной реплики",
                 string.Empty,
-                20,
+                27,
                 WarmCream,
-                new Vector2(0.04f, 0.07f),
-                new Vector2(0.96f, 0.93f),
+                new Vector2(0.02f, 0.02f),
+                new Vector2(0.98f, 0.98f),
                 TextAnchor.MiddleCenter);
-            captionText.resizeTextMinSize = 12;
-            captionText.resizeTextMaxSize = 20;
+            // Keep the original dialogue font size; the panel is sized to fit the wrapped lines.
+            captionText.resizeTextForBestFit = false;
+            captionText.resizeTextMinSize = 27;
+            captionText.resizeTextMaxSize = 27;
             captionText.verticalOverflow = VerticalWrapMode.Truncate;
 
             // The continue hint has its own bottom panel, with a clear gap from dialogue.
             RectTransform hintPanel = CreateRect(
                 captionUiRoot,
                 "Нижняя подсказка продолжения",
-                new Vector2(0.16f, 0.015f),
-                new Vector2(0.84f, 0.065f));
+                new Vector2(0.16f, 0.005f),
+                new Vector2(0.84f, 0.04f));
             Image hintBacking = hintPanel.gameObject.AddComponent<Image>();
             hintBacking.sprite = whiteSprite;
             hintBacking.color = new Color32(29, 42, 42, 232);
@@ -416,7 +418,7 @@ namespace TheLastGift.UI
             {
                 elapsed += Time.unscaledDeltaTime;
                 float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / duration));
-                Vector2 position = new Vector2(Mathf.Lerp(0.56f, 0.79f, t), 0.20f + Mathf.Sin(t * Mathf.PI * 5f) * 0.008f);
+                Vector2 position = new Vector2(Mathf.Lerp(0.56f, 0.79f, t), 0.31f + Mathf.Sin(t * Mathf.PI * 5f) * 0.008f);
                 streetBoy.anchorMin = position;
                 streetBoy.anchorMax = position;
                 streetBoy.localRotation = Quaternion.Euler(0f, 0f, Mathf.Sin(t * Mathf.PI * 10f) * -2.2f);
