@@ -16,6 +16,7 @@ namespace TheLastGift.Audio
 
         private AudioSource musicSource;
         private AudioSource sfxSource;
+        private AudioClip christmasEventChime;
 
         private float masterVolume = 1f;
         private float musicVolume = 0.8f;
@@ -84,7 +85,11 @@ namespace TheLastGift.Audio
         private void OnDestroy()
         {
             if (instance == this)
+            {
+                if (christmasEventChime != null)
+                    Destroy(christmasEventChime);
                 instance = null;
+            }
         }
 
         public static void SetMasterVolume(float value)
@@ -144,6 +149,53 @@ namespace TheLastGift.Audio
                 return;
 
             Instance.sfxSource.PlayOneShot(clip);
+        }
+
+        /// <summary>
+        /// Plays the small Christmas event cue through the existing effects channel.
+        /// The clip is generated once at runtime so the feature does not require a separate asset.
+        /// </summary>
+        public static void PlayChristmasEventChime()
+        {
+            Instance.PlayChristmasEventChimeInternal();
+        }
+
+        private void PlayChristmasEventChimeInternal()
+        {
+            if (sfxSource == null)
+                return;
+
+            if (christmasEventChime == null)
+                christmasEventChime = CreateChristmasEventChime();
+
+            if (christmasEventChime != null)
+                sfxSource.PlayOneShot(christmasEventChime, 0.75f);
+        }
+
+        private AudioClip CreateChristmasEventChime()
+        {
+            const int sampleRate = 22050;
+            const int noteDuration = sampleRate / 6;
+            int[] frequencies = { 659, 784, 988 };
+            float[] samples = new float[noteDuration * frequencies.Length];
+
+            for (int note = 0; note < frequencies.Length; note++)
+            {
+                for (int i = 0; i < noteDuration; i++)
+                {
+                    float progress = i / (float)noteDuration;
+                    float envelope = Mathf.Min(1f, progress * 18f)
+                        * Mathf.Pow(1f - progress, 1.15f);
+                    float phase = 2f * Mathf.PI * frequencies[note] * i / sampleRate;
+                    float tone = Mathf.Sin(phase) + 0.16f * Mathf.Sin(phase * 2f);
+                    samples[note * noteDuration + i] = tone * envelope * 0.16f;
+                }
+            }
+
+            AudioClip clip = AudioClip.Create(
+                "TheLastGift_ChristmasEventChime", samples.Length, 1, sampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
         }
 
         private void ApplyVolumes()
