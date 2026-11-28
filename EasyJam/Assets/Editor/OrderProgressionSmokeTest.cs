@@ -53,6 +53,30 @@ public static class OrderProgressionSmokeTest
 
             manager.StartGame();
 
+            ChristmasShopEventSchedule eventSchedule = new ChristmasShopEventSchedule();
+            Require(!eventSchedule.TryQueue(2, true),
+                "A Christmas event was queued before three successful orders.");
+            Require(eventSchedule.TryQueue(3, true),
+                "A Christmas event was not queued at the third successful order.");
+            Require(!eventSchedule.TryQueue(3, true),
+                "The scheduler queued a second event while one was already pending.");
+            Require(eventSchedule.TryConsume(out ScheduledChristmasShopEvent firstEvent)
+                && firstEvent.Type == ChristmasShopEventType.MixedGifts
+                && firstEvent.OrderMilestone == 3,
+                "The first queued event has an incorrect type or order milestone.");
+            Require(!eventSchedule.TryQueue(3, true),
+                "The scheduler repeated the same three-order event.");
+            Require(eventSchedule.TryQueue(6, true),
+                "The next event was not queued at six successful orders.");
+            Require(eventSchedule.TryConsume(out ScheduledChristmasShopEvent secondEvent)
+                && secondEvent.OrderMilestone == 6,
+                "The second event has an incorrect order milestone.");
+            Require(!eventSchedule.TryQueue(9, false),
+                "An event was queued after the final order when no next customer exists.");
+            eventSchedule.Reset();
+            Require(!eventSchedule.HasPendingEvent,
+                "Reset did not clear the pending Christmas event.");
+
             int attemptIndex = 0;
             while (manager.CurrentOrder != null && attemptIndex < totalOrders)
             {
@@ -125,6 +149,22 @@ public static class OrderProgressionSmokeTest
             }
 
             manager.RestartGame();
+
+            Require(manager.TryAwardEventReward("smoke-test-mixed-gifts", 30),
+                "A valid event reward was not granted.");
+            int balanceAfterEventReward = manager.CurrentCoins;
+            Require(balanceAfterEventReward == 30,
+                "The event reward was not added to the coin balance.");
+            Require(manager.TotalCoinsEarned == 30,
+                "The event reward was not included in campaign earnings.");
+            Require(!manager.TryAwardEventReward("smoke-test-mixed-gifts", 30),
+                "The same event reward was granted twice.");
+            Require(manager.CurrentCoins == balanceAfterEventReward,
+                "A duplicate event reward changed the coin balance.");
+
+            manager.RestartGame();
+            Require(manager.CurrentCoins == 0 && manager.TotalCoinsEarned == 0,
+                "Restart did not clear event rewards and campaign earnings.");
             Require(!manager.IsCompleted, "Restart did not clear the completed state.");
             Require(manager.CurrentDay == campaign.Days[0].DayNumber,
                 "Restart did not return to day one.");
@@ -145,6 +185,8 @@ public static class OrderProgressionSmokeTest
             report.AppendLine("Final coin balance: " + expectedCoins);
             report.AppendLine("Day transitions and campaign completion: OK");
             report.AppendLine("Restart campaign: OK");
+            report.AppendLine("Christmas event cadence (orders 3 and 6): OK");
+            report.AppendLine("Event reward and duplicate protection: OK");
 
             Debug.Log("[Order Progression Smoke Test]\n" + report);
             EditorUtility.DisplayDialog("Order Progression Smoke Test", report.ToString(), "OK");
