@@ -17,6 +17,8 @@ public class GiftOrderDefinition : ScriptableObject
     public GiftBoxSize BoxSize = GiftBoxSize.Small;
     [Min(0)] public int RewardCoins = 30;
     [Min(1)] public int Day = 1;
+    [Tooltip("Marks the special scarf order that leads into the story ending.")]
+    public bool IsStoryFinaleOrder;
 
     [Header("Bonus")]
     [Tooltip("Tip awarded when a valid packing result places every item.")]

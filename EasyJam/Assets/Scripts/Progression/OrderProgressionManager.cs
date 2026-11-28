@@ -188,7 +188,23 @@ public class OrderProgressionManager : MonoBehaviour
     private void GenerateSecretWishAssignments()
     {
         int seed = Guid.NewGuid().GetHashCode() ^ Environment.TickCount;
-        secretWishAssignments = CreateSecretWishSequence(seed, previousSecretWishAssignments);
+        int orderCount = 0;
+        if (campaign != null && campaign.Days != null)
+        {
+            for (int i = 0; i < campaign.Days.Count; i++)
+            {
+                if (campaign.Days[i] != null && campaign.Days[i].Orders != null)
+                    orderCount += campaign.Days[i].Orders.Count;
+            }
+        }
+
+        // Preserve the established nine-order campaign and its four secret wishes.
+        // The short story run deliberately skips optional wish popups to stay under 10 minutes.
+        if (orderCount == 9)
+            secretWishAssignments = CreateSecretWishSequence(seed, previousSecretWishAssignments);
+        else
+            secretWishAssignments = new bool[orderCount];
+
         previousSecretWishAssignments = GetSecretWishAssignments();
     }
 
@@ -413,6 +429,25 @@ public class OrderProgressionManager : MonoBehaviour
         // Do not start the next day yet. The day summary is a real pause in progression,
         // and its button is responsible for advancing to the next day.
         awaitingDayContinue = true;
+    }
+
+    /// <summary>Awards a small event reward and includes it in campaign earnings.</summary>
+    public void AwardBonusCoins(int amount)
+    {
+        int reward = Mathf.Max(0, amount);
+        if (reward == 0) return;
+        AddCoins(reward);
+        DayCoinsEarned += reward;
+        TotalCoinsEarned += reward;
+    }
+
+    /// <summary>Spends coins only when the current balance can cover the full price.</summary>
+    public bool TrySpendCoins(int amount)
+    {
+        if (amount <= 0 || CurrentCoins < amount) return false;
+        CurrentCoins -= amount;
+        CoinsChanged?.Invoke(CurrentCoins);
+        return true;
     }
 
     private void AddCoins(int amount)
