@@ -12,15 +12,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0a2b3c4d5e6f7890a1b2c3d4e5f67890, type: 3}
   m_Name: Day3_Ava
   m_EditorClassIdentifier:
-  CustomerName: Ava
-  CustomerWish: "Christmas is almost here! Please pack this assortment so it arrives beautifully."
+  CustomerName: Ава
+  CustomerWish: "Рождество уже близко! Упакуйте эти подарки так, чтобы они выглядели великолепно."
   CustomerPortrait: {fileID: 0}
   GiftNames:
-  - Toy Robot
-  - Plush Bear
-  - Music Box
-  - Gingerbread
-  - Star Ornament
+  - Игрушечный робот
+  - Плюшевый медведь
+  - Музыкальная шкатулка
+  - Пряничный человечек
+  - Звёздочная ёлочная игрушка
   BoxSize: 2
   RewardCoins: 60
   Day: 3
