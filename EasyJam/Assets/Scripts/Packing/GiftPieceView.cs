@@ -138,7 +138,9 @@ namespace TheLastGift.Packing
 
         internal void SetPreview(bool valid)
         {
-            SetTint(valid ? new Color(0.35f, 0.9f, 0.48f, 1f) : new Color(1f, 0.32f, 0.3f, 1f));
+            SetTint(valid
+                ? new Color32(48, 96, 65, 255)
+                : new Color32(159, 52, 48, 255));
         }
 
         internal void SetDefaultTint() => SetTint(Definition.Tint);
