@@ -578,12 +578,12 @@ namespace TheLastGift.UI
         {
             // Parent the control to the safe-area container so it stays clear
             // of notches, rounded corners and screen edges on every aspect ratio.
-            float left = Screen.safeArea.height > Screen.safeArea.width ? 0.68f : 0.79f;
+            float left = Screen.safeArea.height > Screen.safeArea.width ? 0.70f : 0.82f;
             RectTransform frame = CreateRect(
                 safeAreaRoot,
                 "Кнопка пропустить заставку",
-                new Vector2(left, 0.925f),
-                new Vector2(0.985f, 0.995f));
+                new Vector2(left, 0.93f),
+                new Vector2(0.99f, 0.99f));
 
             // A separate gold image remains visible as a real border,
             // while the inset burgundy face is the button's hit target.
