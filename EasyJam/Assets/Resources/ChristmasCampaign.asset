@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2a2b3c4d5e6f7890a1b2c3d4e5f67890, type: 3}
+  m_Name: ChristmasCampaign
+  m_EditorClassIdentifier:
+  Days:
+  - {fileID: 11400000, guid: 42b259707aec5cf31a1486f69db4be20, type: 2}
+  - {fileID: 11400000, guid: 42b269707bec5c031a1586f6adb4bf20, type: 2}
+  - {fileID: 11400000, guid: 42b279707cec5c131a1686f6bdb4b020, type: 2}
