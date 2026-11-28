@@ -56,6 +56,27 @@ namespace TheLastGift.UI
         private bool tutorialShown = false;
         private bool secretWishAnswered;
 
+        private static readonly string[] SortingEventGiftNames =
+        {
+            "МИШКА", "ПОДАРОК", "ЛЕДЕНЕЦ", "СНЕЖНЫЙ ШАР"
+        };
+
+        private static readonly string[] SortingEventTargetNames =
+        {
+            "ОБЪЯТИЯ", "ПОД ЁЛКУ", "СЛАДОСТИ", "ЗИМНЕЕ ЧУДО"
+        };
+
+        private readonly RectTransform[] sortingEventTargets = new RectTransform[4];
+        private readonly GameObject[] sortingEventCards = new GameObject[4];
+        private readonly bool[] sortingEventPlaced = new bool[4];
+        private Text sortingEventStatus;
+        private Text sortingEventTimer;
+        private Coroutine sortingEventTimerRoutine;
+        private Action sortingEventCompleted;
+        private int sortingEventPlacedCount;
+        private int sortingEventSecondsRemaining;
+        private bool sortingEventSolved;
+
         private sealed class CustomerOrderData
         {
             public readonly string CustomerName;
@@ -154,6 +175,9 @@ namespace TheLastGift.UI
 
         private void OnDestroy()
         {
+            if (sortingEventTimerRoutine != null)
+                StopCoroutine(sortingEventTimerRoutine);
+
             if (christmasBackground != null)
                 Destroy(christmasBackground);
             if (christmasBackgroundTexture != null)
@@ -1414,6 +1438,340 @@ namespace TheLastGift.UI
                 StartCoroutine(Pop(feedback.transform));
         }
 
+        /// <summary>
+        /// Opens the short in-shop sorting challenge. Gift visuals come from the same
+        /// resource atlas used by the regular customer order shelf.
+        /// </summary>
+        public void ShowMixedGiftSortingEvent(Action onCompleted)
+        {
+            if (sortingEventTimerRoutine != null)
+                StopCoroutine(sortingEventTimerRoutine);
+
+            sortingEventCompleted = onCompleted;
+            sortingEventPlacedCount = 0;
+            sortingEventSolved = false;
+            Array.Clear(sortingEventPlaced, 0, sortingEventPlaced.Length);
+            Array.Clear(sortingEventCards, 0, sortingEventCards.Length);
+            Array.Clear(sortingEventTargets, 0, sortingEventTargets.Length);
+
+            Build("Перепутанные подарки");
+
+            Panel(root.transform, "Яркая плашка происшествия",
+                new Vector2(0.10f, 0.83f), new Vector2(0.90f, 0.95f), red);
+            Label("РОЖДЕСТВЕНСКОЕ ПРОИСШЕСТВИЕ ✦", 29, cream,
+                new Vector2(0.12f, 0.84f), new Vector2(0.88f, 0.94f), TextAnchor.MiddleCenter);
+            Label("Эльфы перепутали подарки! Перетащи каждый подарок в правильное место.",
+                21, brown, new Vector2(0.08f, 0.75f), new Vector2(0.92f, 0.82f), TextAnchor.MiddleCenter);
+
+            int[] shuffledGiftIndices = { 0, 1, 2, 3 };
+            for (int i = shuffledGiftIndices.Length - 1; i > 0; i--)
+            {
+                int swapIndex = UnityEngine.Random.Range(0, i + 1);
+                int temporary = shuffledGiftIndices[i];
+                shuffledGiftIndices[i] = shuffledGiftIndices[swapIndex];
+                shuffledGiftIndices[swapIndex] = temporary;
+            }
+
+            const float tileWidth = 0.17f;
+            const float tileGap = 0.035f;
+            float tileStart = (1f - (tileWidth * 4f + tileGap * 3f)) * 0.5f;
+
+            for (int visualIndex = 0; visualIndex < shuffledGiftIndices.Length; visualIndex++)
+            {
+                int giftIndex = shuffledGiftIndices[visualIndex];
+                string giftName = SortingEventGiftNames[giftIndex];
+                float left = tileStart + visualIndex * (tileWidth + tileGap);
+
+                GameObject card = new GameObject(
+                    "Карточка подарка " + giftName,
+                    typeof(RectTransform), typeof(Image));
+                card.transform.SetParent(root.transform, false);
+
+                RectTransform cardRect = card.GetComponent<RectTransform>();
+                cardRect.anchorMin = new Vector2(left, 0.44f);
+                cardRect.anchorMax = new Vector2(left + tileWidth, 0.64f);
+                cardRect.offsetMin = Vector2.zero;
+                cardRect.offsetMax = Vector2.zero;
+
+                Image cardBackground = card.GetComponent<Image>();
+                cardBackground.color = giftIndex % 2 == 0 ? paper : paleBlue;
+                cardBackground.raycastTarget = true;
+
+                Image giftImage = ImageAt(card.transform, "Изображение " + giftName,
+                    new Vector2(0.14f, 0.24f), new Vector2(0.86f, 0.91f),
+                    GetGiftSprite(giftName), Color.white);
+
+                if (giftImage == null)
+                {
+                    ChildLabel(card.transform, GetGiftDisplayName(giftName), 17, brown,
+                        new Vector2(0.06f, 0.28f), new Vector2(0.94f, 0.88f), TextAnchor.MiddleCenter);
+                }
+
+                Text giftCaption = ChildLabel(card.transform, GetGiftDisplayName(giftName).ToUpperInvariant(),
+                    14, brown, new Vector2(0.03f, 0.02f), new Vector2(0.97f, 0.25f), TextAnchor.MiddleCenter);
+                giftCaption.raycastTarget = false;
+
+                LastGiftEventDraggableGift draggable = card.AddComponent<LastGiftEventDraggableGift>();
+                draggable.Initialize(this, GetGiftSprite(giftName), giftName);
+                sortingEventCards[giftIndex] = card;
+            }
+
+            for (int targetIndex = 0; targetIndex < SortingEventTargetNames.Length; targetIndex++)
+            {
+                float left = tileStart + targetIndex * (tileWidth + tileGap);
+                RectTransform target = Panel(root.transform,
+                    "Место сортировки " + SortingEventTargetNames[targetIndex],
+                    new Vector2(left, 0.20f),
+                    new Vector2(left + tileWidth, 0.40f),
+                    targetIndex % 2 == 0 ? new Color32(239, 222, 190, 255) : new Color32(211, 229, 232, 255));
+
+                sortingEventTargets[targetIndex] = target;
+                ChildLabel(target, SortingEventTargetNames[targetIndex], 15, green,
+                    new Vector2(0.04f, 0.70f), new Vector2(0.96f, 0.98f), TextAnchor.MiddleCenter);
+            }
+
+            sortingEventStatus = Label("Перетащи подарки в нужные места. Ошибка не страшна — попробуй ещё раз!",
+                17, brown, new Vector2(0.08f, 0.11f), new Vector2(0.92f, 0.17f), TextAnchor.MiddleCenter);
+            sortingEventTimer = Label("ОСТАЛОСЬ: 30 С", 17, red,
+                new Vector2(0.36f, 0.045f), new Vector2(0.64f, 0.10f), TextAnchor.MiddleCenter);
+
+            sortingEventSecondsRemaining = 30;
+            sortingEventTimerRoutine = StartCoroutine(SortingEventCountdown());
+        }
+
+        /// <summary>Called by the event-specific drag component when a gift is released.</summary>
+        public void TrySortMixedGift(string giftName, Vector2 screenPosition)
+        {
+            if (sortingEventSolved || string.IsNullOrEmpty(giftName))
+                return;
+
+            int giftIndex = Array.IndexOf(SortingEventGiftNames, giftName.ToUpperInvariant());
+            if (giftIndex < 0 || sortingEventPlaced[giftIndex])
+                return;
+
+            int targetIndex = -1;
+            for (int i = 0; i < sortingEventTargets.Length; i++)
+            {
+                RectTransform target = sortingEventTargets[i];
+                if (target != null && RectTransformUtility.RectangleContainsScreenPoint(
+                    target, screenPosition, null))
+                {
+                    targetIndex = i;
+                    break;
+                }
+            }
+
+            if (targetIndex < 0)
+            {
+                SetSortingEventStatus("Отпусти подарок над одним из четырёх мест сортировки.", false);
+                return;
+            }
+
+            if (targetIndex != giftIndex)
+            {
+                SetSortingEventStatus("Не подходит. Попробуй другое место.", false);
+                StartCoroutine(Pop(sortingEventTargets[targetIndex]));
+                return;
+            }
+
+            sortingEventPlaced[giftIndex] = true;
+            sortingEventPlacedCount++;
+
+            if (sortingEventCards[giftIndex] != null)
+                sortingEventCards[giftIndex].SetActive(false);
+
+            Image placedIcon = ImageAt(sortingEventTargets[targetIndex],
+                "Рассортированный подарок " + giftName,
+                new Vector2(0.22f, 0.04f), new Vector2(0.78f, 0.69f),
+                GetGiftSprite(giftName), Color.white);
+            if (placedIcon != null)
+                placedIcon.raycastTarget = false;
+
+            SetSortingEventStatus(
+                sortingEventPlacedCount == SortingEventGiftNames.Length
+                    ? "Все подарки на местах! Сейчас проверим работу эльфов…"
+                    : "Верно! Осталось подарков: " + (SortingEventGiftNames.Length - sortingEventPlacedCount) + ".",
+                true);
+
+            if (sortingEventPlacedCount == SortingEventGiftNames.Length)
+                StartCoroutine(FinishMixedGiftSorting());
+        }
+
+        private IEnumerator SortingEventCountdown()
+        {
+            while (sortingEventSecondsRemaining > 0 && !sortingEventSolved)
+            {
+                if (sortingEventTimer != null)
+                    sortingEventTimer.text = "ОСТАЛОСЬ: " + sortingEventSecondsRemaining + " С";
+
+                yield return new WaitForSecondsRealtime(1f);
+                sortingEventSecondsRemaining--;
+            }
+
+            if (!sortingEventSolved && sortingEventTimer != null)
+            {
+                sortingEventTimer.text = "МОЖНО ПРОДОЛЖАТЬ — НЕ СПЕШИ!";
+                SetSortingEventStatus("Время вышло, но прогресс сохранён. Закончи сортировку в своём темпе.", false);
+            }
+
+            sortingEventTimerRoutine = null;
+        }
+
+        private IEnumerator FinishMixedGiftSorting()
+        {
+            sortingEventSolved = true;
+            if (sortingEventTimerRoutine != null)
+                StopCoroutine(sortingEventTimerRoutine);
+            sortingEventTimerRoutine = null;
+
+            if (sortingEventTimer != null)
+                sortingEventTimer.text = "ГОТОВО!";
+            SetSortingEventStatus("✦ УРА! ВСЕ ПОДАРКИ РАССОРТИРОВАНЫ! ✦", true);
+
+            yield return new WaitForSecondsRealtime(0.75f);
+
+            Action completed = sortingEventCompleted;
+            sortingEventCompleted = null;
+            completed?.Invoke();
+        }
+
+        private void SetSortingEventStatus(string message, bool success)
+        {
+            if (sortingEventStatus == null)
+                return;
+
+            sortingEventStatus.text = message;
+            sortingEventStatus.color = success ? green : red;
+            if (success)
+                StartCoroutine(Pop(sortingEventStatus.transform));
+        }
+
+        /// <summary>Shows the reward screen after a sorting event has been completed.</summary>
+        public void ShowChristmasEventSuccess(int rewardCoins, Action continueToShop)
+        {
+            if (sortingEventTimerRoutine != null)
+                StopCoroutine(sortingEventTimerRoutine);
+            sortingEventTimerRoutine = null;
+            sortingEventStatus = null;
+            sortingEventTimer = null;
+            sortingEventCompleted = null;
+
+            Build("Происшествие завершено");
+
+            // Keep the winter illustration visible around the card and use a
+            // layered evergreen surface instead of the large plain paper panel.
+            Color evergreen = new Color32(22, 65, 47, 255);
+            Color deepEvergreen = new Color32(13, 43, 33, 210);
+            Color ribbonRed = new Color32(151, 43, 43, 255);
+            Color warmCream = new Color32(255, 246, 224, 255);
+            Color softCream = new Color32(249, 235, 203, 255);
+
+            Panel(root.transform, "Мягкая тень праздничной карточки",
+                new Vector2(0.065f, 0.058f), new Vector2(0.935f, 0.942f),
+                new Vector2(16f, -18f), new Vector2(8f, -10f), deepEvergreen);
+
+            Panel(root.transform, "Внешняя золотая окантовка",
+                new Vector2(0.075f, 0.075f), new Vector2(0.925f, 0.925f), gold);
+            RectTransform successCard = Panel(root.transform, "Праздничная зелёная карточка",
+                new Vector2(0.087f, 0.087f), new Vector2(0.913f, 0.913f), evergreen);
+
+            // A second fine gold line creates a double frame around the dark-green surface.
+            Panel(successCard, "Внутренняя золотая окантовка",
+                new Vector2(0.022f, 0.022f), new Vector2(0.978f, 0.978f), gold);
+            Panel(successCard, "Внутренняя хвойная поверхность",
+                new Vector2(0.032f, 0.032f), new Vector2(0.968f, 0.968f), evergreen);
+
+            // Small festive corner details keep the frame warm without crowding the content.
+            ChildLabel(successCard, "✦", 22, gold,
+                new Vector2(0.045f, 0.91f), new Vector2(0.12f, 0.98f), TextAnchor.MiddleCenter);
+            ChildLabel(successCard, "✦", 22, gold,
+                new Vector2(0.88f, 0.91f), new Vector2(0.955f, 0.98f), TextAnchor.MiddleCenter);
+            ChildLabel(successCard, "❄", 17, warmCream,
+                new Vector2(0.045f, 0.045f), new Vector2(0.12f, 0.11f), TextAnchor.MiddleCenter);
+            ChildLabel(successCard, "❄", 17, warmCream,
+                new Vector2(0.88f, 0.045f), new Vector2(0.955f, 0.11f), TextAnchor.MiddleCenter);
+
+            // Red title ribbon with a gold backing, slim edge and star accents.
+            Panel(successCard, "Золотая основа праздничной ленты",
+                new Vector2(0.115f, 0.765f), new Vector2(0.885f, 0.925f), gold);
+            Panel(successCard, "Красная праздничная лента",
+                new Vector2(0.128f, 0.782f), new Vector2(0.872f, 0.908f), ribbonRed);
+            Panel(successCard, "Золотая линия на ленте",
+                new Vector2(0.145f, 0.792f), new Vector2(0.855f, 0.799f), gold);
+            Panel(successCard, "Нижняя золотая линия ленты",
+                new Vector2(0.145f, 0.891f), new Vector2(0.855f, 0.898f), gold);
+            ChildLabel(successCard, "✦", 22, gold,
+                new Vector2(0.145f, 0.815f), new Vector2(0.21f, 0.88f), TextAnchor.MiddleCenter);
+            ChildLabel(successCard, "✦", 22, gold,
+                new Vector2(0.79f, 0.815f), new Vector2(0.855f, 0.88f), TextAnchor.MiddleCenter);
+            CreateText(successCard, "Эльфам снова можно доверять!", 34, warmCream,
+                new Vector2(0.20f, 0.805f), new Vector2(0.80f, 0.885f),
+                TextAnchor.MiddleCenter, Vector2.zero);
+
+            // A compact cream inset keeps the result message legible against green.
+            Panel(successCard, "Золотая рамка основного текста",
+                new Vector2(0.17f, 0.605f), new Vector2(0.83f, 0.745f), gold);
+            Panel(successCard, "Светлая область основного текста",
+                new Vector2(0.179f, 0.615f), new Vector2(0.821f, 0.735f), warmCream);
+            CreateText(successCard,
+                "Все подарки вернулись на свои места. Лавка снова готова принимать покупателей!",
+                24, brown, new Vector2(0.205f, 0.622f), new Vector2(0.795f, 0.728f),
+                TextAnchor.MiddleCenter, Vector2.zero);
+
+            // Four small existing in-game gift sprites form a decorative reward row.
+            string[] giftNames =
+            {
+                "МИШКА", "КОРОБКА", "ЛЕДЕНЕЦ", "СНЕЖНЫЙ ШАР"
+            };
+            Sprite[] giftSprites =
+            {
+                teddySprite, giftBoxSprite, candyCaneSprite, snowGlobeSprite
+            };
+
+            const float tileWidth = 0.132f;
+            const float tileGap = 0.035f;
+            float tileStart = (1f - (tileWidth * 4f + tileGap * 3f)) * 0.5f;
+
+            for (int i = 0; i < giftSprites.Length; i++)
+            {
+                float left = tileStart + i * (tileWidth + tileGap);
+                RectTransform tile = Panel(successCard, "Подарочная миниатюра " + giftNames[i],
+                    new Vector2(left - 0.008f, 0.385f),
+                    new Vector2(left + tileWidth + 0.008f, 0.565f), gold);
+                Panel(tile, "Светлая подложка подарка",
+                    new Vector2(0.045f, 0.045f), new Vector2(0.955f, 0.955f), softCream);
+
+                ImageAt(tile, "Спрайт " + giftNames[i],
+                    new Vector2(0.16f, 0.24f), new Vector2(0.84f, 0.94f),
+                    giftSprites[i], Color.white);
+                ChildLabel(tile, giftNames[i], 12, brown,
+                    new Vector2(0.025f, 0.035f), new Vector2(0.975f, 0.23f),
+                    TextAnchor.MiddleCenter);
+            }
+
+            // The burgundy reward plaque has its own gold border and clear spacing.
+            Panel(successCard, "Золотая рамка награды",
+                new Vector2(0.22f, 0.205f), new Vector2(0.78f, 0.345f), gold);
+            RectTransform rewardPlaque = Panel(successCard, "Бордовая плашка награды",
+                new Vector2(0.232f, 0.218f), new Vector2(0.768f, 0.332f), ribbonRed);
+            ChildLabel(rewardPlaque,
+                rewardCoins > 0 ? "+" + rewardCoins + " МОНЕТ ✦" : "БОНУС ЗА ЭТО ПРОИСШЕСТВИЕ УЖЕ ПОЛУЧЕН",
+                rewardCoins > 0 ? 34 : 16, warmCream,
+                new Vector2(0.04f, 0.08f), new Vector2(0.96f, 0.92f),
+                TextAnchor.MiddleCenter);
+
+            // The button is layered over a gold backplate but keeps the existing callback.
+            Panel(root.transform, "Тень кнопки продолжения",
+                new Vector2(0.325f, 0.112f), new Vector2(0.675f, 0.208f),
+                new Vector2(5f, -5f), new Vector2(3f, -3f), deepEvergreen);
+            Panel(root.transform, "Золотая окантовка кнопки продолжения",
+                new Vector2(0.325f, 0.12f), new Vector2(0.675f, 0.205f), gold);
+            ButtonAt("ПРОДОЛЖИТЬ РАБОТУ", green, () => continueToShop?.Invoke(),
+                new Vector2(0.337f, 0.132f), new Vector2(0.663f, 0.193f));
+
+            StartCoroutine(Pop(successCard));
+        }
+
         public void OrderSuccess(int earned)
         {
             OrderSuccess(earned, 0, 0);
@@ -1435,8 +1793,10 @@ namespace TheLastGift.UI
                 new Vector2(0.10f, 0.21f), new Vector2(0.90f, 0.41f), TextAnchor.MiddleCenter);
             Button("СЛЕДУЮЩИЙ ПОКУПАТЕЛЬ", green, () =>
             {
-                Continue?.Invoke();
-                Gameplay();
+                if (Continue != null)
+                    Continue.Invoke();
+                else
+                    Gameplay();
             }, 0, -250, 430, 70);
         }
 
@@ -1447,8 +1807,10 @@ namespace TheLastGift.UI
             Card("Рабочий день окончен!", "Выполнено заказов: " + orders + "\nЗаработано монет: " + earnings + "\n\nОтличная работа! Завтра лавка снова откроется.");
             Button("НАЧАТЬ НОВЫЙ ДЕНЬ", green, () =>
             {
-                Continue?.Invoke();
-                Gameplay();
+                if (Continue != null)
+                    Continue.Invoke();
+                else
+                    Gameplay();
             }, 0, -250, 380, 70);
         }
 
