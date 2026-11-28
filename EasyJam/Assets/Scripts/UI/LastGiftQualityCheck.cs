@@ -32,6 +32,7 @@ namespace TheLastGift.UI
         private RectTransform qualityTaskItem;
         private LastGiftQualityDragHandle qualityTaskHandle;
         private Image qualityTaskTargetImage;
+        private Image qualityTimerBackground;
         private Image qualityTimerFill;
         private Image qualityCelebrationGlow;
         private Text qualityTaskHint;
@@ -225,8 +226,8 @@ namespace TheLastGift.UI
 
             Vector2 timerMin = qualityCompactLayout ? new Vector2(0.12f, 0.115f) : new Vector2(0.12f, 0.135f);
             Vector2 timerMax = qualityCompactLayout ? new Vector2(0.88f, 0.137f) : new Vector2(0.88f, 0.16f);
-            Panel(qualityCheckRoot.transform, "Фон полосы таймера",
-                timerMin, timerMax, new Color32(222, 209, 178, 255));
+            qualityTimerBackground = Panel(qualityCheckRoot.transform, "Фон полосы таймера",
+                timerMin, timerMax, new Color32(222, 209, 178, 255)).GetComponent<Image>();
             qualityTimerFill = Panel(qualityCheckRoot.transform, "Заполнение таймера",
                 timerMin, timerMax, gold).GetComponent<Image>();
             qualityTimerFill.type = Image.Type.Filled;
@@ -317,8 +318,8 @@ namespace TheLastGift.UI
             Vector2 knotMax = qualityCompactLayout ? new Vector2(0.51f, 0.63f) : new Vector2(0.725f, 0.715f);
             Panel(qualityCheckRoot.transform, "Узел банта", knotMin, knotMax, gold);
 
-            Vector2 giftLabelMin = qualityCompactLayout ? new Vector2(0.365f, 0.325f) : new Vector2(0.615f, 0.32f);
-            Vector2 giftLabelMax = qualityCompactLayout ? new Vector2(0.635f, 0.365f) : new Vector2(0.795f, 0.365f);
+            Vector2 giftLabelMin = qualityCompactLayout ? new Vector2(0.31f, 0.255f) : new Vector2(0.57f, 0.255f);
+            Vector2 giftLabelMax = qualityCompactLayout ? new Vector2(0.69f, 0.295f) : new Vector2(0.84f, 0.295f);
             ChildLabel(qualityCheckRoot.transform, "РОЖДЕСТВЕНСКИЙ ПОДАРОК", 12, brown,
                 giftLabelMin, giftLabelMax, TextAnchor.MiddleCenter);
         }
@@ -427,7 +428,8 @@ namespace TheLastGift.UI
             image.color = color;
             image.raycastTarget = true;
 
-            ChildLabel(item.transform, caption, 14, brown,
+            Color captionColor = task == GiftQualityTask.Postcard ? brown : paper;
+            ChildLabel(item.transform, caption, 14, captionColor,
                 Vector2.zero, Vector2.one, TextAnchor.MiddleCenter).raycastTarget = false;
 
             LastGiftQualityDragHandle handle = item.GetComponent<LastGiftQualityDragHandle>();
@@ -550,8 +552,26 @@ namespace TheLastGift.UI
                 qualityTaskTargetImage.color = completeColor;
             }
 
-            if (qualityTaskItem != null)
+            GiftQualityTask completedTask = qualityTaskSequence[qualityTaskIndex];
+            if (completedTask == GiftQualityTask.Postcard)
+            {
+                // Keep the postcard snapped to the gift as a permanent finishing detail.
+                if (qualityTaskTarget != null)
+                    Destroy(qualityTaskTarget.gameObject);
+                qualityTaskTarget = null;
+                qualityTaskItem = null;
+            }
+            else if (completedTask == GiftQualityTask.Seal)
+            {
+                // The highlighted tape area becomes part of the finished package.
+                qualityTaskTarget = null;
+                qualityTaskItem = null;
+            }
+            else if (qualityTaskItem != null)
+            {
                 qualityTaskItem.gameObject.SetActive(false);
+            }
+
             qualityTaskHandle = null;
 
             qualityTaskIndex++;
@@ -597,6 +617,9 @@ namespace TheLastGift.UI
             if (qualityTaskProgress != null) qualityTaskProgress.gameObject.SetActive(false);
             if (qualityTimerLabel != null) qualityTimerLabel.gameObject.SetActive(false);
             if (qualityTimerFill != null) qualityTimerFill.gameObject.SetActive(false);
+            if (qualityTimerBackground != null) qualityTimerBackground.gameObject.SetActive(false);
+            foreach (Button previousButton in qualityCheckRoot.GetComponentsInChildren<Button>(true))
+                previousButton.gameObject.SetActive(false);
             if (qualityTaskTarget != null && qualityTaskTargetImage != null)
             {
                 Color finalColor = qualityTaskTargetImage.color;
