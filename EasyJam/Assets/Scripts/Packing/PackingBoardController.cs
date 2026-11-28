@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering.Universal;
 
 namespace TheLastGift.Packing
 {
@@ -39,6 +40,9 @@ namespace TheLastGift.Packing
         private bool previewValid;
         private int width, height;
         private bool hasBeenConfigured;
+        private bool campaignMode;
+        private bool inputEnabled = true;
+        private bool requireFullBox = true;
         private bool puzzleCompleted;
         private bool showValidationMessage;
         private string feedbackMessage = "Перетащите фрагменты в коробку.";
@@ -62,9 +66,43 @@ namespace TheLastGift.Packing
         public int Height => height;
         public IReadOnlyList<GiftPieceView> Gifts => pieces;
 
+        /// <summary>Prepares this existing puzzle board to be driven by the customer campaign UI.</summary>
+        public void ConfigureForCampaign(Camera camera, float boardCellSize, Vector2 center)
+        {
+            campaignMode = true;
+            runDemoOnStart = false;
+            targetCamera = camera;
+            cellSize = Mathf.Max(0.1f, boardCellSize);
+            boardCenter = center;
+            inputEnabled = true;
+            requireFullBox = false;
+        }
+
+        public void SetInputEnabled(bool enabled)
+        {
+            inputEnabled = enabled;
+            if (!enabled)
+                draggedPiece = null;
+        }
+
+        public void ResetAllPiecesToTray()
+        {
+            puzzleCompleted = false;
+            showValidationMessage = false;
+            feedbackMessage = "Перетащите все фрагменты в коробку.";
+            foreach (var piece in pieces)
+            {
+                if (piece == null) continue;
+                piece.RestoreToTray();
+                piece.SetDefaultTint();
+            }
+            RefreshBoardColors();
+        }
+
         private void Start()
         {
             EnsureCamera();
+            EnsureCampaignLight();
             BuildChristmasBackground();
             if (!hasBeenConfigured)
             {
@@ -109,12 +147,26 @@ namespace TheLastGift.Packing
             Debug.LogWarning("[Packing] No active camera was found. Created Packing Runtime Camera.", this);
         }
 
+        private void EnsureCampaignLight()
+        {
+            if (FindFirstObjectByType<Light2D>() != null)
+                return;
+
+            GameObject lightObject = new GameObject("Campaign Global Light 2D");
+            Light2D globalLight = lightObject.AddComponent<Light2D>();
+            globalLight.lightType = Light2D.LightType.Global;
+            globalLight.intensity = 1f;
+            globalLight.color = Color.white;
+        }
+
         private void Update()
         {
             UpdateSnowfall();
 
-            // Validation must work even on platforms without a mouse device.
-            if (Keyboard.current != null && Keyboard.current.vKey.wasPressedThisFrame)
+            if (!inputEnabled) return;
+
+            // Standalone prototype keeps its keyboard validation shortcut.
+            if (!campaignMode && Keyboard.current != null && Keyboard.current.vKey.wasPressedThisFrame)
                 ValidateAndReport();
 
             // Once solved, keep the completed board visible until the player chooses
@@ -145,7 +197,8 @@ namespace TheLastGift.Packing
 
         private void OnGUI()
         {
-            if (pieces.Count == 0 || width <= 0 || height <= 0) return;
+            // In campaign mode, the UGUI campaign screen owns all prompts and buttons.
+            if (campaignMode || pieces.Count == 0 || width <= 0 || height <= 0) return;
 
             EnsureGuiStyles();
             DrawTopHud();
@@ -419,14 +472,15 @@ namespace TheLastGift.Packing
                 if (occupied[x, y]) filledCells++;
 
             var emptyCells = width * height - filledCells;
-            valid &= allPlaced && emptyCells == 0;
+            valid &= allPlaced && (!requireFullBox || emptyCells == 0);
 
             var message = pieces.Count == 0 ? "Нет фрагментов для упаковки." :
                 !allPlaced ? $"Размещено фрагментов: {placed}/{pieces.Count}." :
-                !valid && filledCells < width * height && emptyCells > 0
+                requireFullBox && !valid && emptyCells > 0
                     ? $"Коробка заполнена не полностью: осталось пустых ячеек — {emptyCells}."
                     : !valid ? "Есть наложения или фрагмент выходит за границы коробки."
-                    : "Все фрагменты помещены. Коробка заполнена!";
+                    : requireFullBox ? "Все фрагменты помещены. Коробка заполнена!"
+                    : "Все подарки размещены без наложений!";
 
             result = new PackingResult(valid, allPlaced, placed, pieces.Count, message);
             return valid;
@@ -1090,31 +1144,29 @@ namespace TheLastGift.Packing
 
         private List<GiftDefinition> CreateDemoGifts()
         {
-            // Four tetrominoes have exactly 16 cells total, so a valid solution fills the 4x4 box.
-            // Two T pieces, one L piece, and one S piece require rotation and spatial planning.
-            return new List<GiftDefinition>
+            // The standalone puzzle and campaign load the same canonical gift shapes.
+            var resourcePaths = new[]
             {
-                GiftDefinition.CreateRuntime("Tangerine T", new[]
-                {
-                    new Vector2Int(0,0), new Vector2Int(1,0),
-                    new Vector2Int(2,0), new Vector2Int(1,1)
-                }, new Color(0.78f, 0.43f, 0.27f)),
-                GiftDefinition.CreateRuntime("Golden T", new[]
-                {
-                    new Vector2Int(0,0), new Vector2Int(1,0),
-                    new Vector2Int(2,0), new Vector2Int(1,1)
-                }, new Color(0.95f, 0.78f, 0.28f)),
-                GiftDefinition.CreateRuntime("Red L", new[]
-                {
-                    new Vector2Int(0,0), new Vector2Int(0,1),
-                    new Vector2Int(0,2), new Vector2Int(1,0)
-                }, new Color(0.88f, 0.25f, 0.31f)),
-                GiftDefinition.CreateRuntime("Pink S", new[]
-                {
-                    new Vector2Int(1,0), new Vector2Int(2,0),
-                    new Vector2Int(0,1), new Vector2Int(1,1)
-                }, new Color(0.82f, 0.25f, 0.52f))
+                "Packing/Gifts/Gift_Mishka",
+                "Packing/Gifts/Gift_Podarok",
+                "Packing/Gifts/Gift_Ledenets",
+                "Packing/Gifts/Gift_SnowGlobe"
             };
+
+            var gifts = new List<GiftDefinition>(resourcePaths.Length);
+            foreach (var resourcePath in resourcePaths)
+            {
+                var definition = Resources.Load<GiftDefinition>(resourcePath);
+                if (definition == null)
+                {
+                    Debug.LogError($"[Packing] Missing gift shape resource: {resourcePath}", this);
+                    return new List<GiftDefinition>();
+                }
+
+                gifts.Add(definition);
+            }
+
+            return gifts;
         }
     }
 }
