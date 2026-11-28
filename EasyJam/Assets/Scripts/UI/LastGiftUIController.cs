@@ -2063,14 +2063,9 @@ namespace TheLastGift.UI
         public void FinalScreen(GameSummaryData summary)
         {
             Build("Финал");
-            string body = summary == null
-                ? "Спасибо за тепло и заботу!\nПусть в каждом подарке будет немного рождественского чуда."
-                : "Рождественский вечер завершён!\nВыполнено заказов: " + summary.OrdersCompleted
-                    + "\nЗаработано монет: " + summary.TotalCoinsEarned
-                    + "\nИтоговый баланс: " + summary.FinalCoins
-                    + "\nРепутация: " + summary.ReputationEarned
-                    + "\n\nСпасибо за рождественское чудо в лавке!";
-            Card("Последний подарок", body);
+            // Keep the final festive card clean: its long summary text was obscured
+            // by the decorative wooden layers, so only the title remains.
+            Card("Последний подарок", null);
             Button("ИГРАТЬ СНОВА", green, () =>
             {
                 day = 1;
@@ -2235,8 +2230,11 @@ namespace TheLastGift.UI
             FestivePanel(card, "Светлая область текста — " + title,
                 insetMin, insetMax, cream);
 
-            CreateText(card, body, isTutorial ? 25 : 27, brown,
-                bodyMin, bodyMax, TextAnchor.MiddleCenter, Vector2.zero);
+            if (!string.IsNullOrEmpty(body))
+            {
+                CreateText(card, body, isTutorial ? 25 : 27, brown,
+                    bodyMin, bodyMax, TextAnchor.MiddleCenter, Vector2.zero);
+            }
 
             return card;
         }
