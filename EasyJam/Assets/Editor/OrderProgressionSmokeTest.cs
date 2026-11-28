@@ -124,6 +124,17 @@ public static class OrderProgressionSmokeTest
                     "Incorrect successful order count in day " + completedDays[i].Day + ".");
             }
 
+            manager.RestartGame();
+            Require(!manager.IsCompleted, "Restart did not clear the completed state.");
+            Require(manager.CurrentDay == campaign.Days[0].DayNumber,
+                "Restart did not return to day one.");
+            Require(manager.CurrentOrderNumber == 1,
+                "Restart did not return to the first order.");
+            Require(manager.CurrentOrder == campaign.Days[0].Orders[0],
+                "Restart did not restore the first campaign order.");
+            Require(manager.CurrentCoins == 0 && manager.TotalOrdersCompleted == 0,
+                "Restart did not reset the campaign balance and statistics.");
+
             StringBuilder report = new StringBuilder();
             report.AppendLine("PASSED");
             report.AppendLine("Campaign: " + campaign.name);
@@ -133,6 +144,7 @@ public static class OrderProgressionSmokeTest
             report.AppendLine("Successful orders: " + expectedSuccessfulOrders);
             report.AppendLine("Final coin balance: " + expectedCoins);
             report.AppendLine("Day transitions and campaign completion: OK");
+            report.AppendLine("Restart campaign: OK");
 
             Debug.Log("[Order Progression Smoke Test]\n" + report);
             EditorUtility.DisplayDialog("Order Progression Smoke Test", report.ToString(), "OK");
@@ -177,6 +189,26 @@ public static class OrderProgressionSmokeTest
                 GiftOrderDefinition order = day.Orders[orderIndex];
                 if (order == null)
                     return "An order is missing on day " + day.DayNumber + ", position " + (orderIndex + 1) + ".";
+
+                if (order.Day != day.DayNumber)
+                    return "Order " + order.name + " has an incorrect day number.";
+                if (string.IsNullOrWhiteSpace(order.CustomerName) || string.IsNullOrWhiteSpace(order.CustomerWish))
+                    return "Order " + order.name + " is missing its Russian customer name or wish.";
+
+                if (order.GiftNames == null || order.GiftNames.Count == 0)
+                    return "Order " + order.name + " does not contain any gifts.";
+
+                string[] availableGifts = { "МИШКА", "ПОДАРОК", "ЛЕДЕНЕЦ", "СНЕЖНЫЙ ШАР" };
+                for (int giftIndex = 0; giftIndex < order.GiftNames.Count; giftIndex++)
+                {
+                    if (Array.IndexOf(availableGifts, order.GiftNames[giftIndex]) < 0)
+                        return "Order " + order.name + " contains an unknown shelf gift: " + order.GiftNames[giftIndex] + ".";
+                }
+
+                int boxCapacity = order.BoxSize == GiftBoxSize.Small ? 4
+                    : order.BoxSize == GiftBoxSize.Medium ? 6 : 9;
+                if (order.GiftNames.Count > boxCapacity)
+                    return "Order " + order.name + " does not fit its configured box size.";
 
                 totalOrders++;
                 if (!firstOrder)
