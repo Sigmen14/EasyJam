@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
@@ -20,6 +21,7 @@ namespace TheLastGift.UI
         private int coins = 0;
         private int order = 1;
         private int placedGiftCount = 0;
+        private readonly List<string> placedGiftNames = new List<string>();
         private bool tutorialShown = false;
 
         private Sprite teddySprite;
@@ -172,6 +174,7 @@ namespace TheLastGift.UI
         {
             Build("Игровой экран");
             placedGiftCount = 0;
+            placedGiftNames.Clear();
 
             Panel(root.transform, "Верхняя панель", new Vector2(0.02f, 0.875f), new Vector2(0.98f, 0.925f), wood);
             Label("ПОСЛЕДНИЙ ПОДАРОК ✦", 25, cream,
@@ -319,18 +322,69 @@ namespace TheLastGift.UI
         {
             if (placedGiftCount == 0)
             {
-                SetStatus("Сначала перетащи хотя бы один подарок в коробку.", false);
+                SetStatus("Сначала перетащи подарки с полки в коробку.", false);
                 return;
             }
 
-            if (ConfirmPacking == null)
+            // Если игровая система подключена, передаём проверку ей.
+            if (ConfirmPacking != null)
             {
-                SetStatus("Подарки в коробке! Проверка правильности заказа ещё не подключена.", false);
+                ConfirmPacking.Invoke();
+                SetStatus("Заказ отправлен на проверку.", true);
                 return;
             }
 
-            ConfirmPacking.Invoke();
-            SetStatus("Заказ передан системе проверки.", true);
+            // Временная проверка для самостоятельного тестирования UI:
+            // покупателю нужны ровно мишка, коробка-подарок и леденец.
+            string[] requiredGifts = { "МИШКА", "ПОДАРОК", "ЛЕДЕНЕЦ" };
+            List<string> missing = new List<string>();
+            List<string> unexpected = new List<string>();
+
+            for (int i = 0; i < requiredGifts.Length; i++)
+            {
+                int found = 0;
+                for (int j = 0; j < placedGiftNames.Count; j++)
+                {
+                    if (string.Equals(placedGiftNames[j], requiredGifts[i], StringComparison.OrdinalIgnoreCase))
+                        found++;
+                }
+
+                if (found == 0)
+                    missing.Add(requiredGifts[i].ToLowerInvariant());
+                else if (found > 1)
+                    unexpected.Add(requiredGifts[i].ToLowerInvariant() + " (лишний)");
+            }
+
+            for (int i = 0; i < placedGiftNames.Count; i++)
+            {
+                bool isRequired = false;
+                for (int j = 0; j < requiredGifts.Length; j++)
+                {
+                    if (string.Equals(placedGiftNames[i], requiredGifts[j], StringComparison.OrdinalIgnoreCase))
+                    {
+                        isRequired = true;
+                        break;
+                    }
+                }
+
+                if (!isRequired)
+                    unexpected.Add(placedGiftNames[i].ToLowerInvariant());
+            }
+
+            if (missing.Count > 0 || unexpected.Count > 0)
+            {
+                string message = "Пока не всё верно. ";
+                if (missing.Count > 0)
+                    message += "Не хватает: " + string.Join(", ", missing.ToArray()) + ". ";
+                if (unexpected.Count > 0)
+                    message += "Лишние подарки: " + string.Join(", ", unexpected.ToArray()) + ".";
+                SetStatus(message, false);
+                return;
+            }
+
+            // Демонстрационный результат до подключения CustomerOrder
+            // и OrderProgressionManager из основной игровой механики.
+            OrderSuccess(25);
         }
 
         public void TryDropGift(Sprite sprite, string giftName, Vector2 screenPosition)
@@ -371,6 +425,7 @@ namespace TheLastGift.UI
             image.raycastTarget = false;
 
             placedGiftCount++;
+            placedGiftNames.Add(giftName);
 
             if (packingHint != null)
                 packingHint.gameObject.SetActive(false);
