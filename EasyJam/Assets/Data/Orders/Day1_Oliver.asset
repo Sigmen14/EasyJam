@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0a2b3c4d5e6f7890a1b2c3d4e5f67890, type: 3}
+  m_Name: OliverOrder
+  m_EditorClassIdentifier:
+  CustomerName: Oliver
+  CustomerWish: "My grandpa loves cozy things. Could you pack these neatly for him?"
+  CustomerPortrait: {fileID: 0}
+  GiftNames:
+  - Wool Scarf
+  - Mug
+  BoxSize: 1
+  RewardCoins: 35
+  Day: 1
+  PerfectPackingTip: 5
