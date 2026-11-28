@@ -316,9 +316,12 @@ namespace TheLastGift.UI
         public void MainMenu()
         {
             Build("Главное меню");
-            Card(
-                "Добро пожаловать в «Последний подарок»",
-                "Ты открыла маленькую рождественскую лавку!\nСобирай подарки по пожеланиям покупателей.\nЗа выполненные заказы получай монеты.\nВыбирай подарки и перетаскивай их в коробку мышью.");
+
+            // Keep the welcome information out of the way until the player asks for it.
+            Label("РОЖДЕСТВЕНСКАЯ МАСТЕРСКАЯ\nПОДАРКОВ", 38, green,
+                new Vector2(0.12f, 0.58f), new Vector2(0.88f, 0.76f), TextAnchor.MiddleCenter);
+            Label("Упаковывай подарки для жителей заснеженного городка.",
+                20, brown, new Vector2(0.16f, 0.48f), new Vector2(0.84f, 0.56f), TextAnchor.MiddleCenter);
 
             ButtonAt("НАЧАТЬ ИГРУ", green, () =>
             {
@@ -329,10 +332,24 @@ namespace TheLastGift.UI
                     StartGame?.Invoke();
                     Gameplay();
                 }
-            }, new Vector2(0.35f, 0.18f), new Vector2(0.65f, 0.275f));
+            }, new Vector2(0.35f, 0.31f), new Vector2(0.65f, 0.40f));
+
+            ButtonAt("О МАСТЕРСКОЙ", wood, ShowWorkshopInfo,
+                new Vector2(0.35f, 0.20f), new Vector2(0.65f, 0.29f));
 
             ButtonAt("ВЫЙТИ", wood, Application.Quit,
-                new Vector2(0.41f, 0.085f), new Vector2(0.59f, 0.16f));
+                new Vector2(0.41f, 0.085f), new Vector2(0.59f, 0.17f));
+        }
+
+        public void ShowWorkshopInfo()
+        {
+            Build("Информация о мастерской");
+            Card(
+                "Добро пожаловать в «Последний подарок»",
+                "Ты открыла маленькую рождественскую лавку!\nСобирай подарки по пожеланиям покупателей.\nЗа выполненные заказы получай монеты.\nВыбирай подарки и перетаскивай их в коробку мышью.");
+
+            ButtonAt("НАЗАД В МЕНЮ", green, MainMenu,
+                new Vector2(0.32f, 0.13f), new Vector2(0.68f, 0.23f));
         }
 
         public void ShowTutorial()
