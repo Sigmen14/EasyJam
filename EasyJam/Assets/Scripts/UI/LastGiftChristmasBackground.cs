@@ -73,8 +73,8 @@ namespace TheLastGift.UI
             }
 
             // Snow-covered hills outside the window.
-            FillTriangle(pixels, 360, 315, 157, 198, 565, new Color32(73, 112, 142, 255));
-            FillTriangle(pixels, 530, 312, 370, 194, 803, new Color32(91, 132, 157, 255));
+            FillTriangle(pixels, 360, 315, 157, 198, 565, 198, new Color32(73, 112, 142, 255));
+            FillTriangle(pixels, 530, 312, 370, 194, 803, 194, new Color32(91, 132, 157, 255));
             FillRect(pixels, 157, 160, 803, 206, new Color32(224, 232, 224, 255));
             DrawLine(pixels, 157, 207, 803, 207, 5, new Color32(244, 241, 224, 255));
 
