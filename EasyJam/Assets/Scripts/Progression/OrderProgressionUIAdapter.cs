@@ -62,7 +62,7 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
             return;
         }
         progression.ConfigureCampaign(campaign);
-        progression.ConfigureOrderQueue(true, 3, 120f, RushOrderBonus);
+        progression.ConfigureOrderQueue(true, 3, 180f, RushOrderBonus);
     }
 
     private void Start()
