@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 
 namespace TheLastGift.UI
@@ -64,7 +63,7 @@ namespace TheLastGift.UI
             FillCircle(pixels, 706, 365, 31, new Color32(246, 222, 164, 255));
             FillCircle(pixels, 697, 373, 30, new Color32(24, 44, 72, 255));
 
-            Random stars = new Random(12);
+            System.Random stars = new System.Random(12);
             for (int i = 0; i < 50; i++)
             {
                 int x = 174 + stars.Next(0, 610);
@@ -240,25 +239,42 @@ namespace TheLastGift.UI
             }
         }
 
-        private static void FillTriangle(Color32[] pixels, int topX, int topY,
-            int leftX, int bottomY, int rightX, Color32 color)
+        private static void FillTriangle(Color32[] pixels,
+            int x1, int y1, int x2, int y2, int x3, int y3, Color32 color)
         {
-            if (topY <= bottomY)
+            // Rasterize a triangle from three arbitrary vertices. The previous
+            // helper accepted only an apex and a horizontal base, while the
+            // artwork calls pass complete (x, y) pairs for all three corners.
+            float area = EdgeFunction(x1, y1, x2, y2, x3, y3);
+            if (Mathf.Abs(area) < 0.001f)
                 return;
 
-            for (int y = bottomY; y <= topY; y++)
+            int minX = Mathf.Clamp(Mathf.Min(x1, Mathf.Min(x2, x3)), 0, Width - 1);
+            int maxX = Mathf.Clamp(Mathf.Max(x1, Mathf.Max(x2, x3)), 0, Width - 1);
+            int minY = Mathf.Clamp(Mathf.Min(y1, Mathf.Min(y2, y3)), 0, Height - 1);
+            int maxY = Mathf.Clamp(Mathf.Max(y1, Mathf.Max(y2, y3)), 0, Height - 1);
+            bool positiveWinding = area > 0f;
+
+            for (int y = minY; y <= maxY; y++)
             {
-                float t = (topY - y) / (float)(topY - bottomY);
-                int left = Mathf.RoundToInt(Mathf.Lerp(topX, leftX, t));
-                int right = Mathf.RoundToInt(Mathf.Lerp(topX, rightX, t));
-                if (left > right)
+                for (int x = minX; x <= maxX; x++)
                 {
-                    int swap = left;
-                    left = right;
-                    right = swap;
+                    float w1 = EdgeFunction(x2, y2, x3, y3, x, y);
+                    float w2 = EdgeFunction(x3, y3, x1, y1, x, y);
+                    float w3 = EdgeFunction(x1, y1, x2, y2, x, y);
+                    bool inside = positiveWinding
+                        ? w1 >= 0f && w2 >= 0f && w3 >= 0f
+                        : w1 <= 0f && w2 <= 0f && w3 <= 0f;
+
+                    if (inside)
+                        BlendPixel(pixels, y * Width + x, color);
                 }
-                FillRect(pixels, left, y, right + 1, y + 1, color);
             }
+        }
+
+        private static float EdgeFunction(int ax, int ay, int bx, int by, int px, int py)
+        {
+            return (px - ax) * (float)(by - ay) - (py - ay) * (float)(bx - ax);
         }
 
         private static void DrawLine(Color32[] pixels, int x0, int y0, int x1, int y1,
