@@ -13,12 +13,13 @@ MonoBehaviour:
   m_Name: Day1_Oliver
   m_EditorClassIdentifier:
   CustomerName: Оливер
-  CustomerWish: "Мой дедушка любит уютные вещи. Пожалуйста, аккуратно упакуйте для него эти подарки."
+  CustomerWish: "Эти подарки для дедушки. Ему понравятся мишка, подарок и сладкий леденец."
   CustomerPortrait: {fileID: 0}
   GiftNames:
-  - Шерстяной шарф
-  - Кружка
-  BoxSize: 1
+  - МИШКА
+  - ПОДАРОК
+  - ЛЕДЕНЕЦ
+  BoxSize: 2
   RewardCoins: 35
   Day: 1
   PerfectPackingTip: 5
