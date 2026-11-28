@@ -197,7 +197,7 @@ namespace TheLastGift.Packing
             if (hudStyle != null) return;
 
             var scale = Mathf.Clamp(Screen.height / 900f, 0.78f, 1.25f);
-            var fontScale = Mathf.Max(0.9f, scale);
+            var fontScale = Mathf.Max(1f, scale);
 
             hudTitleStyle = new GUIStyle(GUI.skin.label)
             {
@@ -235,7 +235,7 @@ namespace TheLastGift.Packing
             completionTitleStyle = new GUIStyle(GUI.skin.label)
             {
                 alignment = TextAnchor.MiddleCenter,
-                fontSize = Mathf.RoundToInt(39f * scale),
+                fontSize = Mathf.RoundToInt(39f * fontScale),
                 fontStyle = FontStyle.Bold,
                 wordWrap = true
             };
@@ -470,7 +470,7 @@ namespace TheLastGift.Packing
                 };
             }
 
-            returnToShopButtonStyle.fontSize = Mathf.RoundToInt(21f * Mathf.Max(0.9f, scale));
+            returnToShopButtonStyle.fontSize = Mathf.RoundToInt(23f * Mathf.Max(1f, scale));
 
             var buttonWidth = Mathf.Min(300f, Screen.width - 32f);
             var buttonRect = new Rect(
