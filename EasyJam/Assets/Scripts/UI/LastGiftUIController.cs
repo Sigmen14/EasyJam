@@ -1816,6 +1816,25 @@ namespace TheLastGift.UI
             StartCoroutine(Pop(successCard));
         }
 
+        /// <summary>
+        /// Advances the campaign, then redraws the next order only when the progression
+        /// manager has actually supplied one. Day summaries and the final screen stay visible
+        /// until their own flow advances the campaign.
+        /// </summary>
+        private void ContinueProgressionAndRefresh()
+        {
+            if (Continue == null)
+            {
+                Gameplay();
+                return;
+            }
+
+            Continue.Invoke();
+
+            if (currentOrder != null)
+                Gameplay();
+        }
+
         public void OrderSuccess(int earned)
         {
             OrderSuccess(earned, 0, 0);
@@ -1835,13 +1854,7 @@ namespace TheLastGift.UI
             RectTransform successCard = Card("Заказ выполнен!", resultMessage);
             ChildLabel(successCard, "+ " + earned + " МОНЕТ ✦", 44, gold,
                 new Vector2(0.10f, 0.21f), new Vector2(0.90f, 0.41f), TextAnchor.MiddleCenter);
-            Button("СЛЕДУЮЩИЙ ПОКУПАТЕЛЬ", green, () =>
-            {
-                if (Continue != null)
-                    Continue.Invoke();
-                else
-                    Gameplay();
-            }, 0, -250, 430, 70);
+            Button("СЛЕДУЮЩИЙ ПОКУПАТЕЛЬ", green, ContinueProgressionAndRefresh, 0, -250, 430, 70);
         }
 
         public void DayEnd(int orders, int earnings)
@@ -1849,13 +1862,7 @@ namespace TheLastGift.UI
             day++;
             Build("Конец дня");
             Card("Рабочий день окончен!", "Выполнено заказов: " + orders + "\nЗаработано монет: " + earnings + "\n\nОтличная работа! Завтра лавка снова откроется.");
-            Button("НАЧАТЬ НОВЫЙ ДЕНЬ", green, () =>
-            {
-                if (Continue != null)
-                    Continue.Invoke();
-                else
-                    Gameplay();
-            }, 0, -250, 380, 70);
+            Button("НАЧАТЬ НОВЫЙ ДЕНЬ", green, ContinueProgressionAndRefresh, 0, -250, 380, 70);
         }
 
         public void FinalScreen(GameSummaryData summary)
