@@ -71,6 +71,7 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
         ui.OpenWorkshop = OpenWorkshop;
         ui.PurchaseWorkshopUpgrade = PurchaseWorkshopUpgrade;
         ui.StartGame = StartOrRestartGame;
+        ui.LeaveGameplay = LeaveGameplay;
         ApplyWorkshopDecorations();
 
         progression.OrderStarted += HandleOrderStarted;
@@ -98,6 +99,7 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
             ui.OpenWorkshop = null;
             ui.PurchaseWorkshopUpgrade = null;
             ui.StartGame = null;
+            ui.LeaveGameplay = null;
         }
     }
 
@@ -128,6 +130,25 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
 
         if (progression.CurrentOrder != null)
             ui.Gameplay();
+    }
+
+    private void LeaveGameplay()
+    {
+        if (progression != null)
+            progression.ReturnToMenu();
+
+        if (workshopUpgrades != null)
+            workshopUpgrades.ResetForNewGame();
+
+        eventSchedule.Reset();
+        boyReturnShown = false;
+        endingSequencePending = false;
+
+        if (ui != null)
+        {
+            ui.ResetCampaignState();
+            ui.MainMenu();
+        }
     }
 
     private int AwardSecretWishBonus(bool correctAnswer, int amount)
