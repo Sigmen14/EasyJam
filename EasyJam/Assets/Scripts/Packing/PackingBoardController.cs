@@ -350,7 +350,7 @@ namespace TheLastGift.Packing
                 34f * scale);
             GUI.DrawTexture(titleRibbon, hudRibbonTexture);
             GUI.Label(new Rect(panel.x + 16f, panel.y + 7f, panel.width - 32f, 27f * scale),
-                "РОЖДЕСТВЕНСКАЯ МАСТЕРСКАЯ ПОДАРКОВ", hudTitleStyle);
+                "ПОСЛЕДНИЙ ПОДАРОК", hudTitleStyle);
 
             var cells = CountPlacedCells();
             var placed = CountPlacedPieces();
@@ -421,7 +421,7 @@ namespace TheLastGift.Packing
 
             if (snowflakeSprite != null)
             {
-                GUI.color = new Color(0.7f, 0.9f, 1f, 0.88f);
+                GUI.color = new Color(1f, 0.84f, 0.55f, 0.9f);
                 GUI.DrawTexture(new Rect(panel.x + 42f, panel.y + 36f, 34f, 34f), snowflakeSprite.texture);
                 GUI.DrawTexture(new Rect(panel.x + panel.width - 76f, panel.y + 36f, 34f, 34f), snowflakeSprite.texture);
                 GUI.color = Color.white;
@@ -999,11 +999,11 @@ namespace TheLastGift.Packing
             var right = left + width * cellSize;
             var side = index % 2;
             var row = index / 2;
-            var sideGap = Mathf.Max(0.18f, trayGap * 0.4f);
+            var sideGap = Mathf.Max(0.46f, trayGap * 0.75f);
             var x = side == 0
                 ? left - pieceWidth * 0.5f - sideGap
                 : right + pieceWidth * 0.5f + sideGap;
-            var y = boardCenter.y + (row == 0 ? 1.3f : -1.3f) * cellSize;
+            var y = boardCenter.y + (row == 0 ? 1.5f : -1.5f) * cellSize;
             return new Vector2(x, y);
         }
 
