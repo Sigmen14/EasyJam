@@ -113,6 +113,21 @@ namespace TheLastGift.Packing
             return new Vector2Int(maxX + 1, maxY + 1);
         }
 
+        /// <summary>Returns true only when the pointer is over a visible cell of this piece.</summary>
+        public bool ContainsWorldPoint(Vector2 point)
+        {
+            foreach (var renderer in cellRenderers)
+            {
+                if (renderer == null) continue;
+                var bounds = renderer.bounds;
+                if (point.x >= bounds.min.x && point.x <= bounds.max.x &&
+                    point.y >= bounds.min.y && point.y <= bounds.max.y)
+                    return true;
+            }
+
+            return false;
+        }
+
         internal void RestoreToTray()
         {
             IsPlaced = false;
