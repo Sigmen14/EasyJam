@@ -41,7 +41,6 @@ namespace TheLastGift.Packing
         private bool hasBeenConfigured;
         private bool puzzleCompleted;
         private bool showValidationMessage;
-        [SerializeField] private bool showControlsHud;
         private string feedbackMessage = "Перетащите фрагменты в коробку.";
         private Vector2Int dragStartGridPosition;
         private int dragStartRotation;
@@ -114,10 +113,6 @@ namespace TheLastGift.Packing
         {
             UpdateSnowfall();
 
-            // F1 toggles the packing instructions panel when the player needs it.
-            if (Keyboard.current != null && Keyboard.current.f1Key.wasPressedThisFrame)
-                showControlsHud = !showControlsHud;
-
             // Validation must work even on platforms without a mouse device.
             if (Keyboard.current != null && Keyboard.current.vKey.wasPressedThisFrame)
                 ValidateAndReport();
@@ -153,7 +148,7 @@ namespace TheLastGift.Packing
             if (pieces.Count == 0 || width <= 0 || height <= 0) return;
 
             EnsureGuiStyles();
-            if (showControlsHud) DrawTopHud();
+            DrawTopHud();
 
             if (puzzleCompleted)
                 DrawCompletionOverlay();
