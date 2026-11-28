@@ -129,6 +129,8 @@ namespace TheLastGift.Packing
             var placed = CountPlacedPieces();
             GUI.Label(new Rect(4f, 2f, Screen.width - 8f, 22f),
                 $"Ячейки: {cells}/{width * height}    Фрагменты: {placed}/{pieces.Count}", hudStyle);
+            GUI.Label(new Rect(4f, 44f, Screen.width - 8f, 20f),
+                "Чтобы вынуть фигуру, перетащите её за пределы коробки.", hudStyle);
 
             if (showValidationMessage || puzzleCompleted)
                 GUI.Label(new Rect(4f, 22f, Screen.width - 8f, 24f),
@@ -362,30 +364,52 @@ namespace TheLastGift.Packing
         {
             if (draggedPiece == null) return;
 
-            draggedPiece.IsDragging = false;
-            if (previewValid)
+            var piece = draggedPiece;
+            piece.IsDragging = false;
+
+            // Dragging a placed piece beyond the box is the explicit "take it out" action.
+            // Keep its current rotation so the player can immediately try another orientation.
+            if (dragStartedPlaced && IsOutsideBoard(piece.transform.position))
             {
-                PlacePiece(draggedPiece, previewAnchor);
-                draggedPiece.SetDefaultTint();
+                ReturnPieceToTray(piece, piece.RotationQuarterTurns);
+            }
+            else if (previewValid)
+            {
+                PlacePiece(piece, previewAnchor);
+                piece.SetDefaultTint();
             }
             else if (dragStartedPlaced)
             {
-                // Invalid moves restore the previous board placement instead of losing the piece.
-                draggedPiece.SetPlacement(dragStartGridPosition, dragStartRotation, true, draggedPiece.transform.position);
-                var originalCenter = AnchorToWorldCenter(dragStartGridPosition, draggedPiece);
-                draggedPiece.SetPlacement(dragStartGridPosition, dragStartRotation, true, originalCenter);
-                draggedPiece.SetDefaultTint();
+                // An invalid drop inside the box restores the exact previous placement.
+                piece.SetPlacement(dragStartGridPosition, dragStartRotation, true,
+                    AnchorToWorldCenter(dragStartGridPosition, piece));
+                piece.SetDefaultTint();
             }
             else
             {
-                draggedPiece.SetPlacement(new Vector2Int(-1, -1), dragStartRotation, false, draggedPiece.TrayPosition);
-                draggedPiece.SetDefaultTint();
+                // Pieces picked up from the tray return there after an invalid drop.
+                ReturnPieceToTray(piece, dragStartRotation);
+                piece.SetDefaultTint();
             }
 
-            draggedPiece.SetSortingOrder(pieces.IndexOf(draggedPiece) + 10);
+            piece.SetSortingOrder(pieces.IndexOf(piece) + 10);
             draggedPiece = null;
             RefreshBoardColors();
             RefreshProgress();
+        }
+
+        private bool IsOutsideBoard(Vector2 worldPosition)
+        {
+            var bottomLeft = GetBoardBottomLeft();
+            var topRight = bottomLeft + new Vector2(width * cellSize, height * cellSize);
+            return worldPosition.x < bottomLeft.x || worldPosition.x > topRight.x ||
+                   worldPosition.y < bottomLeft.y || worldPosition.y > topRight.y;
+        }
+
+        private void ReturnPieceToTray(GiftPieceView piece, int rotation)
+        {
+            var trayCenter = new Vector3(piece.TrayPosition.x, piece.TrayPosition.y, -0.1f);
+            piece.SetPlacement(new Vector2Int(-1, -1), rotation, false, trayCenter);
         }
 
         private void UpdatePreview(Vector2 worldCenter)
@@ -450,16 +474,12 @@ namespace TheLastGift.Packing
 
         private GiftPieceView FindPieceAtWorld(Vector2 world)
         {
+            // Search from front to back and hit-test actual rendered cells, not the
+            // empty corners of a piece's rectangular footprint.
             for (var i = pieces.Count - 1; i >= 0; i--)
             {
                 var piece = pieces[i];
-                if (piece == null) continue;
-
-                var size = piece.GetFootprintSize();
-                var center = piece.transform.position;
-                var half = new Vector2(size.x, size.y) * cellSize * 0.5f;
-                if (world.x >= center.x - half.x && world.x <= center.x + half.x &&
-                    world.y >= center.y - half.y && world.y <= center.y + half.y)
+                if (piece != null && piece.ContainsWorldPoint(world))
                     return piece;
             }
             return null;
