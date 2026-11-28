@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: Day1_Noah
   m_EditorClassIdentifier:
   CustomerName: Ной
-  CustomerWish: "Небольшой рождественский сюрприз для моей сестры. Пожалуйста, уложите всё плотно и аккуратно."
+  CustomerWish: "Небольшой сюрприз для моей сестры. Положи подарок и леденец в коробку аккуратно."
   CustomerPortrait: {fileID: 0}
   GiftNames:
-  - Леденец-трость
-  - Звёздочная ёлочная игрушка
+  - ПОДАРОК
+  - ЛЕДЕНЕЦ
   BoxSize: 0
   RewardCoins: 25
   Day: 1
