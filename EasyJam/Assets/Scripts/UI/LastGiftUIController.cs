@@ -1811,7 +1811,7 @@ namespace TheLastGift.UI
                 if (sortingEventTimer != null)
                     sortingEventTimer.text = "ОСТАЛОСЬ: " + sortingEventSecondsRemaining + " С";
 
-                yield return new WaitForSecondsRealtime(1f);
+                yield return new WaitForSeconds(1f);
                 sortingEventSecondsRemaining--;
             }
 
@@ -1835,7 +1835,7 @@ namespace TheLastGift.UI
                 sortingEventTimer.text = "ГОТОВО!";
             SetSortingEventStatus("✦ УРА! ВСЕ ПОДАРКИ РАССОРТИРОВАНЫ! ✦", true);
 
-            yield return new WaitForSecondsRealtime(0.75f);
+            yield return new WaitForSeconds(0.75f);
 
             Action completed = sortingEventCompleted;
             sortingEventCompleted = null;
@@ -2479,7 +2479,7 @@ namespace TheLastGift.UI
 
             while (elapsed < 0.2f)
             {
-                elapsed += Time.unscaledDeltaTime;
+                elapsed += Time.deltaTime;
                 if (target != null)
                     target.localScale = Vector3.Lerp(Vector3.one * 0.85f, Vector3.one, elapsed / 0.2f);
                 yield return null;
