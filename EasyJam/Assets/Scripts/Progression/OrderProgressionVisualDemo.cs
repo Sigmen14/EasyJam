@@ -39,6 +39,8 @@ public sealed class OrderProgressionVisualDemo : MonoBehaviour
 
     private void Awake()
     {
+        EnsureGameViewCamera();
+
         if (progression == null)
             progression = GetComponent<OrderProgressionManager>();
 
@@ -248,6 +250,30 @@ public sealed class OrderProgressionVisualDemo : MonoBehaviour
             "ДЕМОРЕЖИМ: кнопки имитируют результат упаковки, чтобы показать работу заказов и наград.",
             new Vector2(0f, -430f), new Vector2(1350f, 30f), 15,
             new Color32(116, 108, 95, 255), TextAnchor.MiddleCenter, FontStyle.Normal);
+    }
+
+    /// <summary>
+    /// The demo scene is intentionally self-contained and may not include a world camera.
+    /// Create a simple camera so Unity's Game view has an active display renderer.
+    /// </summary>
+    private void EnsureGameViewCamera()
+    {
+        if (Camera.allCamerasCount > 0)
+            return;
+
+        GameObject cameraObject = new GameObject("Order Progression Demo Camera");
+        cameraObject.tag = "MainCamera";
+        cameraObject.transform.position = new Vector3(0f, 0f, -10f);
+
+        Camera demoCamera = cameraObject.AddComponent<Camera>();
+        demoCamera.clearFlags = CameraClearFlags.SolidColor;
+        demoCamera.backgroundColor = new Color32(244, 239, 229, 255);
+        demoCamera.orthographic = true;
+        demoCamera.orthographicSize = 5f;
+        demoCamera.nearClipPlane = 0.1f;
+        demoCamera.farClipPlane = 100f;
+        demoCamera.cullingMask = 0;
+        demoCamera.targetDisplay = 0;
     }
 
     private void EnsureEventSystem()
