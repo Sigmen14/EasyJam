@@ -1240,7 +1240,8 @@ namespace TheLastGift.UI
 
             if (currentOrder.Definition != null && currentOrder.Definition.IsStoryFinaleOrder)
             {
-                AddShelfGift("ШАРФ", scarfSprite, new Vector2(0.795f, 0.425f), new Vector2(0.915f, 0.695f), red);
+                // A light tile keeps the dark red scarf distinct from its background.
+                AddShelfGift("ШАРФ", scarfSprite, new Vector2(0.795f, 0.425f), new Vector2(0.915f, 0.695f), cream);
             }
             else
             {
@@ -1300,14 +1301,15 @@ namespace TheLastGift.UI
             Image icon = ImageAt(tile.transform, "Картинка " + caption,
                 new Vector2(0.10f, 0.22f), new Vector2(0.90f, 0.94f), sprite, Color.white);
 
+            Color captionColor = tileColor == cream ? brown : paper;
             if (icon == null)
             {
-                ChildLabel(tile.transform, caption, 15, paper, new Vector2(0.05f, 0.30f), new Vector2(0.95f, 0.70f), TextAnchor.MiddleCenter);
+                ChildLabel(tile.transform, caption, 15, captionColor, new Vector2(0.05f, 0.30f), new Vector2(0.95f, 0.70f), TextAnchor.MiddleCenter);
             }
             else
             {
                 icon.preserveAspect = true;
-                Text captionText = ChildLabel(tile.transform, caption, 13, paper,
+                Text captionText = ChildLabel(tile.transform, caption, 13, captionColor,
                     new Vector2(0.02f, 0.02f), new Vector2(0.98f, 0.24f), TextAnchor.MiddleCenter);
                 captionText.raycastTarget = false;
             }
