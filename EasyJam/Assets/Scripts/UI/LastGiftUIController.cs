@@ -595,7 +595,7 @@ namespace TheLastGift.UI
                 new Vector2(0.06f, 0.665f), new Vector2(0.94f, 0.82f), cream);
             Label("В мастерской ждут рождественские заказы", 21, brown,
                 new Vector2(0.10f, 0.755f), new Vector2(0.90f, 0.81f), TextAnchor.MiddleCenter);
-            Label("Выбери, какой заказ выполнять следующим.\\nОстальные останутся в очереди.",
+            Label("Выбери, какой заказ выполнять следующим.\nОстальные останутся в очереди.",
                 16, brown, new Vector2(0.09f, 0.675f), new Vector2(0.91f, 0.75f),
                 TextAnchor.MiddleCenter);
 
