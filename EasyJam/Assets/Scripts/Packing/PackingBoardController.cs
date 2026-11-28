@@ -36,6 +36,10 @@ namespace TheLastGift.Packing
         private int dragStartRotation;
         private bool dragStartedPlaced;
         private GUIStyle hudStyle;
+        private GUIStyle controlStyle;
+        private GUIStyle completionTitleStyle;
+        private GUIStyle completionBodyStyle;
+        private GUIStyle completionButtonStyle;
 
         public int Width => width;
         public int Height => height;
@@ -88,6 +92,10 @@ namespace TheLastGift.Packing
             if (Keyboard.current != null && Keyboard.current.vKey.wasPressedThisFrame)
                 ValidateAndReport();
 
+            // Once solved, keep the completed board visible until the player chooses
+            // to start a new round from the completion panel.
+            if (puzzleCompleted) return;
+
             var mouse = Mouse.current;
             if (mouse == null || targetCamera == null) return;
 
@@ -114,27 +122,98 @@ namespace TheLastGift.Packing
         {
             if (pieces.Count == 0 || width <= 0 || height <= 0) return;
 
-            if (hudStyle == null)
-            {
-                hudStyle = new GUIStyle(GUI.skin.label)
-                {
-                    alignment = TextAnchor.MiddleCenter,
-                    fontSize = Mathf.Clamp(Screen.height / 24, 11, 16),
-                    fontStyle = FontStyle.Bold
-                };
-                hudStyle.normal.textColor = Color.white;
-            }
+            EnsureGuiStyles();
 
             var cells = CountPlacedCells();
             var placed = CountPlacedPieces();
             GUI.Label(new Rect(4f, 2f, Screen.width - 8f, 22f),
                 $"Ячейки: {cells}/{width * height}    Фрагменты: {placed}/{pieces.Count}", hudStyle);
-            GUI.Label(new Rect(4f, 44f, Screen.width - 8f, 20f),
-                "Чтобы вынуть фигуру, перетащите её за пределы коробки.", hudStyle);
+            GUI.Label(new Rect(4f, 25f, Screen.width - 8f, 22f),
+                "ПОВОРОТ НА 90°: R или ПРОБЕЛ (также правая кнопка мыши)", controlStyle);
+            GUI.Label(new Rect(4f, 48f, Screen.width - 8f, 22f),
+                "Вынуть фигуру: перетащите её за пределы коробки", controlStyle);
+            GUI.Label(new Rect(4f, 71f, Screen.width - 8f, 22f),
+                "V — проверить заполнение вручную", controlStyle);
 
-            if (showValidationMessage || puzzleCompleted)
-                GUI.Label(new Rect(4f, 22f, Screen.width - 8f, 24f),
-                    puzzleCompleted ? "КОРОБКА ЗАПОЛНЕНА! Отличная работа!" : feedbackMessage, hudStyle);
+            if (showValidationMessage && !puzzleCompleted)
+                GUI.Label(new Rect(4f, 94f, Screen.width - 8f, 24f), feedbackMessage, hudStyle);
+
+            if (puzzleCompleted)
+                DrawCompletionOverlay();
+        }
+
+        private void EnsureGuiStyles()
+        {
+            if (hudStyle != null) return;
+
+            hudStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = Mathf.Clamp(Screen.height / 30, 12, 17),
+                fontStyle = FontStyle.Bold
+            };
+            hudStyle.normal.textColor = Color.white;
+
+            controlStyle = new GUIStyle(hudStyle)
+            {
+                fontSize = Mathf.Clamp(Screen.height / 42, 10, 14),
+                fontStyle = FontStyle.Normal
+            };
+            controlStyle.normal.textColor = new Color(1f, 1f, 1f, 0.95f);
+
+            completionTitleStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = Mathf.Clamp(Screen.height / 13, 24, 42),
+                fontStyle = FontStyle.Bold,
+                wordWrap = true
+            };
+            completionTitleStyle.normal.textColor = new Color(1f, 0.88f, 0.36f, 1f);
+
+            completionBodyStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = Mathf.Clamp(Screen.height / 32, 13, 19),
+                wordWrap = true
+            };
+            completionBodyStyle.normal.textColor = Color.white;
+
+            completionButtonStyle = new GUIStyle(GUI.skin.button)
+            {
+                fontSize = Mathf.Clamp(Screen.height / 34, 14, 20),
+                fontStyle = FontStyle.Bold
+            };
+        }
+
+        private void DrawCompletionOverlay()
+        {
+            var panelWidth = Mathf.Min(560f, Screen.width - 32f);
+            var panelHeight = 210f;
+            var panel = new Rect(
+                (Screen.width - panelWidth) * 0.5f,
+                (Screen.height - panelHeight) * 0.5f,
+                panelWidth,
+                panelHeight);
+
+            GUI.color = new Color(0.035f, 0.055f, 0.08f, 0.94f);
+            GUI.DrawTexture(panel, Texture2D.whiteTexture);
+            GUI.color = Color.white;
+
+            GUI.Label(new Rect(panel.x + 12f, panel.y + 16f, panel.width - 24f, 58f),
+                "КОРОБКА ЗАПОЛНЕНА!", completionTitleStyle);
+            GUI.Label(new Rect(panel.x + 24f, panel.y + 78f, panel.width - 48f, 48f),
+                "Отличная работа! Все фрагменты уложены без пустых клеток и наложений.",
+                completionBodyStyle);
+
+            var button = new Rect(panel.x + panel.width * 0.2f, panel.y + 145f,
+                panel.width * 0.6f, 44f);
+            if (GUI.Button(button, "СЫГРАТЬ ЕЩЁ РАЗ", completionButtonStyle))
+                RestartPuzzle();
+        }
+
+        private void RestartPuzzle()
+        {
+            SetupBoard(width, height, CreateDemoGifts());
         }
 
         public void SetupBoard(int boardWidth, int boardHeight, List<GiftDefinition> gifts)
