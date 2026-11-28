@@ -15,6 +15,10 @@ public sealed class OrderProgressionVisualDemo : MonoBehaviour
     [SerializeField] private OrderProgressionManager progression;
     [SerializeField] private OrderCampaignDefinition campaign;
 
+    // Applied centrally so every label, heading, button and status message
+    // remains visually consistent when the demo UI is generated.
+    private const float UiFontScale = 1.25f;
+
     private readonly List<DaySummaryData> completedDays = new List<DaySummaryData>();
 
     private Canvas canvas;
@@ -335,7 +339,7 @@ public sealed class OrderProgressionVisualDemo : MonoBehaviour
         Text text = rect.gameObject.AddComponent<Text>();
         text.font = font;
         text.text = value;
-        text.fontSize = fontSize;
+        text.fontSize = Mathf.Max(1, Mathf.RoundToInt(fontSize * UiFontScale));
         text.color = color;
         text.alignment = alignment;
         text.fontStyle = style;
