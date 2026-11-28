@@ -21,3 +21,9 @@ MonoBehaviour:
   RewardCoins: 65
   Day: 3
   PerfectPackingTip: 15
+  PreferredWrappingPaper: 0
+  PreferredWrappingRibbon: 2
+  PreferredWrappingCard: 0
+  WrappingHint: "Ценит лаконичную красную упаковку и классическую ленту."
+  WrappingBonusCoins: 10
+  PerfectWrappingReputationBonus: 1

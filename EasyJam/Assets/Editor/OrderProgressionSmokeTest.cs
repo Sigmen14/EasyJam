@@ -88,7 +88,17 @@ public static class OrderProgressionSmokeTest
                     ? new PackingResult(false, false, 0, giftCount)
                     : new PackingResult(true, true, giftCount, giftCount);
 
-                manager.CompleteCurrentOrder(result);
+                bool suitableWrapping = !deliberatelyFail && attemptIndex != 1;
+                bool perfectWrapping = suitableWrapping && attemptIndex != 2;
+                manager.CompleteCurrentOrder(result, suitableWrapping, perfectWrapping);
+
+                int coinsAfterFirstCompletion = manager.CurrentCoins;
+                int reputationAfterFirstCompletion = manager.TotalReputationEarned;
+                manager.CompleteCurrentOrder(result, true, true);
+                Require(manager.CurrentCoins == coinsAfterFirstCompletion,
+                    "Repeated completion awarded coins more than once for order " + (attemptIndex + 1) + ".");
+                Require(manager.TotalReputationEarned == reputationAfterFirstCompletion,
+                    "Repeated completion awarded reputation more than once for order " + (attemptIndex + 1) + ".");
 
                 Require(completedOrders.Count == attemptIndex + 1,
                     "OrderCompleted did not fire exactly once for order " + (attemptIndex + 1) + ".");
@@ -105,9 +115,16 @@ public static class OrderProgressionSmokeTest
                 else
                 {
                     Require(completion.Success, "A simulated successful order was marked as failed: " + currentOrder.name);
+                    int expectedWrappingBonus = suitableWrapping ? Mathf.Max(0, currentOrder.WrappingBonusCoins) : 0;
+                    int expectedReputationBonus = perfectWrapping
+                        ? Mathf.Max(0, currentOrder.PerfectWrappingReputationBonus) : 0;
                     Require(completion.TotalEarned == Mathf.Max(0, currentOrder.RewardCoins)
-                        + Mathf.Max(0, currentOrder.PerfectPackingTip),
-                        "The reward or perfect-packing tip is incorrect for " + currentOrder.name + ".");
+                        + Mathf.Max(0, currentOrder.PerfectPackingTip) + expectedWrappingBonus,
+                        "The order reward, packing tip or wrapping bonus is incorrect for " + currentOrder.name + ".");
+                    Require(completion.WrappingBonus == expectedWrappingBonus,
+                        "Wrapping bonus did not respect the selected wrapping quality for " + currentOrder.name + ".");
+                    Require(completion.ReputationBonus == expectedReputationBonus,
+                        "The perfect-wrapping reputation bonus is incorrect for " + currentOrder.name + ".");
                 }
 
                 manager.ContinueAfterResult();
@@ -131,10 +148,14 @@ public static class OrderProgressionSmokeTest
                 + ", received " + manager.TotalCoinsEarned + ".");
             Require(manager.TotalTipsEarned == SumTipsForSuccessfulOrders(campaign),
                 "Perfect-packing tip total is incorrect.");
+            Require(manager.TotalReputationEarned == SumWrappingReputationBonusesForSuccessfulOrders(campaign),
+                "Perfect-wrapping reputation total is incorrect.");
             Require(manager.CurrentCoins == expectedCoins, "Final coin balance is incorrect.");
             Require(gameSummary.OrdersCompleted == expectedSuccessfulOrders, "Game summary has an incorrect order count.");
             Require(gameSummary.TotalCoinsEarned == expectedCoins, "Game summary has an incorrect coin total.");
             Require(gameSummary.FinalCoins == expectedCoins, "Game summary has an incorrect final balance.");
+            Require(gameSummary.ReputationEarned == manager.TotalReputationEarned,
+                "Game summary has an incorrect reputation total.");
             Require(gameSummary.DaysPlayed == campaign.Days.Count, "Game summary has an incorrect number of days.");
 
             for (int i = 0; i < completedDays.Count; i++)
@@ -172,8 +193,9 @@ public static class OrderProgressionSmokeTest
                 "Restart did not return to the first order.");
             Require(manager.CurrentOrder == campaign.Days[0].Orders[0],
                 "Restart did not restore the first campaign order.");
-            Require(manager.CurrentCoins == 0 && manager.TotalOrdersCompleted == 0,
-                "Restart did not reset the campaign balance and statistics.");
+            Require(manager.CurrentCoins == 0 && manager.TotalOrdersCompleted == 0
+                && manager.TotalReputationEarned == 0,
+                "Restart did not reset the campaign balance, reputation and statistics.");
 
             StringBuilder report = new StringBuilder();
             report.AppendLine("PASSED");
@@ -183,6 +205,10 @@ public static class OrderProgressionSmokeTest
             report.AppendLine("Deliberately failed orders: 1 (no reward awarded)");
             report.AppendLine("Successful orders: " + expectedSuccessfulOrders);
             report.AppendLine("Final coin balance: " + expectedCoins);
+            report.AppendLine("Perfect wrapping reputation: " + manager.TotalReputationEarned);
+            report.AppendLine("Unsuitable wrapping still completes the order without a bonus: OK");
+            report.AppendLine("Suitable wrapping awards coins; perfect wrapping awards reputation: OK");
+            report.AppendLine("Repeated completion does not duplicate rewards: OK");
             report.AppendLine("Day transitions and campaign completion: OK");
             report.AppendLine("Restart campaign: OK");
             report.AppendLine("Christmas event cadence (orders 3 and 6): OK");
@@ -257,6 +283,9 @@ public static class OrderProgressionSmokeTest
                 {
                     expectedCoins += Mathf.Max(0, order.RewardCoins);
                     expectedCoins += Mathf.Max(0, order.PerfectPackingTip);
+                    // The second order is deliberately wrapped poorly to verify it still completes.
+                    if (totalOrders > 2)
+                        expectedCoins += Mathf.Max(0, order.WrappingBonusCoins);
                 }
 
                 firstOrder = false;
@@ -279,6 +308,26 @@ public static class OrderProgressionSmokeTest
                     total += Mathf.Max(0, order.PerfectPackingTip);
 
                 firstOrder = false;
+            }
+        }
+
+        return total;
+    }
+
+    private static int SumWrappingReputationBonusesForSuccessfulOrders(OrderCampaignDefinition campaign)
+    {
+        int total = 0;
+        int processedOrders = 0;
+
+        foreach (OrderDayDefinition day in campaign.Days)
+        {
+            foreach (GiftOrderDefinition order in day.Orders)
+            {
+                // First order fails, second has unsuitable wrapping, third is suitable but not perfect.
+                if (processedOrders >= 3)
+                    total += Mathf.Max(0, order.PerfectWrappingReputationBonus);
+
+                processedOrders++;
             }
         }
 
