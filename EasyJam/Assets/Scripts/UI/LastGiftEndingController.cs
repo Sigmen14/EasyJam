@@ -211,7 +211,7 @@ namespace TheLastGift.UI
             backing.raycastTarget = false;
 
             AddShape(captionPanel, "Золотая линия подписи",
-                new Vector2(0.5f, 0.5f), new Vector2(1380f, 4f), Gold);
+                new Vector2(0.5f, 0.08f), new Vector2(1380f, 4f), Gold);
             captionText = CreateText(captionPanel, "Текст подписи", string.Empty,
                 27, WarmCream, new Vector2(0.035f, 0.05f), new Vector2(0.965f, 0.95f),
                 TextAnchor.MiddleCenter);
@@ -359,22 +359,26 @@ namespace TheLastGift.UI
                 25, Burgundy, new Vector2(0.28f, 0.735f), new Vector2(0.72f, 0.805f),
                 TextAnchor.MiddleCenter);
 
-            quoteGroup = CreateGroup(card, "Главная мысль", new Vector2(0.5f, 0.55f));
-            CreateText(quoteGroup.transform, "Финальная цитата",
+            RectTransform quoteRoot = CreateGroup(card, "Главная мысль", new Vector2(0.5f, 0.56f));
+            quoteRoot.sizeDelta = new Vector2(1180f, 260f);
+            quoteGroup = quoteRoot.gameObject.AddComponent<CanvasGroup>();
+            quoteGroup.alpha = 0f;
+            CreateText(quoteRoot.transform, "Финальная цитата",
                 "«Иногда самый дорогой подарок — не тот, который стоит больше всего.\nА тот, в который вложили любовь».",
                 37, new Color32(74, 49, 37, 255),
-                new Vector2(0.08f, 0.05f), new Vector2(0.92f, 0.95f),
+                new Vector2(0.04f, 0.04f), new Vector2(0.96f, 0.96f),
                 TextAnchor.MiddleCenter);
 
-            endGroup = CreateGroup(card, "Завершение и повторная игра", new Vector2(0.5f, 0.28f));
-            CanvasGroup endCanvas = endGroup.gameObject.AddComponent<CanvasGroup>();
-            endCanvas.alpha = 0f;
-            CreateText(endGroup.transform, "THE END",
+            RectTransform endRoot = CreateGroup(card, "Завершение и повторная игра", new Vector2(0.5f, 0.265f));
+            endRoot.sizeDelta = new Vector2(760f, 190f);
+            endGroup = endRoot.gameObject.AddComponent<CanvasGroup>();
+            endGroup.alpha = 0f;
+            CreateText(endRoot.transform, "THE END",
                 "THE END", 48, Burgundy,
-                new Vector2(0.25f, 0.42f), new Vector2(0.75f, 1f),
+                new Vector2(0.20f, 0.48f), new Vector2(0.80f, 1f),
                 TextAnchor.MiddleCenter);
-            CreateButton(endGroup.transform, "ПРОЙТИ СНОВА",
-                new Vector2(0.38f, 0.0f), new Vector2(0.62f, 0.46f),
+            CreateButton(endRoot.transform, "ПРОЙТИ СНОВА",
+                new Vector2(0.27f, 0.0f), new Vector2(0.73f, 0.45f),
                 Evergreen, RestartCampaign);
             return group;
         }
