@@ -23,3 +23,11 @@ MonoBehaviour:
   RewardCoins: 35
   Day: 1
   PerfectPackingTip: 5
+  SecretWish:
+    Clue: Я хочу порадовать сладкоежку.
+    GiftOptions:
+    - ЛЕДЕНЕЦ
+    - СНЕЖНЫЙ ШАР
+    - ПОДАРОК
+    CorrectGiftName: ЛЕДЕНЕЦ
+    BonusCoins: 10

@@ -22,3 +22,11 @@ MonoBehaviour:
   RewardCoins: 25
   Day: 1
   PerfectPackingTip: 5
+  SecretWish:
+    Clue: Мой сын всегда спит со своим плюшевым другом.
+    GiftOptions:
+    - МИШКА
+    - ПОДАРОК
+    - ЛЕДЕНЕЦ
+    CorrectGiftName: МИШКА
+    BonusCoins: 10

@@ -51,6 +51,7 @@ public class OrderProgressionManager : MonoBehaviour
     private int orderIndex;
     private bool awaitingResultContinue;
     private bool campaignStarted;
+    private bool secretWishBonusAwarded;
 
     public bool IsCompleted { get; private set; }
 
@@ -133,6 +134,26 @@ public class OrderProgressionManager : MonoBehaviour
         OrderCompleted?.Invoke(new OrderCompletionData(CurrentOrder, result, success, baseReward, tip, earned));
     }
 
+    /// <summary>
+    /// Awards the optional secret-wish bonus without completing or changing the active order.
+    /// The UI calls this only after the player selects the configured correct gift.
+    /// </summary>
+    public int AwardSecretWishBonus(int amount)
+    {
+        if (!campaignStarted || CurrentOrder == null || awaitingResultContinue || secretWishBonusAwarded)
+            return 0;
+
+        secretWishBonusAwarded = true;
+        int bonus = Mathf.Max(0, amount);
+        if (bonus == 0)
+            return 0;
+
+        AddCoins(bonus);
+        DayCoinsEarned += bonus;
+        TotalCoinsEarned += bonus;
+        return bonus;
+    }
+
     /// <summary>UI calls after showing the order-result panel.</summary>
     public void ContinueAfterResult()
     {
@@ -171,6 +192,7 @@ public class OrderProgressionManager : MonoBehaviour
 
     private void StartCurrentOrder()
     {
+        secretWishBonusAwarded = false;
         CurrentOrder = CurrentDayData.Orders[orderIndex];
         CurrentOrderNumber = orderIndex + 1;
         if (CurrentOrder == null)

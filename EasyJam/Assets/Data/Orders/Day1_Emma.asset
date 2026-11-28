@@ -22,3 +22,11 @@ MonoBehaviour:
   RewardCoins: 30
   Day: 1
   PerfectPackingTip: 5
+  SecretWish:
+    Clue: Моя дочка обожает снег и зиму.
+    GiftOptions:
+    - СНЕЖНЫЙ ШАР
+    - МИШКА
+    - ПОДАРОК
+    CorrectGiftName: СНЕЖНЫЙ ШАР
+    BonusCoins: 10

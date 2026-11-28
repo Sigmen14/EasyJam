@@ -60,6 +60,16 @@ public static class OrderProgressionSmokeTest
                 int giftCount = currentOrder.GiftNames == null ? 0 : currentOrder.GiftNames.Count;
                 bool deliberatelyFail = attemptIndex == 0;
 
+                if (currentOrder.SecretWish != null && !string.IsNullOrWhiteSpace(currentOrder.SecretWish.Clue))
+                {
+                    int expectedBonus = Mathf.Max(0, currentOrder.SecretWish.BonusCoins);
+                    int awardedBonus = manager.AwardSecretWishBonus(currentOrder.SecretWish.BonusCoins);
+                    Require(awardedBonus == expectedBonus,
+                        "Secret-wish bonus is incorrect for " + currentOrder.name + ".");
+                    Require(manager.AwardSecretWishBonus(currentOrder.SecretWish.BonusCoins) == 0,
+                        "Secret-wish bonus was awarded more than once for " + currentOrder.name + ".");
+                }
+
                 PackingResult result = deliberatelyFail
                     ? new PackingResult(false, false, 0, giftCount)
                     : new PackingResult(true, true, giftCount, giftCount);
@@ -203,6 +213,36 @@ public static class OrderProgressionSmokeTest
                 {
                     if (Array.IndexOf(availableGifts, order.GiftNames[giftIndex]) < 0)
                         return "Order " + order.name + " contains an unknown shelf gift: " + order.GiftNames[giftIndex] + ".";
+                }
+
+                if (order.SecretWish != null && !string.IsNullOrWhiteSpace(order.SecretWish.Clue))
+                {
+                    if (order.SecretWish.GiftOptions == null
+                        || order.SecretWish.GiftOptions.Count < 2
+                        || order.SecretWish.GiftOptions.Count > 3)
+                        return "Secret wish on " + order.name + " must have 2–3 gift options.";
+
+                    bool correctAnswerIncluded = false;
+                    for (int optionIndex = 0; optionIndex < order.SecretWish.GiftOptions.Count; optionIndex++)
+                    {
+                        string option = order.SecretWish.GiftOptions[optionIndex];
+                        if (Array.IndexOf(availableGifts, option) < 0)
+                            return "Secret wish on " + order.name + " contains an unknown shelf gift: " + option + ".";
+
+                        for (int previousIndex = 0; previousIndex < optionIndex; previousIndex++)
+                        {
+                            if (string.Equals(option, order.SecretWish.GiftOptions[previousIndex], StringComparison.Ordinal))
+                                return "Secret wish on " + order.name + " contains duplicate gift options.";
+                        }
+
+                        if (string.Equals(option, order.SecretWish.CorrectGiftName, StringComparison.Ordinal))
+                            correctAnswerIncluded = true;
+                    }
+
+                    if (!correctAnswerIncluded)
+                        return "Secret wish on " + order.name + " does not include its correct answer.";
+
+                    expectedCoins += Mathf.Max(0, order.SecretWish.BonusCoins);
                 }
 
                 int boxCapacity = order.BoxSize == GiftBoxSize.Small ? 4
