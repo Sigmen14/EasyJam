@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using TheLastGift.UI;
 
@@ -15,6 +16,31 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
 
     private OrderProgressionManager progression;
     private LastGiftUIController ui;
+
+    /// <summary>
+    /// Single forwarding path used by the runtime handler and the editor smoke test.
+    /// The assignment flag is forwarded unchanged to LastGiftUIController.
+    /// </summary>
+    public static void ApplyOrderAssignmentToUI(
+        Action<GiftOrderDefinition, int, int, int, int, bool> setProgressionOrder,
+        GiftOrderDefinition order,
+        int currentDay,
+        int currentOrderNumber,
+        int currentBalance,
+        int currentReputation,
+        bool showSecretWish)
+    {
+        if (setProgressionOrder == null)
+            return;
+
+        setProgressionOrder(
+            order,
+            currentDay,
+            currentOrderNumber,
+            currentBalance,
+            currentReputation,
+            showSecretWish);
+    }
 
     private void Awake()
     {
@@ -101,7 +127,8 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
             $"[SecretWishFlow] Adapter received {order.CustomerName}: showSecretWish={showSecretWish}.",
             this);
 
-        ui.SetProgressionOrder(
+        ApplyOrderAssignmentToUI(
+            ui.SetProgressionOrder,
             order,
             progression.CurrentDay,
             progression.CurrentOrderNumber,
