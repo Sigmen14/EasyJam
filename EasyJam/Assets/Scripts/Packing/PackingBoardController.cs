@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using TheLastGift.UI;
 
 namespace TheLastGift.Packing
 {
@@ -152,6 +153,8 @@ namespace TheLastGift.Packing
 
             if (puzzleCompleted)
                 DrawCompletionOverlay();
+
+            DrawReturnToShopButton();
         }
 
         private void EnsureGuiStyles()
@@ -315,6 +318,20 @@ namespace TheLastGift.Packing
                 "ПОВОРОТ НА 90°:  R  /  ПРОБЕЛ  /  ПРАВАЯ КНОПКА МЫШИ", controlStyle);
             GUI.Label(new Rect(panel.x + 18f, panel.y + 103f * scale, panel.width - 36f, 25f * scale),
                 "ВЫНУТЬ ФИГУРУ: ПЕРЕТАЩИ ЗА КРАЙ КОРОБКИ     •     V — ПРОВЕРКА", controlStyle);
+        }
+
+        private void DrawReturnToShopButton()
+        {
+            var scale = Mathf.Clamp(Screen.height / 900f, 0.78f, 1.25f);
+            var buttonWidth = Mathf.Min(270f, Screen.width - 32f);
+            var buttonRect = new Rect(
+                Screen.width - buttonWidth - 16f,
+                172f * scale,
+                buttonWidth,
+                42f * scale);
+
+            if (GUI.Button(buttonRect, "ВЕРНУТЬСЯ В ЛАВКУ", completionButtonStyle))
+                LastGiftUIController.ReturnFromPackingMiniGame();
         }
 
         private void DrawCompletionOverlay()

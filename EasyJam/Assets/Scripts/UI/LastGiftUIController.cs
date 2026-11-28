@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
 using TheLastGift.Audio;
 
 namespace TheLastGift.UI
@@ -11,6 +12,11 @@ namespace TheLastGift.UI
     public sealed class LastGiftUIController : MonoBehaviour
     {
         public Action ConfirmPacking, Continue, StartGame;
+
+        private const string PackingMiniGameSceneName = "SampleScene";
+        private static LastGiftUIController activeInstance;
+        private Camera shopCamera;
+        private bool packingMiniGameOpen;
 
         [Header("Настройки интерфейса")]
         [SerializeField, Range(0.8f, 1.8f)]
@@ -82,6 +88,7 @@ namespace TheLastGift.UI
 
         private void Awake()
         {
+            activeInstance = this;
             EnsureCamera();
             LastGiftAudioManager.EnsureInstance();
             font = customFont != null
@@ -111,6 +118,9 @@ namespace TheLastGift.UI
                 if (customerPortraits[i] != null)
                     Destroy(customerPortraits[i]);
             }
+
+            if (activeInstance == this)
+                activeInstance = null;
         }
 
         // A Screen Space Overlay canvas can display without a camera, but the
@@ -125,6 +135,7 @@ namespace TheLastGift.UI
             if (sceneCamera != null)
             {
                 sceneCamera.enabled = true;
+                shopCamera = sceneCamera;
                 return;
             }
 
@@ -141,6 +152,7 @@ namespace TheLastGift.UI
             fallbackCamera.farClipPlane = 1000f;
             fallbackCamera.depth = -10f;
             fallbackCamera.enabled = true;
+            shopCamera = fallbackCamera;
         }
 
         private void LoadGiftSprites()
@@ -411,6 +423,9 @@ namespace TheLastGift.UI
             BuildPackingArea();
             BuildGiftShelf();
 
+            ButtonAt("ГОЛОВОЛОМКА 4×4", gold, OpenPackingMiniGame,
+                new Vector2(0.045f, 0.215f), new Vector2(0.245f, 0.27f));
+
             feedback = Label("Перетащи подарки с правой полки в коробку по центру.",
                 18, brown, new Vector2(0.285f, 0.18f), new Vector2(0.715f, 0.235f), TextAnchor.MiddleCenter);
 
@@ -422,6 +437,93 @@ namespace TheLastGift.UI
 
             ButtonAt("ОЧИСТИТЬ КОРОБКУ", red, ClearPackingBox,
                 new Vector2(0.70f, 0.075f), new Vector2(0.965f, 0.145f));
+        }
+
+        private void OpenPackingMiniGame()
+        {
+            if (packingMiniGameOpen || canvas == null)
+                return;
+
+            packingMiniGameOpen = true;
+            canvas.enabled = false;
+            if (shopCamera != null)
+                shopCamera.enabled = false;
+
+            StartCoroutine(LoadPackingMiniGame());
+        }
+
+        private IEnumerator LoadPackingMiniGame()
+        {
+            AsyncOperation loadOperation;
+            try
+            {
+                loadOperation = SceneManager.LoadSceneAsync(
+                    PackingMiniGameSceneName, LoadSceneMode.Additive);
+            }
+            catch (Exception exception)
+            {
+                Debug.LogError("Не удалось открыть головоломку: " + exception.Message, this);
+                RestoreShopAfterMiniGame();
+                yield break;
+            }
+
+            if (loadOperation == null)
+            {
+                Debug.LogError("Сцена головоломки не найдена в Build Settings: " + PackingMiniGameSceneName, this);
+                RestoreShopAfterMiniGame();
+                yield break;
+            }
+
+            while (!loadOperation.isDone)
+                yield return null;
+
+            Scene miniGameScene = SceneManager.GetSceneByName(PackingMiniGameSceneName);
+            if (!miniGameScene.IsValid() || !miniGameScene.isLoaded)
+            {
+                Debug.LogError("Сцена головоломки не загрузилась: " + PackingMiniGameSceneName, this);
+                RestoreShopAfterMiniGame();
+                yield break;
+            }
+
+            SceneManager.SetActiveScene(miniGameScene);
+        }
+
+        public static void ReturnFromPackingMiniGame()
+        {
+            if (activeInstance == null || !activeInstance.packingMiniGameOpen)
+                return;
+
+            activeInstance.StartCoroutine(activeInstance.UnloadPackingMiniGame());
+        }
+
+        private IEnumerator UnloadPackingMiniGame()
+        {
+            Scene miniGameScene = SceneManager.GetSceneByName(PackingMiniGameSceneName);
+            if (miniGameScene.IsValid() && miniGameScene.isLoaded)
+            {
+                AsyncOperation unloadOperation = SceneManager.UnloadSceneAsync(miniGameScene);
+                if (unloadOperation != null)
+                {
+                    while (!unloadOperation.isDone)
+                        yield return null;
+                }
+            }
+
+            RestoreShopAfterMiniGame();
+        }
+
+        private void RestoreShopAfterMiniGame()
+        {
+            Scene shopScene = gameObject.scene;
+            if (shopScene.IsValid() && shopScene.isLoaded)
+                SceneManager.SetActiveScene(shopScene);
+
+            if (shopCamera != null)
+                shopCamera.enabled = true;
+            if (canvas != null)
+                canvas.enabled = true;
+
+            packingMiniGameOpen = false;
         }
 
         private void BuildCustomerPanel()
