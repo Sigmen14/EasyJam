@@ -201,7 +201,7 @@ namespace TheLastGift.Packing
             hudTitleStyle = new GUIStyle(GUI.skin.label)
             {
                 alignment = TextAnchor.MiddleCenter,
-                fontSize = Mathf.RoundToInt(19f * scale),
+                fontSize = Mathf.RoundToInt(23f * scale),
                 fontStyle = FontStyle.Bold
             };
             hudTitleStyle.normal.textColor = new Color(1f, 0.94f, 0.80f, 1f);
@@ -209,7 +209,7 @@ namespace TheLastGift.Packing
             hudStyle = new GUIStyle(GUI.skin.label)
             {
                 alignment = TextAnchor.MiddleCenter,
-                fontSize = Mathf.RoundToInt(27f * scale),
+                fontSize = Mathf.RoundToInt(30f * scale),
                 fontStyle = FontStyle.Bold
             };
             hudStyle.normal.textColor = new Color32(82, 52, 36, 255);
@@ -217,7 +217,7 @@ namespace TheLastGift.Packing
             controlStyle = new GUIStyle(GUI.skin.label)
             {
                 alignment = TextAnchor.MiddleCenter,
-                fontSize = Mathf.RoundToInt(15f * scale),
+                fontSize = Mathf.RoundToInt(19f * scale),
                 fontStyle = FontStyle.Normal,
                 wordWrap = true
             };
@@ -226,7 +226,7 @@ namespace TheLastGift.Packing
             completionKickerStyle = new GUIStyle(GUI.skin.label)
             {
                 alignment = TextAnchor.MiddleCenter,
-                fontSize = Mathf.RoundToInt(16f * scale),
+                fontSize = Mathf.RoundToInt(19f * scale),
                 fontStyle = FontStyle.Bold
             };
             completionKickerStyle.normal.textColor = new Color(0.72f, 0.91f, 0.73f, 1f);
@@ -243,7 +243,7 @@ namespace TheLastGift.Packing
             completionSubtitleStyle = new GUIStyle(GUI.skin.label)
             {
                 alignment = TextAnchor.MiddleCenter,
-                fontSize = Mathf.RoundToInt(24f * scale),
+                fontSize = Mathf.RoundToInt(27f * scale),
                 fontStyle = FontStyle.Bold
             };
             completionSubtitleStyle.normal.textColor = new Color(1f, 0.94f, 0.80f, 1f);
@@ -251,14 +251,14 @@ namespace TheLastGift.Packing
             completionBodyStyle = new GUIStyle(GUI.skin.label)
             {
                 alignment = TextAnchor.MiddleCenter,
-                fontSize = Mathf.RoundToInt(18f * scale),
+                fontSize = Mathf.RoundToInt(21f * scale),
                 wordWrap = true
             };
             completionBodyStyle.normal.textColor = new Color(0.94f, 0.88f, 0.77f, 1f);
 
             completionButtonStyle = new GUIStyle(GUI.skin.button)
             {
-                fontSize = Mathf.RoundToInt(18f * scale),
+                fontSize = Mathf.RoundToInt(21f * scale),
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter,
                 border = new RectOffset(18, 18, 12, 12),
@@ -469,7 +469,7 @@ namespace TheLastGift.Packing
                 };
             }
 
-            returnToShopButtonStyle.fontSize = Mathf.RoundToInt(14f * scale);
+            returnToShopButtonStyle.fontSize = Mathf.RoundToInt(18f * scale);
 
             var buttonWidth = Mathf.Min(300f, Screen.width - 32f);
             var buttonRect = new Rect(
