@@ -47,9 +47,30 @@ namespace TheLastGift.UI
 
         private void LoadGiftSprites()
         {
-            giftAtlas = Resources.Load<Texture2D>("LastGift/GiftIcons");
-            if (giftAtlas == null)
+            TextAsset iconData = Resources.Load<TextAsset>("LastGift/GiftIconsBase64");
+            if (iconData == null)
+            {
+                Debug.LogError("Не найден набор картинок подарков: Resources/LastGift/GiftIconsBase64.txt");
                 return;
+            }
+
+            try
+            {
+                byte[] imageBytes = Convert.FromBase64String(iconData.text.Trim());
+                giftAtlas = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+                if (!ImageConversion.LoadImage(giftAtlas, imageBytes, false))
+                {
+                    Debug.LogError("Не удалось загрузить картинки подарков.");
+                    Destroy(giftAtlas);
+                    giftAtlas = null;
+                    return;
+                }
+            }
+            catch (Exception exception)
+            {
+                Debug.LogError("Ошибка чтения картинок подарков: " + exception.Message);
+                return;
+            }
 
             teddySprite = Sprite.Create(giftAtlas, new Rect(0, 0, 64, 64), new Vector2(0.5f, 0.5f), 96);
             giftBoxSprite = Sprite.Create(giftAtlas, new Rect(64, 0, 64, 64), new Vector2(0.5f, 0.5f), 96);
