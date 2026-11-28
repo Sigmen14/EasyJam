@@ -140,12 +140,12 @@ namespace TheLastGift.UI
             FestiveHeader(card, "Золотая лента паузы", "ПАУЗА",
                 new Vector2(0.08f, 0.79f), new Vector2(0.92f, 0.96f), green, 34);
 
-            // Equal button bounds and spacing. Keep "ВЫЙТИ В МЕНЮ" above "НАСТРОЙКИ".
+            // Equal button bounds and spacing. Settings is above "ВЫЙТИ В МЕНЮ".
             ButtonAtOnParent(card, "ПРОДОЛЖИТЬ", green, ResumeFromPause,
                 new Vector2(0.16f, 0.58f), new Vector2(0.84f, 0.73f));
-            ButtonAtOnParent(card, "ВЫЙТИ В МЕНЮ", red, ShowPauseExitConfirmation,
-                new Vector2(0.16f, 0.385f), new Vector2(0.84f, 0.535f));
             ButtonAtOnParent(card, "НАСТРОЙКИ", wood, ShowPauseSettings,
+                new Vector2(0.16f, 0.385f), new Vector2(0.84f, 0.535f));
+            ButtonAtOnParent(card, "ВЫЙТИ В МЕНЮ", red, ShowPauseExitConfirmation,
                 new Vector2(0.16f, 0.19f), new Vector2(0.84f, 0.34f));
         }
 
