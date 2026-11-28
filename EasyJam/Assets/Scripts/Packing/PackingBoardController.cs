@@ -51,6 +51,12 @@ namespace TheLastGift.Packing
             world.z = 0f;
 
             if (mouse.leftButton.wasPressedThisFrame) BeginDrag(world);
+            if (Keyboard.current != null && Keyboard.current.vKey.wasPressedThisFrame)
+            {
+                var isValid = TryValidate(out var result);
+                if (isValid) Debug.Log($"[Packing] SUCCESS: {result.Message} ({result.PlacedCount}/{result.TotalCount})", this);
+                else Debug.LogWarning($"[Packing] NOT READY: {result.Message} ({result.PlacedCount}/{result.TotalCount})", this);
+            }
             if (draggedPiece != null)
             {
                 var dragPosition = (Vector2)world + dragOffset;
