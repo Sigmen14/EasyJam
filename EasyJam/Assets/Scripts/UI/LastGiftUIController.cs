@@ -33,8 +33,8 @@ namespace TheLastGift.UI
         [Tooltip("Общий размер шрифта игрового интерфейса. Увеличен для комфортного чтения.")]
         private float uiFontScale = 1.5f;
 
-        [SerializeField, Range(1f, 1f)]
-        [Tooltip("Не уменьшать текст ниже заданного размера: читаемость важнее попытки уместить всё в одну строку.")]
+        [SerializeField, Range(1f, 1.15f)]
+        [Tooltip("Минимальный масштаб текста. Не позволяет мелким подписям становиться меньше исходного размера.")]
         private float minimumFontScale = 1f;
 
         [SerializeField]
@@ -2607,9 +2607,9 @@ namespace TheLastGift.UI
             Text text = textObject.GetComponent<Text>();
             text.font = font;
             text.text = value;
-            int readableSize = Mathf.Max(18, Mathf.RoundToInt(size * uiFontScale));
+            int readableSize = Mathf.Max(18, Mathf.RoundToInt(size * Mathf.Max(1.5f, uiFontScale)));
             int minimumReadableSize = Mathf.Min(readableSize,
-                Mathf.Max(18, Mathf.RoundToInt(size * minimumFontScale)));
+                Mathf.Max(18, Mathf.RoundToInt(size * Mathf.Max(1f, minimumFontScale))));
             text.fontSize = readableSize;
             text.resizeTextForBestFit = true;
             text.resizeTextMinSize = minimumReadableSize;
