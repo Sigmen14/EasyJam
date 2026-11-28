@@ -11,6 +11,19 @@ namespace TheLastGift.UI
     {
         public Action ConfirmPacking, Continue, StartGame;
 
+        [Header("Настройки интерфейса")]
+        [SerializeField, Range(0.8f, 1.8f)]
+        [Tooltip("Общий размер шрифта игрового интерфейса.")]
+        private float uiFontScale = 1.25f;
+
+        [SerializeField, Range(0.65f, 1f)]
+        [Tooltip("Минимальный размер шрифта при автоматической подгонке текста.")]
+        private float minimumFontScale = 0.85f;
+
+        [SerializeField]
+        [Tooltip("Необязательно: собственный шрифт. Если поле пустое, используется встроенный шрифт Unity.")]
+        private Font customFont;
+
         private Canvas canvas;
         private Font font;
         private GameObject root;
@@ -38,39 +51,11 @@ namespace TheLastGift.UI
             }
         }
 
-        // Разные карточки покупателей. Порядок показа перемешивается без
-        // повторов, пока игрок не увидит весь набор.
-        private static readonly CustomerOrderData[] OrderCatalog =
-        {
-            new CustomerOrderData("Аня", "Для мамы:\nмишка и снежный шар",
-                "МИШКА", "СНЕЖНЫЙ ШАР"),
-            new CustomerOrderData("Максим", "Для друга:\nподарок и леденец",
-                "ПОДАРОК", "ЛЕДЕНЕЦ"),
-            new CustomerOrderData("София", "Для сестры:\nмишка, подарок, леденец",
-                "МИШКА", "ПОДАРОК", "ЛЕДЕНЕЦ"),
-            new CustomerOrderData("Дедушка", "Зимний сюрприз:\nшар и леденец",
-                "СНЕЖНЫЙ ШАР", "ЛЕДЕНЕЦ"),
-            new CustomerOrderData("Лиза", "Для подруги:\nмишка и подарок",
-                "МИШКА", "ПОДАРОК"),
-            new CustomerOrderData("Артём", "Один подарок:\nснежный шар",
-                "СНЕЖНЫЙ ШАР"),
-            new CustomerOrderData("Вера", "Для племянника:\nмишка и леденец",
-                "МИШКА", "ЛЕДЕНЕЦ"),
-            new CustomerOrderData("Николай", "Праздничный набор:\nподарок, леденец, шар",
-                "ПОДАРОК", "ЛЕДЕНЕЦ", "СНЕЖНЫЙ ШАР"),
-            new CustomerOrderData("Маша", "Для коллеги:\nодин подарок",
-                "ПОДАРОК"),
-            new CustomerOrderData("Егор", "Зимний набор:\nмишка, шар и подарок",
-                "МИШКА", "СНЕЖНЫЙ ШАР", "ПОДАРОК")
-        };
-
         private static readonly string[] AllGiftNames =
         {
             "МИШКА", "ПОДАРОК", "ЛЕДЕНЕЦ", "СНЕЖНЫЙ ШАР"
         };
 
-        private readonly List<int> shuffledOrderIndices = new List<int>();
-        private int lastOrderIndex = -1;
         private CustomerOrderData currentOrder;
 
         private Sprite teddySprite;
@@ -91,7 +76,9 @@ namespace TheLastGift.UI
         private void Awake()
         {
             EnsureCamera();
-            font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            font = customFont != null
+                ? customFont
+                : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             LoadGiftSprites();
             SetupCanvas();
             MainMenu();
@@ -230,7 +217,10 @@ namespace TheLastGift.UI
                 if (!tutorialShown)
                     ShowTutorial();
                 else
+                {
+                    StartGame?.Invoke();
                     Gameplay();
+                }
             }, new Vector2(0.35f, 0.18f), new Vector2(0.65f, 0.275f));
 
             ButtonAt("ВЫЙТИ", wood, Application.Quit,
@@ -247,13 +237,19 @@ namespace TheLastGift.UI
             ButtonAt("ПОНЯТНО, НАЧИНАЕМ!", green, () =>
             {
                 tutorialShown = true;
+                StartGame?.Invoke();
                 Gameplay();
             }, new Vector2(0.27f, 0.085f), new Vector2(0.73f, 0.19f));
         }
 
         public void Gameplay()
         {
-            EnsureCurrentOrder();
+            if (currentOrder == null)
+            {
+                SetStatus("Не удалось загрузить заказ. Вернись в меню и начни игру заново.", false);
+                return;
+            }
+
             Build("Игровой экран");
             placedGiftCount = 0;
             placedGiftNames.Clear();
@@ -280,6 +276,9 @@ namespace TheLastGift.UI
 
             ButtonAt("ПРОВЕРИТЬ ЗАКАЗ", green, CheckOrder,
                 new Vector2(0.405f, 0.065f), new Vector2(0.665f, 0.155f));
+
+            ButtonAt("ОЧИСТИТЬ КОРОБКУ", red, ClearPackingBox,
+                new Vector2(0.70f, 0.075f), new Vector2(0.965f, 0.145f));
         }
 
         private void BuildCustomerPanel()
@@ -418,14 +417,6 @@ namespace TheLastGift.UI
                 return;
             }
 
-            // Если настоящая система заказов подключена, передаём проверку ей.
-            if (ConfirmPacking != null)
-            {
-                ConfirmPacking.Invoke();
-                SetStatus("Заказ отправлен на проверку.", true);
-                return;
-            }
-
             List<string> missing = new List<string>();
             List<string> unexpected = new List<string>();
 
@@ -452,7 +443,67 @@ namespace TheLastGift.UI
                 return;
             }
 
-            OrderSuccess(25);
+            if (ConfirmPacking != null)
+                ConfirmPacking.Invoke();
+            else
+                OrderSuccess(25);
+        }
+
+        public int PlacedGiftCount => placedGiftCount;
+
+        /// <summary>Applies an order supplied by OrderProgressionManager.</summary>
+        public void SetProgressionOrder(GiftOrderDefinition orderData, int currentDay,
+            int currentOrderNumber, int currentBalance)
+        {
+            if (orderData == null)
+            {
+                currentOrder = null;
+                return;
+            }
+
+            List<string> requiredGifts = new List<string>();
+            if (orderData.GiftNames != null)
+            {
+                for (int i = 0; i < orderData.GiftNames.Count; i++)
+                {
+                    if (!string.IsNullOrWhiteSpace(orderData.GiftNames[i]))
+                        requiredGifts.Add(orderData.GiftNames[i].Trim().ToUpperInvariant());
+                }
+            }
+
+            currentOrder = new CustomerOrderData(
+                orderData.CustomerName,
+                orderData.CustomerWish,
+                requiredGifts.ToArray());
+
+            day = currentDay;
+            order = currentOrderNumber;
+            coins = currentBalance;
+        }
+
+        public void SetProgressionBalance(int currentBalance)
+        {
+            coins = currentBalance;
+        }
+
+        private void ClearPackingBox()
+        {
+            if (packingRect == null)
+                return;
+
+            for (int i = packingRect.childCount - 1; i >= 0; i--)
+            {
+                Transform child = packingRect.GetChild(i);
+                if (child.name.StartsWith("Упакованный подарок", StringComparison.Ordinal))
+                    Destroy(child.gameObject);
+            }
+
+            placedGiftCount = 0;
+            placedGiftNames.Clear();
+            if (packingHint != null)
+                packingHint.gameObject.SetActive(true);
+
+            SetStatus("Коробка очищена. Можно собрать заказ заново.", true);
         }
 
         private int CountGift(IList<string> gifts, string giftName)
@@ -489,41 +540,6 @@ namespace TheLastGift.UI
                 case "СНЕЖНЫЙ ШАР": return "снежный шар";
                 default: return giftName.ToLowerInvariant();
             }
-        }
-
-        private void EnsureCurrentOrder()
-        {
-            if (currentOrder != null)
-                return;
-
-            if (shuffledOrderIndices.Count == 0)
-            {
-                for (int i = 0; i < OrderCatalog.Length; i++)
-                    shuffledOrderIndices.Add(i);
-
-                for (int i = shuffledOrderIndices.Count - 1; i > 0; i--)
-                {
-                    int swapIndex = UnityEngine.Random.Range(0, i + 1);
-                    int value = shuffledOrderIndices[i];
-                    shuffledOrderIndices[i] = shuffledOrderIndices[swapIndex];
-                    shuffledOrderIndices[swapIndex] = value;
-                }
-
-                // Не показываем один и тот же заказ на стыке двух циклов.
-                if (shuffledOrderIndices.Count > 1
-                    && shuffledOrderIndices[shuffledOrderIndices.Count - 1] == lastOrderIndex)
-                {
-                    int swapIndex = UnityEngine.Random.Range(0, shuffledOrderIndices.Count - 1);
-                    int value = shuffledOrderIndices[shuffledOrderIndices.Count - 1];
-                    shuffledOrderIndices[shuffledOrderIndices.Count - 1] = shuffledOrderIndices[swapIndex];
-                    shuffledOrderIndices[swapIndex] = value;
-                }
-            }
-
-            int nextIndex = shuffledOrderIndices[shuffledOrderIndices.Count - 1];
-            shuffledOrderIndices.RemoveAt(shuffledOrderIndices.Count - 1);
-            lastOrderIndex = nextIndex;
-            currentOrder = OrderCatalog[nextIndex];
         }
 
         public void TryDropGift(Sprite sprite, string giftName, Vector2 screenPosition)
@@ -641,21 +657,32 @@ namespace TheLastGift.UI
             }, 0, -250, 380, 70);
         }
 
-        public void FinalScreen()
+        public void FinalScreen(GameSummaryData summary)
         {
             Build("Финал");
-            Card("Последний подарок", "Спасибо, что наполнила лавку теплом и заботой!\nПусть в каждом подарке будет немного рождественского чуда.");
+            string body = summary == null
+                ? "Спасибо, что наполнила лавку теплом и заботой!\\nПусть в каждом подарке будет немного рождественского чуда."
+                : "Ты завершила все три дня!\\nВыполнено заказов: " + summary.OrdersCompleted
+                    + "\\nЗаработано монет: " + summary.TotalCoinsEarned
+                    + "\\nИтоговый баланс: " + summary.FinalCoins
+                    + "\\n\\nСпасибо, что наполнила лавку рождественским чудом!";
+            Card("Последний подарок", body);
             Button("ИГРАТЬ СНОВА", green, () =>
             {
                 day = 1;
                 coins = 0;
                 order = 1;
                 currentOrder = null;
-                lastOrderIndex = -1;
-                shuffledOrderIndices.Clear();
+                placedGiftCount = 0;
+                placedGiftNames.Clear();
                 StartGame?.Invoke();
                 MainMenu();
             }, 0, -250, 340, 70);
+        }
+
+        public void FinalScreen()
+        {
+            FinalScreen(null);
         }
 
         private void SetStatus(string message, bool success)
@@ -744,10 +771,9 @@ namespace TheLastGift.UI
             Text text = textObject.GetComponent<Text>();
             text.font = font;
             text.text = value;
-            // Повышаем базовый размер во всех экранах, оставляя небольшой
-            // диапазон авто-подгонки, чтобы текст не выходил за границы блоков.
-            int readableSize = Mathf.Max(22, Mathf.RoundToInt(size * 1.48f));
-            int minimumReadableSize = Mathf.Min(readableSize, Mathf.Max(18, Mathf.RoundToInt(size * 1.20f)));
+            int readableSize = Mathf.Max(14, Mathf.RoundToInt(size * uiFontScale));
+            int minimumReadableSize = Mathf.Min(readableSize,
+                Mathf.Max(12, Mathf.RoundToInt(size * minimumFontScale)));
             text.fontSize = readableSize;
             text.resizeTextForBestFit = true;
             text.resizeTextMinSize = minimumReadableSize;
@@ -756,7 +782,7 @@ namespace TheLastGift.UI
             text.alignment = alignment;
             text.fontStyle = FontStyle.Bold;
             text.horizontalOverflow = HorizontalWrapMode.Wrap;
-            text.verticalOverflow = VerticalWrapMode.Overflow;
+            text.verticalOverflow = VerticalWrapMode.Truncate;
             text.raycastTarget = false;
             return text;
         }
