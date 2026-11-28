@@ -9,26 +9,608 @@ namespace TheLastGift.UI
     public sealed class LastGiftUIController : MonoBehaviour
     {
         public Action ConfirmPacking, Continue, StartGame;
-        Canvas canvas; Font font; GameObject root; Text feedback; int day=1, coins=0, order=1; bool tutorial=false;
-        readonly Color cream=new Color32(250,239,215,255), paper=new Color32(255,249,235,255), brown=new Color32(82,52,36,255), wood=new Color32(125,82,52,255), red=new Color32(159,52,48,255), green=new Color32(48,96,65,255), gold=new Color32(218,166,74,255);
-        void Awake(){font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"); SetupCanvas(); MainMenu();}
-        void SetupCanvas(){canvas=GetComponentInChildren<Canvas>(); if(!canvas){var c=new GameObject("LastGift Canvas",typeof(RectTransform),typeof(Canvas),typeof(CanvasScaler),typeof(GraphicRaycaster));c.transform.SetParent(transform,false);canvas=c.GetComponent<Canvas>();canvas.renderMode=RenderMode.ScreenSpaceOverlay;canvas.sortingOrder=10;var s=c.GetComponent<CanvasScaler>();s.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;s.referenceResolution=new Vector2(1920,1080);s.matchWidthOrHeight=.5f;} var eventSystem=FindObjectOfType<EventSystem>(); if(!eventSystem){new GameObject("EventSystem",typeof(EventSystem),typeof(StandaloneInputModule));} else if(!eventSystem.GetComponent<BaseInputModule>()){eventSystem.gameObject.AddComponent<StandaloneInputModule>();}}
-        void Build(string name){if(root)Destroy(root);root=new GameObject(name,typeof(RectTransform));root.transform.SetParent(canvas.transform,false);var rt=root.GetComponent<RectTransform>();rt.anchorMin=Vector2.zero;rt.anchorMax=Vector2.one;rt.offsetMin=rt.offsetMax=Vector2.zero;Panel(root.transform,"Backdrop",Vector2.zero,Vector2.one,cream);Panel(root.transform,"Wood border",new Vector2(.015f,.015f),new Vector2(.985f,.985f),wood);Panel(root.transform,"Paper",new Vector2(.022f,.022f),new Vector2(.978f,.978f),cream);Label("❄  ✦  ❅  ✦  ❄  ✦  ❅  ✦  ❄  ✦  ❅  ✦",24,red,new Vector2(0,.92f),new Vector2(1,1),TextAnchor.MiddleCenter);Label("❄  ✦  ❅  ✦  ❄  ✦  ❅  ✦  ❄  ✦  ❅  ✦",24,green,new Vector2(0,0),new Vector2(1,.08f),TextAnchor.MiddleCenter);}
-        public void MainMenu(){Build("Главное меню");Card("Добро пожаловать в «Последний подарок»","Ты открыла маленькую рождественскую лавку!\nПомогай покупателям выбирать и красиво упаковывать подарки.\nЗа каждый выполненный заказ ты будешь получать монеты.\n\nНажми «НАЧАТЬ ИГРУ», чтобы узнать, как всё устроено.");Button("НАЧАТЬ ИГРУ",green,()=>{if(!tutorial)ShowTutorial();else Gameplay();},0,-165,360,72);Button("ВЫЙТИ",wood,()=>Application.Quit(),0,-265,220,54);}
-        public void ShowTutorial(){Build("Обучение");Card("Три шага до идеального подарка","1. Прочитай пожелание покупателя слева.\n2. Выбери подходящие подарки на полке справа.\n3. Перетащи подарки в коробку по центру, не накладывая их друг на друга.\n4. Нажми «ПРОВЕРИТЬ ЗАКАЗ», чтобы завершить упаковку.\n\nВажно: сейчас это демонстрация интерфейса. Перетаскивание и проверка заказа ещё подключаются.");Button("ПОНЯТНО, НАЧИНАЕМ!",green,()=>{tutorial=true;Gameplay();},0,-175,390,72);}
-        public void Gameplay(){Build("Gameplay HUD");Panel(root.transform,"Top bar",new Vector2(0,1),new Vector2(1,1),new Vector2(0,145),new Vector2(0,-70),wood);Label("ПОСЛЕДНИЙ ПОДАРОК ✦",30,cream,new Vector2(.02f,.91f),new Vector2(.32f,1),TextAnchor.MiddleLeft);Label("ДЕНЬ "+day,22,cream,new Vector2(.34f,.91f),new Vector2(.51f,1),TextAnchor.MiddleCenter);Label("✦ "+coins,24,gold,new Vector2(.52f,.91f),new Vector2(.72f,1),TextAnchor.MiddleCenter);Label("ЗАКАЗ №"+order.ToString("00"),22,cream,new Vector2(.73f,.91f),new Vector2(.98f,1),TextAnchor.MiddleRight);
-            Panel(root.transform,"Customer card",new Vector2(.035f,.17f),new Vector2(.28f,.86f),paper);Label("ВАШ ПОКУПАТЕЛЬ",18,green,new Vector2(.05f,.79f),new Vector2(.26f,.85f),TextAnchor.MiddleCenter);Panel(root.transform,"Portrait",new Vector2(.09f,.53f),new Vector2(.22f,.73f),gold);Label("☺",90,red,new Vector2(.09f,.53f),new Vector2(.22f,.73f),TextAnchor.MiddleCenter);Label("Гость лавки",27,brown,new Vector2(.05f,.44f),new Vector2(.26f,.52f),TextAnchor.MiddleCenter);Label("«Хочу порадовать\nдорогого человека!»",22,brown,new Vector2(.05f,.32f),new Vector2(.26f,.43f),TextAnchor.MiddleCenter);Label("НУЖНО УПАКОВАТЬ",18,green,new Vector2(.05f,.23f),new Vector2(.26f,.30f),TextAnchor.MiddleCenter);Chip("🎁\nСЮРПРИЗ",red,new Vector2(.12f,.18f));Chip("⭐\nЗВЕЗДА",gold,new Vector2(.21f,.18f));
-            Panel(root.transform,"Snow window",new Vector2(.35f,.55f),new Vector2(.65f,.85f),new Color32(185,216,231,255));Label("❄     ❅\n     ❄       ❅\n❅       ❄",45,paper,new Vector2(.35f,.55f),new Vector2(.65f,.85f),TextAnchor.MiddleCenter);Panel(root.transform,"Packing table",new Vector2(.30f,.07f),new Vector2(.70f,.53f),new Color32(217,191,157,255));Label("МЕСТО ДЛЯ УПАКОВКИ",19,wood,new Vector2(.30f,.49f),new Vector2(.70f,.54f),TextAnchor.MiddleCenter);Panel(root.transform,"Box placeholder",new Vector2(.37f,.14f),new Vector2(.63f,.44f),paper);Label("ПОЛЕ УПАКОВКИ\nПока не подключено",24,wood,new Vector2(.37f,.14f),new Vector2(.63f,.44f),TextAnchor.MiddleCenter);Panel(root.transform,"Shelf",new Vector2(.73f,.16f),new Vector2(.96f,.85f),paper);Label("ПОЛКА С ПОДАРКАМИ",20,green,new Vector2(.74f,.79f),new Vector2(.95f,.84f),TextAnchor.MiddleCenter);Chip("🧸 МИШКА",wood,new Vector2(.79f,.65f));Chip("⭐ ЗВЕЗДА",gold,new Vector2(.89f,.65f));Chip("🎁 КОРОБКА",red,new Vector2(.79f,.46f));Chip("🕯 СВЕЧА",green,new Vector2(.89f,.46f));Label("Демонстрационный экран\nМеханика упаковки ещё подключается",17,wood,new Vector2(.74f,.25f),new Vector2(.95f,.38f),TextAnchor.MiddleCenter);feedback=Label("",21,red,new Vector2(.25f,.015f),new Vector2(.75f,.08f),TextAnchor.MiddleCenter);Button("ПРОВЕРИТЬ ЗАКАЗ",red,()=>ConfirmPacking?.Invoke(),0,75,330,68);Button("В МЕНЮ",wood,MainMenu,-800,0,150,55);}
-        public void PackingFeedback(string msg,bool ok){if(feedback){feedback.text=msg;feedback.color=ok?green:red;}if(ok&&feedback)StartCoroutine(Pop(feedback.transform));}
-        public void OrderSuccess(int earned){coins+=earned;order++;Build("Order Success");Card("Заказ выполнен!","Покупатель доволен! Ты заработала монеты.");Label("+ "+earned+" МОНЕТ ✦",46,gold,new Vector2(.25f,.43f),new Vector2(.75f,.60f),TextAnchor.MiddleCenter);Button("СЛЕДУЮЩИЙ ПОКУПАТЕЛЬ",green,()=>{Continue?.Invoke();Gameplay();},0,-145,340,70);}
-        public void DayEnd(int orders,int earnings){day++;Build("Day End");Card("Рабочий день окончен!","Выполнено заказов: "+orders+"\nЗаработано монет: "+earnings+"\n\nОтличная работа! Завтра лавка снова откроется.");Button("НАЧАТЬ НОВЫЙ ДЕНЬ",green,()=>{Continue?.Invoke();Gameplay();},0,-145,350,70);}
-        public void FinalScreen(){Build("Final");Card("The Last Gift","Спасибо, что наполнила лавку теплом и заботой!\nПусть в каждом подарке будет немного рождественского чуда.");Button("ИГРАТЬ СНОВА",green,()=>{day=1;coins=0;order=1;StartGame?.Invoke();MainMenu();},0,-145,340,70);}
-        void Card(string title,string body){Panel(root.transform,"Тень карточки",new Vector2(.5f,.5f),new Vector2(.5f,.5f),new Vector2(700,470),new Vector2(14,-12),wood);Panel(root.transform,"Карточка",new Vector2(.5f,.5f),new Vector2(.5f,.5f),new Vector2(700,470),Vector2.zero,paper);Label(title,36,green,new Vector2(.5f,.65f),new Vector2(.5f,.65f),TextAnchor.MiddleCenter,new Vector2(630,85));Label(body,23,brown,new Vector2(.5f,.46f),new Vector2(.5f,.46f),TextAnchor.MiddleCenter,new Vector2(620,220));}
-        void Chip(string text,Color color,Vector2 anchor){Panel(root.transform,"Gift chip",anchor-new Vector2(.04f,.045f),anchor+new Vector2(.04f,.045f),color);Label(text,19,paper,anchor-new Vector2(.04f,.045f),anchor+new Vector2(.04f,.045f),TextAnchor.MiddleCenter);}
-        void Panel(Transform p,string name,Vector2 min,Vector2 max,Color color){Panel(p,name,min,max,Vector2.zero,Vector2.zero,color);}
-        void Panel(Transform p,string name,Vector2 min,Vector2 max,Vector2 size,Vector2 pos,Color color){var g=new GameObject(name,typeof(RectTransform),typeof(Image));g.transform.SetParent(p,false);var r=g.GetComponent<RectTransform>();r.anchorMin=min;r.anchorMax=max;r.sizeDelta=size;r.anchoredPosition=pos;g.GetComponent<Image>().color=color;}
-        Text Label(string str,int size,Color c,Vector2 min,Vector2 max,TextAnchor a,Vector2 delta=default){var g=new GameObject("Text",typeof(RectTransform),typeof(Text));g.transform.SetParent(root.transform,false);var r=g.GetComponent<RectTransform>();r.anchorMin=min;r.anchorMax=max;r.sizeDelta=delta;var t=g.GetComponent<Text>();t.font=font;t.text=str;t.fontSize=size;t.color=c;t.alignment=a;t.fontStyle=FontStyle.Bold;t.horizontalOverflow=HorizontalWrapMode.Wrap;t.verticalOverflow=VerticalWrapMode.Overflow;return t;}
-        void Button(string caption,Color c,Action act,float x,float y,float w,float h){var g=new GameObject("Button "+caption,typeof(RectTransform),typeof(Image),typeof(Button));g.transform.SetParent(root.transform,false);var r=g.GetComponent<RectTransform>();r.anchorMin=r.anchorMax=new Vector2(.5f,.5f);r.sizeDelta=new Vector2(w,h);r.anchoredPosition=new Vector2(x,y);g.GetComponent<Image>().color=c;var b=g.GetComponent<Button>();var cb=b.colors;cb.highlightedColor=Color.Lerp(c,Color.white,.2f);cb.pressedColor=Color.Lerp(c,Color.black,.15f);b.colors=cb;b.onClick.AddListener(()=>act?.Invoke());var t=Label(caption,23,paper,Vector2.zero,Vector2.one,TextAnchor.MiddleCenter);t.transform.SetParent(g.transform,false);t.raycastTarget=false;}
-        IEnumerator Pop(Transform tr){tr.localScale=Vector3.one*.8f;float elapsed=0;while(elapsed<.2f){elapsed+=Time.unscaledDeltaTime;if(tr)tr.localScale=Vector3.Lerp(Vector3.one*.8f,Vector3.one,elapsed/.2f);yield return null;}if(tr)tr.localScale=Vector3.one;}
+
+        private Canvas canvas;
+        private Font font;
+        private GameObject root;
+        private Text feedback;
+        private RectTransform packingRect;
+        private Text packingHint;
+        private int day = 1;
+        private int coins = 0;
+        private int order = 1;
+        private int placedGiftCount = 0;
+        private bool tutorialShown = false;
+
+        private Sprite teddySprite;
+        private Sprite giftBoxSprite;
+        private Sprite candyCaneSprite;
+        private Sprite snowGlobeSprite;
+        private Texture2D giftAtlas;
+
+        private readonly Color cream = new Color32(250, 239, 215, 255);
+        private readonly Color paper = new Color32(255, 249, 235, 255);
+        private readonly Color brown = new Color32(82, 52, 36, 255);
+        private readonly Color wood = new Color32(125, 82, 52, 255);
+        private readonly Color red = new Color32(159, 52, 48, 255);
+        private readonly Color green = new Color32(48, 96, 65, 255);
+        private readonly Color gold = new Color32(218, 166, 74, 255);
+        private readonly Color paleBlue = new Color32(224, 239, 244, 255);
+
+        private void Awake()
+        {
+            font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            LoadGiftSprites();
+            SetupCanvas();
+            MainMenu();
+        }
+
+        private void LoadGiftSprites()
+        {
+            giftAtlas = Resources.Load<Texture2D>("LastGift/GiftIcons");
+            if (giftAtlas == null)
+                return;
+
+            teddySprite = Sprite.Create(giftAtlas, new Rect(0, 0, 96, 96), new Vector2(0.5f, 0.5f), 96);
+            giftBoxSprite = Sprite.Create(giftAtlas, new Rect(96, 0, 96, 96), new Vector2(0.5f, 0.5f), 96);
+            candyCaneSprite = Sprite.Create(giftAtlas, new Rect(0, 96, 96, 96), new Vector2(0.5f, 0.5f), 96);
+            snowGlobeSprite = Sprite.Create(giftAtlas, new Rect(96, 96, 96, 96), new Vector2(0.5f, 0.5f), 96);
+        }
+
+        private void SetupCanvas()
+        {
+            canvas = GetComponentInChildren<Canvas>();
+            if (canvas == null)
+            {
+                GameObject canvasObject = new GameObject(
+                    "LastGift Canvas",
+                    typeof(RectTransform),
+                    typeof(Canvas),
+                    typeof(CanvasScaler),
+                    typeof(GraphicRaycaster));
+
+                canvasObject.transform.SetParent(transform, false);
+                canvas = canvasObject.GetComponent<Canvas>();
+                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                canvas.sortingOrder = 10;
+
+                CanvasScaler scaler = canvasObject.GetComponent<CanvasScaler>();
+                scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+                scaler.referenceResolution = new Vector2(1920, 1080);
+                scaler.matchWidthOrHeight = 0.5f;
+            }
+
+            EventSystem eventSystem = FindObjectOfType<EventSystem>();
+            if (eventSystem == null)
+            {
+                new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+            }
+            else if (!eventSystem.GetComponent<BaseInputModule>())
+            {
+                eventSystem.gameObject.AddComponent<StandaloneInputModule>();
+            }
+        }
+
+        private void Build(string screenName)
+        {
+            if (root != null)
+                Destroy(root);
+
+            root = new GameObject(screenName, typeof(RectTransform));
+            root.transform.SetParent(canvas.transform, false);
+
+            RectTransform rootRect = root.GetComponent<RectTransform>();
+            rootRect.anchorMin = Vector2.zero;
+            rootRect.anchorMax = Vector2.one;
+            rootRect.offsetMin = Vector2.zero;
+            rootRect.offsetMax = Vector2.zero;
+
+            Panel(root.transform, "Фон", Vector2.zero, Vector2.one, cream);
+            Panel(root.transform, "Деревянная рамка", new Vector2(0.012f, 0.012f), new Vector2(0.988f, 0.988f), wood);
+            Panel(root.transform, "Бумажный фон", new Vector2(0.019f, 0.019f), new Vector2(0.981f, 0.981f), cream);
+
+            Label("❄     ✦     ❅     ✦     ❄     ✦     ❅     ✦     ❄", 20, red,
+                new Vector2(0.02f, 0.925f), new Vector2(0.98f, 0.985f), TextAnchor.MiddleCenter);
+            Label("✦     ❅     ✦     ❄     ✦     ❅     ✦     ❄", 18, green,
+                new Vector2(0.02f, 0.025f), new Vector2(0.98f, 0.075f), TextAnchor.MiddleCenter);
+        }
+
+        public void MainMenu()
+        {
+            Build("Главное меню");
+            Card(
+                "Добро пожаловать в «Последний подарок»",
+                "Ты открыла маленькую рождественскую лавку!\\n\\nПомогай покупателям собирать и упаковывать подарки.\\nЗа выполненные заказы лавка получает монеты.\\n\\nВсё управление объяснимо прямо во время игры.");
+
+            Button("НАЧАТЬ ИГРУ", green, () =>
+            {
+                if (!tutorialShown)
+                    ShowTutorial();
+                else
+                    Gameplay();
+            }, 0, -235, 360, 72);
+
+            Button("ВЫЙТИ", wood, Application.Quit, 0, -325, 220, 54);
+        }
+
+        public void ShowTutorial()
+        {
+            Build("Обучение");
+            Card(
+                "Как играть",
+                "1. Слева прочитай пожелание покупателя.\\n\\n2. Справа выбери подарок на полке.\\n\\n3. Зажми подарок мышью и перетащи его в коробку по центру.\\n\\n4. Когда закончишь, нажми зелёную кнопку «ПРОВЕРИТЬ ЗАКАЗ».\\n\\nПодарки можно перетаскивать по одному. Попробуй!");
+
+            Button("ПОНЯТНО, НАЧИНАЕМ!", green, () =>
+            {
+                tutorialShown = true;
+                Gameplay();
+            }, 0, -255, 420, 72);
+        }
+
+        public void Gameplay()
+        {
+            Build("Игровой экран");
+            placedGiftCount = 0;
+
+            Panel(root.transform, "Верхняя панель", new Vector2(0.02f, 0.875f), new Vector2(0.98f, 0.925f), wood);
+            Label("ПОСЛЕДНИЙ ПОДАРОК ✦", 25, cream,
+                new Vector2(0.035f, 0.875f), new Vector2(0.34f, 0.925f), TextAnchor.MiddleLeft);
+            Label("ДЕНЬ " + day, 21, cream,
+                new Vector2(0.37f, 0.875f), new Vector2(0.51f, 0.925f), TextAnchor.MiddleCenter);
+            Label("✦ " + coins, 21, gold,
+                new Vector2(0.54f, 0.875f), new Vector2(0.66f, 0.925f), TextAnchor.MiddleCenter);
+            Label("ЗАКАЗ №" + order.ToString("00"), 21, cream,
+                new Vector2(0.75f, 0.875f), new Vector2(0.96f, 0.925f), TextAnchor.MiddleRight);
+
+            BuildCustomerPanel();
+            BuildPackingArea();
+            BuildGiftShelf();
+
+            feedback = Label("Перетащи подарки с правой полки в коробку по центру.",
+                18, brown, new Vector2(0.285f, 0.18f), new Vector2(0.715f, 0.235f), TextAnchor.MiddleCenter);
+
+            ButtonAt("В МЕНЮ", wood, MainMenu,
+                new Vector2(0.035f, 0.075f), new Vector2(0.19f, 0.145f));
+
+            ButtonAt("ПРОВЕРИТЬ ЗАКАЗ", green, CheckOrder,
+                new Vector2(0.405f, 0.065f), new Vector2(0.665f, 0.155f));
+        }
+
+        private void BuildCustomerPanel()
+        {
+            Panel(root.transform, "Карточка покупателя",
+                new Vector2(0.025f, 0.205f), new Vector2(0.265f, 0.855f), paper);
+
+            Label("ВАШ ПОКУПАТЕЛЬ", 18, green,
+                new Vector2(0.04f, 0.795f), new Vector2(0.25f, 0.845f), TextAnchor.MiddleCenter);
+
+            Panel(root.transform, "Портрет покупателя",
+                new Vector2(0.055f, 0.66f), new Vector2(0.125f, 0.775f), gold);
+            Label("☺", 66, red,
+                new Vector2(0.055f, 0.66f), new Vector2(0.125f, 0.775f), TextAnchor.MiddleCenter);
+            Label("Гость лавки", 22, brown,
+                new Vector2(0.135f, 0.69f), new Vector2(0.25f, 0.77f), TextAnchor.MiddleCenter);
+
+            Panel(root.transform, "Пожелание", new Vector2(0.045f, 0.515f), new Vector2(0.245f, 0.635f), cream);
+            Label("«Хочу порадовать\\nдорогого человека!»", 19, brown,
+                new Vector2(0.05f, 0.52f), new Vector2(0.24f, 0.63f), TextAnchor.MiddleCenter);
+
+            Label("В ЗАКАЗЕ НУЖНО", 17, green,
+                new Vector2(0.045f, 0.435f), new Vector2(0.245f, 0.49f), TextAnchor.MiddleCenter);
+
+            AddRequestedGift(teddySprite, "Мишка", new Vector2(0.055f, 0.285f), new Vector2(0.115f, 0.415f));
+            AddRequestedGift(giftBoxSprite, "Подарок", new Vector2(0.125f, 0.285f), new Vector2(0.185f, 0.415f));
+            AddRequestedGift(candyCaneSprite, "Леденец", new Vector2(0.195f, 0.285f), new Vector2(0.255f, 0.415f));
+        }
+
+        private void BuildPackingArea()
+        {
+            Label("КОРОБКА ДЛЯ УПАКОВКИ", 21, green,
+                new Vector2(0.29f, 0.785f), new Vector2(0.71f, 0.84f), TextAnchor.MiddleCenter);
+            Label("Перетаскивай сюда подарки с полки справа", 16, brown,
+                new Vector2(0.29f, 0.745f), new Vector2(0.71f, 0.785f), TextAnchor.MiddleCenter);
+
+            Panel(root.transform, "Стол упаковки",
+                new Vector2(0.285f, 0.265f), new Vector2(0.715f, 0.725f), new Color32(216, 190, 156, 255));
+
+            packingRect = Panel(root.transform, "Коробка",
+                new Vector2(0.315f, 0.295f), new Vector2(0.685f, 0.695f), paper);
+
+            for (int i = 1; i < 3; i++)
+            {
+                float p = i / 3f;
+                Panel(packingRect, "Вертикальная линия",
+                    new Vector2(p - 0.0015f, 0f), new Vector2(p + 0.0015f, 1f), new Color32(225, 209, 181, 255));
+                Panel(packingRect, "Горизонтальная линия",
+                    new Vector2(0f, p - 0.002f), new Vector2(1f, p + 0.002f), new Color32(225, 209, 181, 255));
+            }
+
+            packingHint = Label("ПЕРЕТАЩИ СЮДА ПОДАРОК", 19, wood,
+                new Vector2(0.32f, 0.43f), new Vector2(0.68f, 0.56f), TextAnchor.MiddleCenter);
+        }
+
+        private void BuildGiftShelf()
+        {
+            Panel(root.transform, "Полка с подарками",
+                new Vector2(0.735f, 0.205f), new Vector2(0.975f, 0.855f), paper);
+            Label("ПОДАРКИ НА ПОЛКЕ", 18, green,
+                new Vector2(0.75f, 0.795f), new Vector2(0.96f, 0.845f), TextAnchor.MiddleCenter);
+            Label("Зажми предмет и перетащи его", 14, brown,
+                new Vector2(0.75f, 0.755f), new Vector2(0.96f, 0.795f), TextAnchor.MiddleCenter);
+
+            AddShelfGift("МИШКА", teddySprite, new Vector2(0.755f, 0.535f), new Vector2(0.855f, 0.735f), wood);
+            AddShelfGift("ПОДАРОК", giftBoxSprite, new Vector2(0.865f, 0.535f), new Vector2(0.965f, 0.735f), red);
+            AddShelfGift("ЛЕДЕНЕЦ", candyCaneSprite, new Vector2(0.755f, 0.305f), new Vector2(0.855f, 0.505f), red);
+            AddShelfGift("СНЕЖНЫЙ ШАР", snowGlobeSprite, new Vector2(0.865f, 0.305f), new Vector2(0.965f, 0.505f), green);
+        }
+
+        private void AddRequestedGift(Sprite sprite, string caption, Vector2 min, Vector2 max)
+        {
+            Image image = ImageAt(root.transform, "Подарок в заказе", min, max, sprite, Color.white);
+            if (image == null)
+            {
+                Label(caption, 13, brown, min, max, TextAnchor.MiddleCenter);
+                return;
+            }
+
+            image.preserveAspect = true;
+            Label(caption, 13, brown,
+                new Vector2(min.x - 0.005f, min.y - 0.04f),
+                new Vector2(max.x + 0.005f, min.y + 0.005f),
+                TextAnchor.MiddleCenter);
+        }
+
+        private void AddShelfGift(string caption, Sprite sprite, Vector2 min, Vector2 max, Color tileColor)
+        {
+            GameObject tile = new GameObject("Подарок " + caption, typeof(RectTransform), typeof(Image));
+            tile.transform.SetParent(root.transform, false);
+
+            RectTransform rect = tile.GetComponent<RectTransform>();
+            rect.anchorMin = min;
+            rect.anchorMax = max;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            Image background = tile.GetComponent<Image>();
+            background.color = tileColor;
+            background.raycastTarget = true;
+
+            Image icon = ImageAt(tile.transform, "Картинка " + caption,
+                new Vector2(0.10f, 0.22f), new Vector2(0.90f, 0.94f), sprite, Color.white);
+
+            if (icon == null)
+            {
+                Text fallback = Label(caption, 15, paper, min, max, TextAnchor.MiddleCenter);
+                fallback.transform.SetParent(tile.transform, false);
+            }
+            else
+            {
+                icon.preserveAspect = true;
+                Text captionText = ChildLabel(tile.transform, caption, 13, paper,
+                    new Vector2(0.02f, 0.02f), new Vector2(0.98f, 0.24f), TextAnchor.MiddleCenter);
+                captionText.raycastTarget = false;
+            }
+
+            LastGiftDraggableGift draggable = tile.AddComponent<LastGiftDraggableGift>();
+            draggable.Initialize(this, sprite, caption);
+        }
+
+        private void CheckOrder()
+        {
+            if (placedGiftCount == 0)
+            {
+                SetStatus("Сначала перетащи хотя бы один подарок в коробку.", false);
+                return;
+            }
+
+            if (ConfirmPacking == null)
+            {
+                SetStatus("Подарки в коробке! Проверка правильности заказа ещё не подключена.", false);
+                return;
+            }
+
+            ConfirmPacking.Invoke();
+            SetStatus("Заказ передан системе проверки.", true);
+        }
+
+        public void TryDropGift(Sprite sprite, string giftName, Vector2 screenPosition)
+        {
+            if (packingRect == null || !RectTransformUtility.RectangleContainsScreenPoint(packingRect, screenPosition, null))
+            {
+                SetStatus("Отпусти подарок над коробкой, чтобы положить его внутрь.", false);
+                return;
+            }
+
+            if (sprite == null)
+            {
+                SetStatus("Не удалось загрузить картинку подарка.", false);
+                return;
+            }
+
+            if (placedGiftCount >= 9)
+            {
+                SetStatus("Коробка заполнена. В ней больше нет места.", false);
+                return;
+            }
+
+            int column = placedGiftCount % 3;
+            int row = placedGiftCount / 3;
+
+            GameObject placed = new GameObject("Упакованный подарок " + giftName, typeof(RectTransform), typeof(Image));
+            placed.transform.SetParent(packingRect, false);
+
+            RectTransform rect = placed.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(column / 3f, row / 3f);
+            rect.anchorMax = new Vector2((column + 1) / 3f, (row + 1) / 3f);
+            rect.offsetMin = new Vector2(7, 7);
+            rect.offsetMax = new Vector2(-7, -7);
+
+            Image image = placed.GetComponent<Image>();
+            image.sprite = sprite;
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+
+            placedGiftCount++;
+
+            if (packingHint != null)
+                packingHint.gameObject.SetActive(false);
+
+            SetStatus("Подарок «" + giftName + "» помещён в коробку. Можно добавить ещё.", true);
+        }
+
+        public GameObject CreateDragPreview(Sprite sprite, Vector2 screenPosition)
+        {
+            if (sprite == null)
+                return null;
+
+            GameObject preview = new GameObject("Перетаскиваемый подарок", typeof(RectTransform), typeof(CanvasGroup), typeof(Image));
+            preview.transform.SetParent(canvas.transform, false);
+
+            RectTransform rect = preview.GetComponent<RectTransform>();
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.sizeDelta = new Vector2(125, 125);
+            rect.position = screenPosition;
+
+            Image image = preview.GetComponent<Image>();
+            image.sprite = sprite;
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+
+            CanvasGroup group = preview.GetComponent<CanvasGroup>();
+            group.alpha = 0.85f;
+            group.blocksRaycasts = false;
+
+            preview.transform.SetAsLastSibling();
+            return preview;
+        }
+
+        public void MoveDragPreview(GameObject preview, Vector2 screenPosition)
+        {
+            if (preview != null)
+                preview.transform.position = screenPosition;
+        }
+
+        public void PackingFeedback(string message, bool success)
+        {
+            SetStatus(message, success);
+            if (success && feedback != null)
+                StartCoroutine(Pop(feedback.transform));
+        }
+
+        public void OrderSuccess(int earned)
+        {
+            coins += earned;
+            order++;
+            Build("Заказ выполнен");
+            Card("Заказ выполнен!", "Покупатель доволен!\\nТы заработала монеты и помогла сделать чей-то праздник теплее.");
+            Label("+ " + earned + " МОНЕТ ✦", 44, gold,
+                new Vector2(0.25f, 0.40f), new Vector2(0.75f, 0.58f), TextAnchor.MiddleCenter);
+            Button("СЛЕДУЮЩИЙ ПОКУПАТЕЛЬ", green, () =>
+            {
+                Continue?.Invoke();
+                Gameplay();
+            }, 0, -250, 430, 70);
+        }
+
+        public void DayEnd(int orders, int earnings)
+        {
+            day++;
+            Build("Конец дня");
+            Card("Рабочий день окончен!", "Выполнено заказов: " + orders + "\\nЗаработано монет: " + earnings + "\\n\\nОтличная работа! Завтра лавка снова откроется.");
+            Button("НАЧАТЬ НОВЫЙ ДЕНЬ", green, () =>
+            {
+                Continue?.Invoke();
+                Gameplay();
+            }, 0, -250, 380, 70);
+        }
+
+        public void FinalScreen()
+        {
+            Build("Финал");
+            Card("Последний подарок", "Спасибо, что наполнила лавку теплом и заботой!\\nПусть в каждом подарке будет немного рождественского чуда.");
+            Button("ИГРАТЬ СНОВА", green, () =>
+            {
+                day = 1;
+                coins = 0;
+                order = 1;
+                StartGame?.Invoke();
+                MainMenu();
+            }, 0, -250, 340, 70);
+        }
+
+        private void SetStatus(string message, bool success)
+        {
+            if (feedback == null)
+                return;
+
+            feedback.text = message;
+            feedback.color = success ? green : red;
+        }
+
+        private void Card(string title, string body)
+        {
+            Panel(root.transform, "Тень карточки",
+                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                new Vector2(780, 430), new Vector2(14, -12), wood);
+            Panel(root.transform, "Карточка",
+                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                new Vector2(780, 430), Vector2.zero, paper);
+
+            Label(title, 34, green,
+                new Vector2(0.25f, 0.56f), new Vector2(0.75f, 0.64f),
+                TextAnchor.MiddleCenter);
+            Label(body, 21, brown,
+                new Vector2(0.30f, 0.33f), new Vector2(0.70f, 0.55f),
+                TextAnchor.MiddleCenter);
+        }
+
+        private RectTransform Panel(Transform parent, string objectName, Vector2 min, Vector2 max, Color color)
+        {
+            return Panel(parent, objectName, min, max, Vector2.zero, Vector2.zero, color);
+        }
+
+        private RectTransform Panel(Transform parent, string objectName, Vector2 min, Vector2 max, Vector2 size, Vector2 position, Color color)
+        {
+            GameObject panel = new GameObject(objectName, typeof(RectTransform), typeof(Image));
+            panel.transform.SetParent(parent, false);
+
+            RectTransform rect = panel.GetComponent<RectTransform>();
+            rect.anchorMin = min;
+            rect.anchorMax = max;
+            rect.sizeDelta = size;
+            rect.anchoredPosition = position;
+
+            Image image = panel.GetComponent<Image>();
+            image.color = color;
+            image.raycastTarget = false;
+            return rect;
+        }
+
+        private Text Label(string value, int size, Color color, Vector2 min, Vector2 max, TextAnchor alignment)
+        {
+            return CreateText(root.transform, value, size, color, min, max, alignment, Vector2.zero);
+        }
+
+        private Text ChildLabel(Transform parent, string value, int size, Color color, Vector2 min, Vector2 max, TextAnchor alignment)
+        {
+            return CreateText(parent, value, size, color, min, max, alignment, Vector2.zero);
+        }
+
+        private Text CreateText(Transform parent, string value, int size, Color color, Vector2 min, Vector2 max, TextAnchor alignment, Vector2 sizeDelta)
+        {
+            GameObject textObject = new GameObject("Текст", typeof(RectTransform), typeof(Text));
+            textObject.transform.SetParent(parent, false);
+
+            RectTransform rect = textObject.GetComponent<RectTransform>();
+            rect.anchorMin = min;
+            rect.anchorMax = max;
+            rect.sizeDelta = sizeDelta;
+
+            Text text = textObject.GetComponent<Text>();
+            text.font = font;
+            text.text = value;
+            text.fontSize = size;
+            text.color = color;
+            text.alignment = alignment;
+            text.fontStyle = FontStyle.Bold;
+            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.verticalOverflow = VerticalWrapMode.Overflow;
+            text.raycastTarget = false;
+            return text;
+        }
+
+        private Image ImageAt(Transform parent, string objectName, Vector2 min, Vector2 max, Sprite sprite, Color color)
+        {
+            if (sprite == null)
+                return null;
+
+            GameObject imageObject = new GameObject(objectName, typeof(RectTransform), typeof(Image));
+            imageObject.transform.SetParent(parent, false);
+
+            RectTransform rect = imageObject.GetComponent<RectTransform>();
+            rect.anchorMin = min;
+            rect.anchorMax = max;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            Image image = imageObject.GetComponent<Image>();
+            image.sprite = sprite;
+            image.color = color;
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+            return image;
+        }
+
+        private void Button(string caption, Color color, Action action, float x, float y, float width, float height)
+        {
+            GameObject buttonObject = new GameObject("Кнопка " + caption, typeof(RectTransform), typeof(Image), typeof(Button));
+            buttonObject.transform.SetParent(root.transform, false);
+
+            RectTransform rect = buttonObject.GetComponent<RectTransform>();
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.sizeDelta = new Vector2(width, height);
+            rect.anchoredPosition = new Vector2(x, y);
+
+            Image background = buttonObject.GetComponent<Image>();
+            background.color = color;
+
+            Button button = buttonObject.GetComponent<Button>();
+            ColorBlock colors = button.colors;
+            colors.normalColor = color;
+            colors.highlightedColor = Color.Lerp(color, Color.white, 0.18f);
+            colors.pressedColor = Color.Lerp(color, Color.black, 0.18f);
+            colors.selectedColor = Color.Lerp(color, Color.white, 0.12f);
+            button.colors = colors;
+            button.onClick.AddListener(() => action?.Invoke());
+
+            Text label = ChildLabel(buttonObject.transform, caption, 18, paper,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+            label.raycastTarget = false;
+        }
+
+        private void ButtonAt(string caption, Color color, Action action, Vector2 min, Vector2 max)
+        {
+            GameObject buttonObject = new GameObject("Кнопка " + caption, typeof(RectTransform), typeof(Image), typeof(Button));
+            buttonObject.transform.SetParent(root.transform, false);
+
+            RectTransform rect = buttonObject.GetComponent<RectTransform>();
+            rect.anchorMin = min;
+            rect.anchorMax = max;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            Image background = buttonObject.GetComponent<Image>();
+            background.color = color;
+
+            Button button = buttonObject.GetComponent<Button>();
+            ColorBlock colors = button.colors;
+            colors.normalColor = color;
+            colors.highlightedColor = Color.Lerp(color, Color.white, 0.18f);
+            colors.pressedColor = Color.Lerp(color, Color.black, 0.18f);
+            colors.selectedColor = Color.Lerp(color, Color.white, 0.12f);
+            button.colors = colors;
+            button.onClick.AddListener(() => action?.Invoke());
+
+            Text label = ChildLabel(buttonObject.transform, caption, 18, paper,
+                Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
+            label.raycastTarget = false;
+        }
+
+        private IEnumerator Pop(Transform target)
+        {
+            target.localScale = Vector3.one * 0.85f;
+            float elapsed = 0f;
+
+            while (elapsed < 0.2f)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                if (target != null)
+                    target.localScale = Vector3.Lerp(Vector3.one * 0.85f, Vector3.one, elapsed / 0.2f);
+                yield return null;
+            }
+
+            if (target != null)
+                target.localScale = Vector3.one;
+        }
     }
 }
