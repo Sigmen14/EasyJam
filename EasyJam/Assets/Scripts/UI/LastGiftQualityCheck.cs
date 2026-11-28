@@ -264,7 +264,8 @@ namespace TheLastGift.UI
 
             if (qualityTaskItem != null)
                 Destroy(qualityTaskItem.gameObject);
-            if (qualityTaskTarget != null)
+            if (qualityTaskTarget != null
+                && (qualityTaskItem == null || qualityTaskTarget.gameObject != qualityTaskItem.gameObject))
                 Destroy(qualityTaskTarget.gameObject);
 
             qualityTaskItem = null;
