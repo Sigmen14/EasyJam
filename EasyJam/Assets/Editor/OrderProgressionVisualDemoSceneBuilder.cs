@@ -55,6 +55,8 @@ public static class OrderProgressionVisualDemoSceneBuilder
         if (root == null)
             root = new GameObject(RootObjectName);
 
+        EnsureDemoCamera(scene);
+
         // Keep Awake from running until all serialized references have been assigned.
         root.SetActive(false);
 
@@ -88,6 +90,32 @@ public static class OrderProgressionVisualDemoSceneBuilder
 
         EditorUtility.DisplayDialog("Visual Order Demo Ready",
             "The separate demo scene has been created or repaired.\n\nPress Play and use the packing-result buttons to progress through all 9 orders.\n\nThe original SampleScene was not changed.", "OK");
+    }
+
+    private static void EnsureDemoCamera(Scene scene)
+    {
+        GameObject[] roots = scene.GetRootGameObjects();
+        for (int i = 0; i < roots.Length; i++)
+        {
+            Camera existingCamera = roots[i].GetComponentInChildren<Camera>(true);
+            if (existingCamera != null)
+                return;
+        }
+
+        GameObject cameraObject = new GameObject("Order Progression Demo Camera");
+        SceneManager.MoveGameObjectToScene(cameraObject, scene);
+        cameraObject.tag = "MainCamera";
+        cameraObject.transform.position = new Vector3(0f, 0f, -10f);
+
+        Camera demoCamera = cameraObject.AddComponent<Camera>();
+        demoCamera.clearFlags = CameraClearFlags.SolidColor;
+        demoCamera.backgroundColor = new Color32(244, 239, 229, 255);
+        demoCamera.orthographic = true;
+        demoCamera.orthographicSize = 5f;
+        demoCamera.nearClipPlane = 0.1f;
+        demoCamera.farClipPlane = 100f;
+        demoCamera.cullingMask = 0;
+        demoCamera.targetDisplay = 0;
     }
 
     private static void SetObjectReference(Object target, string propertyName, Object value)
