@@ -241,15 +241,15 @@ namespace TheLastGift.UI
             captionUiGroup.interactable = false;
             captionUiGroup.blocksRaycasts = false;
 
-            // Place dialogue in an upper-left reading panel, away from the
-            // center of the scene and clear of the top-right skip control.
+            // Keep story dialogue in a dedicated bottom panel, below the scene.
+            // The opaque backing prevents any letters from showing through house gaps.
             bool portrait = safePixels.height > safePixels.width;
             Vector2 storyMin = portrait
-                ? new Vector2(0.035f, 0.69f)
-                : new Vector2(0.035f, 0.755f);
+                ? new Vector2(0.035f, 0.18f)
+                : new Vector2(0.035f, 0.20f);
             Vector2 storyMax = portrait
-                ? new Vector2(0.64f, 0.86f)
-                : new Vector2(0.74f, 0.885f);
+                ? new Vector2(0.965f, 0.43f)
+                : new Vector2(0.965f, 0.40f);
 
             captionPanel = CreateRect(
                 captionUiRoot,
@@ -283,8 +283,8 @@ namespace TheLastGift.UI
             RectTransform hintPanel = CreateRect(
                 captionUiRoot,
                 "Нижняя подсказка продолжения",
-                new Vector2(0.16f, 0.025f),
-                new Vector2(0.84f, 0.095f));
+                new Vector2(0.16f, 0.07f),
+                new Vector2(0.84f, 0.13f));
             Image hintBacking = hintPanel.gameObject.AddComponent<Image>();
             hintBacking.sprite = whiteSprite;
             hintBacking.color = new Color32(29, 42, 42, 232);
@@ -574,8 +574,8 @@ namespace TheLastGift.UI
             RectTransform frame = CreateRect(
                 safeAreaRoot,
                 "Кнопка пропустить заставку",
-                new Vector2(left, 0.90f),
-                new Vector2(0.985f, 0.985f));
+                new Vector2(left, 0.925f),
+                new Vector2(0.985f, 0.995f));
 
             // A separate gold image remains visible as a real border,
             // while the inset burgundy face is the button's hit target.
@@ -1042,7 +1042,6 @@ namespace TheLastGift.UI
             FillRect(pixels, width, height, 314, 224, 422, 329, new Color32(255, 226, 164, 255));
             FillRect(pixels, width, height, 358, 209, 368, 341, new Color32(117, 76, 49, 255));
             FillRect(pixels, width, height, 299, 269, 437, 280, new Color32(117, 76, 49, 255));
-            FillCircle(pixels, width, height, 328, 247, 25, new Color32(242, 180, 83, 60));
 
             // Door and brass details.
             FillRect(pixels, width, height, 523, 139, 654, 335, new Color32(67, 54, 43, 255));
