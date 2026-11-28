@@ -113,7 +113,9 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
             return;
         }
 
-        startSequencePending = true;
+        // The opening story is already told inside LastGiftIntroController:
+        // its captions appear during the cinematic. Do not replay the same
+        // exposition as a second dialogue after the intro/tutorial.
         bool restart = progression.IsCompleted;
         if (restart)
         {
@@ -123,13 +125,11 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
             endingSequencePending = false;
         }
 
-        story.BeginOpening(() =>
-        {
-            startSequencePending = false;
-            if (restart) progression.RestartGame();
-            else progression.StartGame();
-            if (progression.CurrentOrder != null) ui.Gameplay();
-        });
+        if (restart) progression.RestartGame();
+        else progression.StartGame();
+
+        if (progression.CurrentOrder != null)
+            ui.Gameplay();
     }
 
     private int AwardSecretWishBonus(bool correctAnswer, int amount)
