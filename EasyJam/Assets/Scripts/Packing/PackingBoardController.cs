@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using TheLastGift.UI;
+using TheLastGift.Audio;
 
 namespace TheLastGift.Packing
 {
@@ -608,9 +609,15 @@ namespace TheLastGift.Packing
             showValidationMessage = true;
 
             if (valid && !wasCompleted)
+            {
+                LastGiftAudioManager.PlaySfx(LastGiftSoundEffect.GiftPacked);
                 Debug.Log($"[Packing] SUCCESS: {result.Message} ({result.PlacedCount}/{result.TotalCount})", this);
+            }
             else if (!valid)
+            {
+                LastGiftAudioManager.PlaySfx(LastGiftSoundEffect.Error);
                 Debug.LogWarning($"[Packing] NOT READY: {result.Message} ({result.PlacedCount}/{result.TotalCount})", this);
+            }
         }
 
         private void RefreshProgress()
@@ -1098,6 +1105,7 @@ namespace TheLastGift.Packing
             var candidate = FindPieceAtWorld(world);
             if (candidate == null) return;
 
+            LastGiftAudioManager.PlaySfx(LastGiftSoundEffect.GiftDrag);
             draggedPiece = candidate;
             dragOffset = (Vector2)candidate.transform.position - world;
             dragStartedPlaced = candidate.IsPlaced;

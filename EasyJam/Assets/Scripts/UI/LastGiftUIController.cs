@@ -461,6 +461,7 @@ namespace TheLastGift.UI
 
         public void MainMenu()
         {
+            LastGiftAudioManager.PlayMusic(LastGiftMusicTheme.MainMenu);
             Build("Главное меню");
             Card(
                 "Добро пожаловать в «Последний подарок»",
@@ -511,6 +512,12 @@ namespace TheLastGift.UI
 
             if (StartGame != null) StartGame.Invoke();
             else Gameplay();
+        }
+
+        /// <summary>Reusable entry point for the same audio settings panel from a future pause menu.</summary>
+        public void ShowAudioSettings()
+        {
+            SettingsMenu();
         }
 
         private void SettingsMenu()
@@ -569,6 +576,8 @@ namespace TheLastGift.UI
                 SetStatus("Не удалось загрузить заказ. Вернись в меню и начни игру заново.", false);
                 return;
             }
+
+            LastGiftAudioManager.PlayMusic(LastGiftMusicTheme.Workshop);
 
             bool showSecretWish = DispatchGameplayScreen(
                 currentOrder.SecretWishAssigned,
@@ -714,6 +723,7 @@ namespace TheLastGift.UI
             colors.pressedColor = Color.Lerp(paleBlue, gold, 0.25f);
             colors.selectedColor = Color.Lerp(paleBlue, gold, 0.15f);
             button.colors = colors;
+            button.onClick.AddListener(() => LastGiftAudioManager.PlaySfx(LastGiftSoundEffect.UiClick));
             button.onClick.AddListener(() => SelectSecretWish(giftName));
 
             Image icon = ImageAt(optionObject.transform, "Иконка варианта",
@@ -962,6 +972,7 @@ namespace TheLastGift.UI
             colors.pressedColor = Color.Lerp(color, Color.black, 0.18f);
             colors.selectedColor = Color.Lerp(color, Color.white, 0.12f);
             button.colors = colors;
+            button.onClick.AddListener(() => LastGiftAudioManager.PlaySfx(LastGiftSoundEffect.UiClick));
             button.onClick.AddListener(() => onClick?.Invoke());
 
             Outline outline = buttonObject.AddComponent<Outline>();
@@ -998,6 +1009,7 @@ namespace TheLastGift.UI
             colors.pressedColor = Color.Lerp(color, Color.black, 0.18f);
             colors.selectedColor = Color.Lerp(color, Color.white, 0.12f);
             button.colors = colors;
+            button.onClick.AddListener(() => LastGiftAudioManager.PlaySfx(LastGiftSoundEffect.UiClick));
             button.onClick.AddListener(() => action?.Invoke());
             AddGoldOutline(buttonObject, 2f);
 
@@ -1349,8 +1361,11 @@ namespace TheLastGift.UI
                 if (unexpected.Count > 0)
                     message += "Лишние подарки: " + string.Join(", ", unexpected.ToArray()) + ".";
                 SetStatus(message, false);
+                LastGiftAudioManager.PlaySfx(LastGiftSoundEffect.Error);
                 return;
             }
+
+            LastGiftAudioManager.PlaySfx(LastGiftSoundEffect.GiftPacked);
 
             if (ConfirmPacking != null)
                 ConfirmPacking.Invoke();
@@ -1417,6 +1432,7 @@ namespace TheLastGift.UI
 
         public void ShowStoryDialogue(string speaker, string line, Action onContinue)
         {
+            LastGiftAudioManager.PlaySfx(LastGiftSoundEffect.DialogueAdvance);
             Build("Сюжетный диалог");
             FestivePanel(root.transform, "Праздничная карточка диалога",
                 new Vector2(0.12f, 0.18f), new Vector2(0.88f, 0.86f), paper);
@@ -1431,6 +1447,7 @@ namespace TheLastGift.UI
 
         public void ShowWorkshopScreen()
         {
+            LastGiftAudioManager.PlayMusic(LastGiftMusicTheme.Workshop);
             workshopReturnAction = RenderOrderSuccessScreen;
             Build("Улучшения мастерской");
             FestivePanel(root.transform, "Панель улучшений мастерской",
@@ -2028,6 +2045,7 @@ namespace TheLastGift.UI
 
         public void OrderSuccess(int earned, int wrappingBonus, int reputationBonus, bool allowWorkshop = true)
         {
+            LastGiftAudioManager.PlaySfx(LastGiftSoundEffect.OrderComplete);
             coins += earned;
             order++;
             currentOrder = null;
@@ -2458,6 +2476,7 @@ namespace TheLastGift.UI
             colors.pressedColor = Color.Lerp(color, Color.black, 0.18f);
             colors.selectedColor = Color.Lerp(color, Color.white, 0.12f);
             button.colors = colors;
+            button.onClick.AddListener(() => LastGiftAudioManager.PlaySfx(LastGiftSoundEffect.UiClick));
             button.onClick.AddListener(() => action?.Invoke());
             AddGoldOutline(buttonObject, 2f);
 
@@ -2487,6 +2506,7 @@ namespace TheLastGift.UI
             colors.pressedColor = Color.Lerp(color, Color.black, 0.18f);
             colors.selectedColor = Color.Lerp(color, Color.white, 0.12f);
             button.colors = colors;
+            button.onClick.AddListener(() => LastGiftAudioManager.PlaySfx(LastGiftSoundEffect.UiClick));
             button.onClick.AddListener(() => action?.Invoke());
             AddGoldOutline(buttonObject, 2f);
 

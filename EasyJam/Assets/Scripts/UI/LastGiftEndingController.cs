@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using TheLastGift.Audio;
 
 namespace TheLastGift.UI
 {
@@ -72,6 +73,7 @@ namespace TheLastGift.UI
                 return;
 
             ui = uiController;
+            LastGiftAudioManager.PlayMusic(LastGiftMusicTheme.Ending, 1.8f);
             canvas = ui.GetComponentInChildren<Canvas>(true);
             if (canvas == null)
             {
@@ -461,12 +463,12 @@ namespace TheLastGift.UI
                     skipRequested ? 0.45f : 1.1f, skipRequested);
 
             if (!skipRequested)
-                yield return Hold(0.7f);
+                yield return Hold(3.2f);
 
             if (endGroup != null)
             {
                 yield return Fade(endGroup, 0f, 1f,
-                    skipRequested ? 0.45f : 0.35f, skipRequested);
+                    skipRequested ? 0.45f : 0.9f, skipRequested);
                 endGroup.interactable = true;
                 endGroup.blocksRaycasts = true;
             }
@@ -534,6 +536,7 @@ namespace TheLastGift.UI
                 yield break;
 
             captionAdvanceRequested = false;
+            LastGiftAudioManager.PlaySfx(LastGiftSoundEffect.DialogueAdvance);
             SetCaption(message);
             waitingForCaption = true;
 
@@ -594,6 +597,7 @@ namespace TheLastGift.UI
 
             Button button = frame.gameObject.AddComponent<Button>();
             button.transition = Selectable.Transition.ColorTint;
+            button.onClick.AddListener(() => LastGiftAudioManager.PlaySfx(LastGiftSoundEffect.UiClick));
             button.onClick.AddListener(Skip);
 
             RectTransform face = CreateRect(
@@ -967,6 +971,7 @@ namespace TheLastGift.UI
 
             Button button = rect.gameObject.AddComponent<Button>();
             button.targetGraphic = image;
+            button.onClick.AddListener(() => LastGiftAudioManager.PlaySfx(LastGiftSoundEffect.UiClick));
             button.onClick.AddListener(action);
 
             ColorBlock colors = button.colors;
