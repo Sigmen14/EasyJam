@@ -41,7 +41,17 @@ public static class OrderProgressionVisualDemoSceneBuilder
             scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
         }
 
-        GameObject root = GameObject.Find(RootObjectName);
+        GameObject root = null;
+        GameObject[] sceneRoots = scene.GetRootGameObjects();
+        for (int i = 0; i < sceneRoots.Length; i++)
+        {
+            if (sceneRoots[i].name == RootObjectName)
+            {
+                root = sceneRoots[i];
+                break;
+            }
+        }
+
         if (root == null)
             root = new GameObject(RootObjectName);
 
