@@ -16,8 +16,3 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 42b259707aec5cf31a1486f69db4be20, type: 2}
   - {fileID: 11400000, guid: 42b269707bec5c031a1586f6adb4bf20, type: 2}
   - {fileID: 11400000, guid: 42b279707cec5c131a1686f6bdb4b020, type: 2}
-  GiftCatalog:
-  - {fileID: 11400000, guid: 9f81fabc3a7d4a7b912345678901aa11, type: 2}
-  - {fileID: 11400000, guid: 9f81fabc3a7d4a7b912345678901aa12, type: 2}
-  - {fileID: 11400000, guid: 9f81fabc3a7d4a7b912345678901aa13, type: 2}
-  - {fileID: 11400000, guid: 9f81fabc3a7d4a7b912345678901aa14, type: 2}

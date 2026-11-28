@@ -10,7 +10,7 @@ namespace TheLastGift.UI
 {
     public sealed class LastGiftUIController : MonoBehaviour
     {
-        public Action ConfirmPacking, Continue, StartGame, ClearPacking, LeaveGameplay;
+        public Action ConfirmPacking, Continue, StartGame;
 
         [Header("Настройки интерфейса")]
         [SerializeField, Range(0.8f, 1.8f)]
@@ -39,8 +39,6 @@ namespace TheLastGift.UI
         private int placedGiftCount = 0;
         private readonly List<string> placedGiftNames = new List<string>();
         private bool tutorialShown = false;
-        private bool packingBoardMode;
-        private string packingBoardDimensions = string.Empty;
 
         private sealed class CustomerOrderData
         {
@@ -277,24 +275,7 @@ namespace TheLastGift.UI
             }
         }
 
-        public void SetPackingBoardMode(bool enabled)
-        {
-            packingBoardMode = enabled;
-        }
-
-        public void SetPackingBoardDimensions(int width, int height)
-        {
-            packingBoardDimensions = width + "×" + height;
-        }
-
-        public Sprite GetPackingGiftSprite(string giftName)
-        {
-            return string.IsNullOrWhiteSpace(giftName)
-                ? null
-                : GetGiftSprite(giftName.Trim().ToUpperInvariant());
-        }
-
-        private void Build(string screenName, bool revealPackingBoard = false)
+        private void Build(string screenName)
         {
             if (root != null)
                 Destroy(root);
@@ -308,21 +289,18 @@ namespace TheLastGift.UI
             rootRect.offsetMin = Vector2.zero;
             rootRect.offsetMax = Vector2.zero;
 
-            if (!revealPackingBoard)
-            {
-                Image background = ImageAt(
-                    root.transform,
-                    "Рождественский фон мастерской",
-                    Vector2.zero,
-                    Vector2.one,
-                    christmasBackground,
-                    Color.white);
+            Image background = ImageAt(
+                root.transform,
+                "Рождественский фон мастерской",
+                Vector2.zero,
+                Vector2.one,
+                christmasBackground,
+                Color.white);
 
-                if (background == null)
-                    Panel(root.transform, "Фон", Vector2.zero, Vector2.one, cream);
-                else
-                    background.transform.SetAsFirstSibling();
-            }
+            if (background == null)
+                Panel(root.transform, "Фон", Vector2.zero, Vector2.one, cream);
+            else
+                background.transform.SetAsFirstSibling();
 
             // A slim wooden frame keeps the art visible while preserving a
             // clear edge around the customer, packing and gift panels.
@@ -339,11 +317,10 @@ namespace TheLastGift.UI
 
         public void MainMenu()
         {
-            LeaveGameplay?.Invoke();
             Build("Главное меню");
             Card(
                 "Добро пожаловать в «Последний подарок»",
-                "Ты открыла маленькую рождественскую лавку!\nСобирай подарки по пожеланиям покупателей.\nПеретаскивай фигуры в коробку, поворачивай их и заполняй всё пространство без наложений.");
+                "Ты открыла маленькую рождественскую лавку!\nСобирай подарки по пожеланиям покупателей.\nЗа выполненные заказы получай монеты.\nВыбирай подарки и перетаскивай их в коробку мышью.");
 
             ButtonAt("НАЧАТЬ ИГРУ", green, () =>
             {
@@ -398,7 +375,7 @@ namespace TheLastGift.UI
             Build("Обучение");
             Card(
                 "Как играть",
-                "1. Прочитай заказ покупателя.\n2. Перетаскивай фигуры с подноса в коробку.\n3. Нажми R, ПРОБЕЛ или правую кнопку мыши, чтобы повернуть фигуру.\n4. Не допускай наложений и выхода за границы коробки.\n5. Нажми «ПРОВЕРИТЬ УПАКОВКУ».\n\nФигуру можно вернуть на поднос, перетащив её за край коробки.");
+                "1. Слева прочитай, что нужно покупателю.\n2. Справа выбери нужные подарки.\n3. Зажми подарок мышью и перетащи его в коробку по центру.\n4. Когда всё готово, нажми «ПРОВЕРИТЬ ЗАКАЗ».\n\nПеретаскивай подарки по одному.");
 
             ButtonAt("ПОНЯТНО, НАЧИНАЕМ!", green, () =>
             {
@@ -416,7 +393,7 @@ namespace TheLastGift.UI
                 return;
             }
 
-            Build("Игровой экран", packingBoardMode);
+            Build("Игровой экран");
             placedGiftCount = 0;
             placedGiftNames.Clear();
 
@@ -434,19 +411,16 @@ namespace TheLastGift.UI
             BuildPackingArea();
             BuildGiftShelf();
 
-            feedback = Label(
-                packingBoardMode
-                    ? "Уложи все фигуры без пересечений. R / ПРОБЕЛ — поворот."
-                    : "Перетащи подарки с правой полки в коробку по центру.",
+            feedback = Label("Перетащи подарки с правой полки в коробку по центру.",
                 18, brown, new Vector2(0.285f, 0.18f), new Vector2(0.715f, 0.235f), TextAnchor.MiddleCenter);
 
             ButtonAt("В МЕНЮ", wood, MainMenu,
                 new Vector2(0.035f, 0.075f), new Vector2(0.19f, 0.145f));
 
-            ButtonAt(packingBoardMode ? "ПРОВЕРИТЬ УПАКОВКУ" : "ПРОВЕРИТЬ ЗАКАЗ", green, CheckOrder,
+            ButtonAt("ПРОВЕРИТЬ ЗАКАЗ", green, CheckOrder,
                 new Vector2(0.405f, 0.065f), new Vector2(0.665f, 0.155f));
 
-            ButtonAt(packingBoardMode ? "ВЕРНУТЬ ВСЕ ФИГУРЫ" : "ОЧИСТИТЬ КОРОБКУ", red, ClearPackingBox,
+            ButtonAt("ОЧИСТИТЬ КОРОБКУ", red, ClearPackingBox,
                 new Vector2(0.70f, 0.075f), new Vector2(0.965f, 0.145f));
         }
 
@@ -499,18 +473,6 @@ namespace TheLastGift.UI
 
         private void BuildPackingArea()
         {
-            if (packingBoardMode)
-            {
-                string boxDimensions = string.IsNullOrEmpty(packingBoardDimensions)
-                    ? GetBoxSizeLabel(currentOrder.BoxSize)
-                    : packingBoardDimensions;
-                Label("КОРОБКА ДЛЯ УПАКОВКИ — " + boxDimensions, 21, green,
-                    new Vector2(0.29f, 0.785f), new Vector2(0.71f, 0.84f), TextAnchor.MiddleCenter);
-                Label("Перетаскивай фигуры к центру. Поворот: R / ПРОБЕЛ / правая кнопка",
-                    15, brown, new Vector2(0.29f, 0.745f), new Vector2(0.71f, 0.785f), TextAnchor.MiddleCenter);
-                return;
-            }
-
             Label("КОРОБКА ДЛЯ УПАКОВКИ — " + GetBoxSizeLabel(currentOrder.BoxSize), 21, green,
                 new Vector2(0.29f, 0.785f), new Vector2(0.71f, 0.84f), TextAnchor.MiddleCenter);
             Label("Перетаскивай сюда подарки с полки справа", 16, brown,
@@ -543,8 +505,6 @@ namespace TheLastGift.UI
 
         private void BuildGiftShelf()
         {
-            if (packingBoardMode) return;
-
             Panel(root.transform, "Полка с подарками",
                 new Vector2(0.735f, 0.205f), new Vector2(0.975f, 0.855f), paper);
             Label("ПОДАРКИ НА ПОЛКЕ", 18, green,
@@ -610,15 +570,6 @@ namespace TheLastGift.UI
 
         private void CheckOrder()
         {
-            if (packingBoardMode)
-            {
-                if (ConfirmPacking == null)
-                    PackingFeedback("Игровая доска не подключена.", false);
-                else
-                    ConfirmPacking.Invoke();
-                return;
-            }
-
             if (placedGiftCount == 0)
             {
                 SetStatus("Сначала перетащи подарки с полки в коробку.", false);
@@ -697,15 +648,6 @@ namespace TheLastGift.UI
 
         private void ClearPackingBox()
         {
-            if (packingBoardMode)
-            {
-                if (ClearPacking == null)
-                    PackingFeedback("Не удалось вернуть фигуры на поднос.", false);
-                else
-                    ClearPacking.Invoke();
-                return;
-            }
-
             if (packingRect == null)
                 return;
 
