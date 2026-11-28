@@ -53,8 +53,9 @@ namespace TheLastGift.Packing
             if (mouse.leftButton.wasPressedThisFrame) BeginDrag(world);
             if (draggedPiece != null)
             {
-                draggedPiece.transform.position = (Vector3)(world + dragOffset);
-                UpdatePreview(world + dragOffset);
+                var dragPosition = (Vector2)world + dragOffset;
+                draggedPiece.transform.position = new Vector3(dragPosition.x, dragPosition.y, 0f);
+                UpdatePreview(dragPosition);
                 if (mouse.rightButton.wasPressedThisFrame || Keyboard.current != null && (Keyboard.current.rKey.wasPressedThisFrame || Keyboard.current.spaceKey.wasPressedThisFrame))
                     RotateDraggedPiece();
                 if (mouse.leftButton.wasReleasedThisFrame) EndDrag();
@@ -179,7 +180,9 @@ namespace TheLastGift.Packing
             var columns = Mathf.Max(1, Mathf.Min(2, count));
             var column = index % columns;
             var row = index / columns;
-            var x = column == 0 ? left - cellSize * 1.25f : right + cellSize * 1.25f;
+            var x = column == 0
+                ? left - cellSize * 0.5f - trayGap
+                : right + cellSize * 0.5f + trayGap;
             var y = boardCenter.y + (row == 0 ? cellSize * 1.8f : -cellSize * 1.8f) - Mathf.Max(0, row - 1) * (cellSize * 2.8f);
             return new Vector2(x, y);
         }
