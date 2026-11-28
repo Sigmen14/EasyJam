@@ -509,9 +509,11 @@ namespace TheLastGift.UI
             coins += earned;
             order++;
             Build("Заказ выполнен");
-            Card("Заказ выполнен!", "Покупатель доволен!\nТы заработала монеты и помогла сделать чей-то праздник теплее.");
-            Label("+ " + earned + " МОНЕТ ✦", 44, gold,
-                new Vector2(0.25f, 0.40f), new Vector2(0.75f, 0.58f), TextAnchor.MiddleCenter);
+            RectTransform successCard = Card(
+                "Заказ выполнен!",
+                "Покупатель доволен!\nТы заработала монеты и помогла сделать чей-то праздник теплее.");
+            ChildLabel(successCard, "+ " + earned + " МОНЕТ ✦", 44, gold,
+                new Vector2(0.10f, 0.21f), new Vector2(0.90f, 0.41f), TextAnchor.MiddleCenter);
             Button("СЛЕДУЮЩИЙ ПОКУПАТЕЛЬ", green, () =>
             {
                 Continue?.Invoke();
@@ -554,11 +556,16 @@ namespace TheLastGift.UI
             feedback.color = success ? green : red;
         }
 
-        private void Card(string title, string body)
+        private RectTransform Card(string title, string body)
         {
             bool isTutorial = title == "Как играть";
-            Vector2 cardMin = isTutorial ? new Vector2(0.10f, 0.28f) : new Vector2(0.12f, 0.36f);
-            Vector2 cardMax = isTutorial ? new Vector2(0.90f, 0.90f) : new Vector2(0.88f, 0.88f);
+            bool isOrderSuccess = title == "Заказ выполнен!";
+            Vector2 cardMin = isTutorial
+                ? new Vector2(0.10f, 0.28f)
+                : isOrderSuccess ? new Vector2(0.12f, 0.26f) : new Vector2(0.12f, 0.36f);
+            Vector2 cardMax = isTutorial
+                ? new Vector2(0.90f, 0.90f)
+                : isOrderSuccess ? new Vector2(0.88f, 0.92f) : new Vector2(0.88f, 0.88f);
 
             Panel(root.transform, "Тень карточки",
                 cardMin, cardMax, new Vector2(14, -12), new Vector2(14, -12), wood);
@@ -568,13 +575,17 @@ namespace TheLastGift.UI
             // Text is parented to the card itself, not positioned over the whole
             // screen. This keeps the title and body inside the panel at every size.
             CreateText(card, title, isTutorial ? 40 : 42, green,
-                new Vector2(0.055f, isTutorial ? 0.84f : 0.77f),
-                new Vector2(0.945f, 0.96f), TextAnchor.MiddleCenter, Vector2.zero);
+                new Vector2(0.055f, isTutorial || isOrderSuccess ? 0.84f : 0.77f),
+                new Vector2(0.945f, 0.97f), TextAnchor.MiddleCenter, Vector2.zero);
 
+            Vector2 bodyMin = isOrderSuccess ? new Vector2(0.075f, 0.44f) : new Vector2(0.075f, 0.10f);
+            Vector2 bodyMax = isOrderSuccess
+                ? new Vector2(0.925f, 0.79f)
+                : new Vector2(0.925f, isTutorial ? 0.81f : 0.70f);
             CreateText(card, body, isTutorial ? 27 : 29, brown,
-                new Vector2(0.075f, 0.10f),
-                new Vector2(0.925f, isTutorial ? 0.81f : 0.70f),
-                TextAnchor.MiddleCenter, Vector2.zero);
+                bodyMin, bodyMax, TextAnchor.MiddleCenter, Vector2.zero);
+
+            return card;
         }
 
         private RectTransform Panel(Transform parent, string objectName, Vector2 min, Vector2 max, Color color)
