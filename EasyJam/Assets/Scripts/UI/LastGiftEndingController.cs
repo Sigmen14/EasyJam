@@ -13,8 +13,6 @@ namespace TheLastGift.UI
     [DisallowMultipleComponent]
     public sealed class LastGiftEndingController : MonoBehaviour
     {
-        private const float ReferenceWidth = 1920f;
-        private const float ReferenceHeight = 1080f;
         private static readonly Color32 WarmCream = new Color32(248, 235, 205, 255);
         private static readonly Color32 Wood = new Color32(105, 64, 43, 255);
         private static readonly Color32 Gold = new Color32(225, 180, 91, 255);
@@ -192,7 +190,7 @@ namespace TheLastGift.UI
                 TextAnchor.MiddleCenter);
 
             streetBoy = CreateCharacter(streetGroup, "Мальчик с подарком", new Vector2(0.56f, 0.20f), 0.62f, false);
-            CreateGift(streetBoy, new Vector2(0.34f, 0.40f), 0.52f, "Упакованный шарф");
+            CreateGift(streetBoy, new Vector2(0.82f, 0.42f), 0.52f, "Упакованный шарф");
 
             CreateSnow();
             BuildCaption();
@@ -414,7 +412,10 @@ namespace TheLastGift.UI
             }
 
             if (overlayRoot != null)
+            {
+                overlayRoot.SetActive(false);
                 Destroy(overlayRoot);
+            }
 
             ReleaseRuntimeSprites();
             snowParticles.Clear();
