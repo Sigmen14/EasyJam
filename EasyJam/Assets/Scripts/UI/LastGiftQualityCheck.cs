@@ -436,8 +436,6 @@ namespace TheLastGift.UI
         }
 
         private void LateUpdate()
-
-        private void LateUpdate()
         {
             if (qualityCheckRoot == null || !qualityCheckRoot.activeInHierarchy || Time.timeScale <= 0f)
                 return;
