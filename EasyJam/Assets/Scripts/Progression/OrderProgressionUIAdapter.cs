@@ -18,7 +18,6 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
     private LastGiftWorkshopUpgradeManager workshopUpgrades;
     private readonly ChristmasShopEventSchedule eventSchedule = new ChristmasShopEventSchedule();
     private bool storyCampaignActive;
-    private bool startSequencePending;
     private bool boyReturnShown;
     private bool endingSequencePending;
 
@@ -104,7 +103,6 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
 
     private void StartOrRestartGame()
     {
-        if (startSequencePending) return;
         if (!storyCampaignActive || story == null)
         {
             if (progression.IsCompleted) progression.RestartGame();
