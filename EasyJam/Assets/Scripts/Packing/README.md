@@ -1,27 +1,27 @@
 # The Last Gift — Packing prototype
 
 ## Quick setup
-1. Create an empty GameObject in a scene, name it **Packing Board**.
-2. Add **PackingBoardController**.
-3. Leave **Run Demo On Start** enabled for a temporary runtime sample, or disable it and call `SetupBoard(width, height, gifts)` from your own code.
-4. Assign the Main Camera to **Target Camera** if the scene camera is not tagged MainCamera.
+The **SampleScene** already contains a **Packing Board** object with `PackingBoardController`. Open the scene and press Play. Leave **Run Demo On Start** enabled to launch the built-in puzzle, or disable it and call `SetupBoard(width, height, gifts)` from your own code. Assign the Main Camera to **Target Camera** only if the scene camera is not tagged MainCamera.
 
-The prototype draws its own grid and gift cell visuals using generated runtime sprites, so it requires no new packages or art assets. Demo gifts are shown in two tray columns outside the left and right sides of the board; four items are arranged around the board for visibility. Demo gift definitions are temporary ScriptableObjects created at runtime.
+The prototype draws its own grid and gift cell visuals using generated runtime sprites, so it requires no new packages or art assets. Demo gift definitions are temporary ScriptableObjects created at runtime.
+
+## Demo puzzle
+The default board is 4×4. It has four tetrominoes (two T pieces, one L piece, and one S piece), for exactly 16 cells total. Every cell must be covered by exactly one fragment. The initial arrangement is deliberately not solved; rotate and position the pieces to fill the whole box.
 
 ## Controls
-- **Left mouse:** pick up, drag, and release a gift. Release on the board to place; release outside/invalid area returns it to its tray position.
+- **Left mouse:** pick up, drag, and release a gift. Release on the board to place it.
 - **R / Space / right mouse while dragging:** rotate a rotatable gift clockwise by 90 degrees.
-- Gifts can be picked up from the tray or from the board and moved again.
+- **V:** manually validate the current arrangement.
+- Gifts can be picked up from the tray or from the board and moved again. An invalid move of an already placed piece restores its previous position; a piece dragged from the tray returns to the tray if the drop is invalid.
+
+The HUD shows the number of covered cells and placed fragments. The puzzle is validated automatically after each drop; a success message appears only when all fragments are placed, none overlap or leave the box, and all 16 cells are covered.
 
 ## Integration API
 - `SetupBoard(int width, int height, List<GiftDefinition> gifts)`: replaces the board and current gifts.
-- `TryValidate(out PackingResult result)`: returns true only when every gift is placed inside the board without overlaps.
+- `TryValidate(out PackingResult result)`: returns true only when every gift is placed inside the board without overlaps and every board cell is covered.
 - `PackingResult`: `IsValid`, `AllItemsPlaced`, `PlacedCount`, `TotalCount`, `Message`.
 
 ## Create reusable gift assets
 In Unity, use **The Last Gift → Packing → Create Example Gift Assets** to generate sample `GiftDefinition` assets in `Assets/Gifts`. Or right-click in the Project window and choose **Create → The Last Gift → Packing → Gift Definition**. Edit name, shape cells, sprite, rotation permission and tint in the Inspector.
 
 Shape coordinates are integer cell offsets. A shape should use unique cells; negative or non-normalized coordinates are accepted and normalized for display and rotation.
-
-## Notes
-The demo is deliberately a separate component-level prototype and does not edit SampleScene. To play it, add the controller to any scene object and press Play. A runtime setup API call can replace the demo at any time.
