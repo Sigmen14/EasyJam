@@ -171,9 +171,9 @@ public sealed class OrderProgressionVisualDemo : MonoBehaviour
         CreatePanel(orderCard, "Gift Box Body", new Vector2(275f, -115f),
             new Vector2(112f, 104f), new Color32(205, 151, 77, 255));
         CreatePanel(orderCard, "Gift Box Ribbon Vertical", new Vector2(275f, -115f),
-            new Vector2(18f, 104f), new Color32(155,  fifty, 62, 255));
+            new Vector2(18f, 104f), new Color32(155,  50, 62, 255));
         CreatePanel(orderCard, "Gift Box Ribbon Horizontal", new Vector2(275f, -115f),
-            new Vector2(112f, 18f), new Color32(155,  fifty, 62, 255));
+            new Vector2(112f, 18f), new Color32(155,  50, 62, 255));
         CreateText(orderCard, "Gift Box Caption", "КОРОБКА",
             new Vector2(275f, -215f), new Vector2(190f, 26f), 14,
             new Color32(140, 112, 82, 255), TextAnchor.MiddleCenter, FontStyle.Bold);
