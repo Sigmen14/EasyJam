@@ -29,6 +29,7 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
     private bool urgentWrappingQualified;
     private bool ribbonShortageActive;
     private bool festiveMoodBonusActive;
+    private int pendingQualityBonus;
 
     public static void ApplyOrderAssignmentToUI(
         Action<GiftOrderDefinition, int, int, int, int, bool> setProgressionOrder,
@@ -173,6 +174,7 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
 
     private void HandleOrderStarted(GiftOrderDefinition order, bool showSecretWish)
     {
+        pendingQualityBonus = 0;
         LastGiftAudioManager.PlaySfx(LastGiftSoundEffect.NewOrder);
         ApplyWorkshopDecorations();
         ApplyOrderAssignmentToUI(ui.SetProgressionOrder, order,
@@ -192,12 +194,29 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
 
     private void HandleWrappingCompleted(GiftWrappingSelection selection)
     {
-        GiftOrderDefinition order = progression.CurrentOrder;
-        if (order == null)
+        if (progression.CurrentOrder == null)
         {
             ui.PackingFeedback("Сейчас нет активного заказа.", false);
             return;
         }
+
+        // A successful 4x4 route already ran this check. Consume its result instead
+        // of asking the player to repeat the activity for the same order.
+        if (ui.TryConsumeQualityCheckBonus(out int savedQualityBonus))
+        {
+            CompleteOrderAfterQualityCheck(selection, savedQualityBonus);
+            return;
+        }
+
+        ui.BeginQualityCheckFromWrapping(
+            qualityBonus => CompleteOrderAfterQualityCheck(selection, qualityBonus));
+    }
+
+    private void CompleteOrderAfterQualityCheck(GiftWrappingSelection selection, int qualityBonus)
+    {
+        GiftOrderDefinition order = progression.CurrentOrder;
+        if (order == null)
+            return;
 
         int matchingChoices = 0;
         if (selection.Paper == order.PreferredWrappingPaper) matchingChoices++;
@@ -206,6 +225,10 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
 
         bool suitableWrapping = matchingChoices >= (ribbonShortageActive ? 3 : 2);
         urgentWrappingQualified = urgentWrappingBonusActive && matchingChoices == 3;
+
+        pendingQualityBonus = Mathf.Max(0, qualityBonus);
+        if (pendingQualityBonus > 0)
+            progression.AwardBonusCoins(pendingQualityBonus);
 
         progression.CompleteCurrentOrder(
             new PackingResult(true, true, ui.PlacedGiftCount, order.GiftNames == null ? 0 : order.GiftNames.Count),
@@ -216,6 +239,7 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
     {
         if (!result.Success)
         {
+            pendingQualityBonus = 0;
             LastGiftAudioManager.PlaySfx(LastGiftSoundEffect.Error);
             ui.PackingFeedback("Заказ не выполнен. Проверь подарки и попробуй ещё раз.", false);
             return;
@@ -240,8 +264,10 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
         if (eventBonus > 0)
             progression.AwardBonusCoins(eventBonus);
 
+        int qualityBonus = pendingQualityBonus;
+        pendingQualityBonus = 0;
         bool allowWorkshop = !storyCampaignActive || result.Order == null || !result.Order.IsStoryFinaleOrder;
-        ui.OrderSuccess(result.TotalEarned + eventBonus, result.WrappingBonus, result.ReputationBonus, allowWorkshop);
+        ui.OrderSuccess(result.TotalEarned + eventBonus + qualityBonus, result.WrappingBonus, result.ReputationBonus, allowWorkshop);
         ui.SetProgressionBalance(progression.CurrentCoins, progression.TotalReputationEarned);
     }
 

@@ -1111,6 +1111,7 @@ namespace TheLastGift.UI
                 canvas.enabled = true;
 
             packingMiniGameOpen = false;
+            StartQueuedQualityCheckAfterPuzzle();
         }
 
         private void BuildCustomerPanel()
@@ -1355,6 +1356,7 @@ namespace TheLastGift.UI
         public void SetProgressionOrder(GiftOrderDefinition orderData, int currentDay,
             int currentOrderNumber, int currentBalance, int currentReputation, bool showSecretWish)
         {
+            ResetQualityCheckForNewOrder();
             if (orderData == null)
             {
                 currentOrder = null;
