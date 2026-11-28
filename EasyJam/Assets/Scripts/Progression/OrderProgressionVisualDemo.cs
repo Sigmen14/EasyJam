@@ -15,9 +15,21 @@ public sealed class OrderProgressionVisualDemo : MonoBehaviour
     [SerializeField] private OrderProgressionManager progression;
     [SerializeField] private OrderCampaignDefinition campaign;
 
-    // Applied centrally so every label, heading, button and status message
-    // remains visually consistent when the demo UI is generated.
-    private const float UiFontScale = 1.35f;
+    [Header("Настройки интерфейса")]
+    [SerializeField, Range(0.8f, 2f)]
+    [Tooltip("Общий размер текста. После изменения нажмите «Перестроить интерфейс» в Inspector.")]
+    private float uiFontScale = 1.35f;
+
+    [SerializeField, Range(0.65f, 1f)]
+    [Tooltip("Минимальный размер текста при автоматической подгонке под блок.")]
+    private float minimumTextScale = 0.9f;
+
+    [SerializeField]
+    [Tooltip("Шрифт интерфейса. Если не назначен, используется встроенный шрифт Unity.")]
+    private Font uiFont;
+
+    [SerializeField]
+    private Vector2 referenceResolution = new Vector2(1600f, 900f);
 
     private readonly List<DaySummaryData> completedDays = new List<DaySummaryData>();
 
@@ -70,7 +82,8 @@ public sealed class OrderProgressionVisualDemo : MonoBehaviour
             return;
         }
 
-        BuildInterface();
+        if (!TryBindExistingInterface())
+            BuildInterface();
     }
 
     private void Start()
@@ -119,22 +132,94 @@ public sealed class OrderProgressionVisualDemo : MonoBehaviour
         RefreshInterface();
     }
 
+    /// <summary>
+    /// Rebuilds the interface as saved scene objects. Called by the demo scene builder
+    /// and the custom Inspector button, so the complete UI is visible in the Hierarchy.
+    /// </summary>
+    public void RebuildInterfaceForEditor()
+    {
+#if UNITY_EDITOR
+        Transform existingCanvas = transform.Find("Order Progression Demo Canvas");
+        if (existingCanvas != null)
+            DestroyImmediate(existingCanvas.gameObject);
+
+        Transform existingEventSystem = transform.Find("EventSystem");
+        if (existingEventSystem != null)
+            DestroyImmediate(existingEventSystem.gameObject);
+#endif
+        EnsureEventSystem();
+        BuildInterface();
+    }
+
+    private bool TryBindExistingInterface()
+    {
+        Transform canvasTransform = transform.Find("Order Progression Demo Canvas");
+        if (canvasTransform == null)
+            return false;
+
+        canvas = canvasTransform.GetComponent<Canvas>();
+        if (canvas == null)
+            return false;
+
+        headerDayText = FindText(canvasTransform, "Header/Header Day");
+        headerCoinText = FindText(canvasTransform, "Header/Header Coins");
+        orderLabelText = FindText(canvasTransform, "Customer Order Card/Order Label");
+        customerNameText = FindText(canvasTransform, "Customer Order Card/Customer Name");
+        customerWishText = FindText(canvasTransform, "Customer Order Card/Customer Wish");
+        giftListText = FindText(canvasTransform, "Customer Order Card/Gift List");
+        boxSizeText = FindText(canvasTransform, "Customer Order Card/Gift Box Size");
+        rewardText = FindText(canvasTransform, "Customer Order Card/Reward Text");
+        dayTitleText = FindText(canvasTransform, "Progress Card/Day Title");
+        orderProgressText = FindText(canvasTransform, "Progress Card/Order Progress");
+        timelineText = FindText(canvasTransform, "Progress Card/Timeline");
+        resultText = FindText(canvasTransform, "Progress Card/Result Text");
+
+        Transform success = canvasTransform.Find("Progress Card/Success Button");
+        Transform fail = canvasTransform.Find("Progress Card/Fail Button");
+        Transform next = canvasTransform.Find("Progress Card/Continue Button");
+        if (success == null || fail == null || next == null)
+            return false;
+
+        successButton = success.GetComponent<Button>();
+        failButton = fail.GetComponent<Button>();
+        continueButton = next.GetComponent<Button>();
+
+        if (headerDayText == null || headerCoinText == null || orderLabelText == null
+            || customerNameText == null || customerWishText == null || giftListText == null
+            || boxSizeText == null || rewardText == null || dayTitleText == null
+            || orderProgressText == null || timelineText == null || resultText == null
+            || successButton == null || failButton == null || continueButton == null)
+            return false;
+
+        EnsureEventSystem();
+        return true;
+    }
+
+    private Text FindText(Transform root, string path)
+    {
+        Transform item = root.Find(path);
+        return item == null ? null : item.GetComponent<Text>();
+    }
+
     private void BuildInterface()
     {
         EnsureEventSystem();
 
         GameObject canvasObject = new GameObject("Order Progression Demo Canvas",
             typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+        canvasObject.transform.SetParent(transform, false);
         canvas = canvasObject.GetComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 20;
 
         CanvasScaler scaler = canvasObject.GetComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1600f, 900f);
+        scaler.referenceResolution = referenceResolution;
         scaler.matchWidthOrHeight = 0.5f;
 
-        font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        font = uiFont;
+        if (font == null)
+            font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         if (font == null)
             font = Resources.GetBuiltinResource<Font>("Arial.ttf");
 
@@ -339,15 +424,15 @@ public sealed class OrderProgressionVisualDemo : MonoBehaviour
         Text text = rect.gameObject.AddComponent<Text>();
         text.font = font;
         text.text = value;
-        text.fontSize = Mathf.Max(1, Mathf.RoundToInt(fontSize * UiFontScale));
+        text.fontSize = Mathf.Max(1, Mathf.RoundToInt(fontSize * uiFontScale));
         text.color = color;
         text.alignment = alignment;
         text.fontStyle = style;
         text.horizontalOverflow = HorizontalWrapMode.Wrap;
         text.verticalOverflow = VerticalWrapMode.Truncate;
         text.resizeTextForBestFit = true;
-        text.resizeTextMinSize = Mathf.Max(10, Mathf.RoundToInt(fontSize * 0.9f));
-        text.resizeTextMaxSize = Mathf.Max(text.fontSize, Mathf.RoundToInt(fontSize * UiFontScale));
+        text.resizeTextMinSize = Mathf.Max(10, Mathf.RoundToInt(fontSize * minimumTextScale));
+        text.resizeTextMaxSize = Mathf.Max(text.fontSize, Mathf.RoundToInt(fontSize * uiFontScale));
         text.supportRichText = false;
         text.raycastTarget = false;
         return text;
