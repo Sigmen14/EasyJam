@@ -241,6 +241,38 @@ namespace TheLastGift.UI
         }
 
         private void BuildQualityTaskSequence()
+        {
+            qualityTaskSequence.Clear();
+            List<GiftQualityTask> available = new List<GiftQualityTask>
+            {
+                GiftQualityTask.Ribbon,
+                GiftQualityTask.Postcard,
+                GiftQualityTask.Seal
+            };
+
+            if (lastQualityTask >= 0)
+                available.Remove((GiftQualityTask)lastQualityTask);
+
+            // One or two tasks keep this interlude within the intended 5–10 seconds.
+            int taskCount = UnityEngine.Random.Range(1, 3);
+            if (available.Count < taskCount)
+            {
+                available.Clear();
+                available.Add(GiftQualityTask.Ribbon);
+                available.Add(GiftQualityTask.Postcard);
+                available.Add(GiftQualityTask.Seal);
+            }
+
+            while (qualityTaskSequence.Count < taskCount && available.Count > 0)
+            {
+                int index = UnityEngine.Random.Range(0, available.Count);
+                qualityTaskSequence.Add(available[index]);
+                available.RemoveAt(index);
+            }
+
+            if (qualityTaskSequence.Count > 0)
+                lastQualityTask = (int)qualityTaskSequence[qualityTaskSequence.Count - 1];
+        }
 
         private void BuildQualityGiftPreview()
         {
