@@ -18,7 +18,6 @@ namespace TheLastGift.UI
         private static readonly Color32 Gold = new Color32(225, 180, 91, 255);
         private static readonly Color32 Evergreen = new Color32(38, 83, 61, 255);
         private static readonly Color32 Burgundy = new Color32(151, 48, 47, 255);
-        private static readonly Color32 Night = new Color32(20, 35, 57, 255);
 
         private sealed class SnowParticle
         {
@@ -330,7 +329,11 @@ namespace TheLastGift.UI
                 yield return Hold(3.2f);
 
             if (endGroup != null)
+            {
                 yield return Fade(endGroup, 0f, 1f, skipRequested ? 0.1f : 0.9f);
+                endGroup.interactable = true;
+                endGroup.blocksRaycasts = true;
+            }
         }
 
         private CanvasGroup CreateFinalCard()
@@ -371,6 +374,8 @@ namespace TheLastGift.UI
             endRoot.sizeDelta = new Vector2(760f, 190f);
             endGroup = endRoot.gameObject.AddComponent<CanvasGroup>();
             endGroup.alpha = 0f;
+            endGroup.interactable = false;
+            endGroup.blocksRaycasts = false;
             CreateText(endRoot.transform, "THE END",
                 "THE END", 48, Burgundy,
                 new Vector2(0.20f, 0.48f), new Vector2(0.80f, 1f),
