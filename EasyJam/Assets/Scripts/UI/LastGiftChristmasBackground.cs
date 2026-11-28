@@ -130,7 +130,6 @@ namespace TheLastGift.UI
             };
             for (int i = 0; i < 13; i++)
             {
-                float t = (i + 1) / 14f;
                 int y = baseY + (int)(height * (0.18f + (i % 4) * 0.16f));
                 int span = (int)(width * (1f - (float)(y - baseY) / height) * 0.42f);
                 int x = centerX + (i % 2 == 0 ? -span : span) / 2;
@@ -199,7 +198,7 @@ namespace TheLastGift.UI
 
         private static void DrawSnow(Color32[] pixels)
         {
-            Random random = new Random(2026);
+            System.Random random = new System.Random(2026);
             for (int i = 0; i < 130; i++)
             {
                 int x = random.Next(0, Width);
