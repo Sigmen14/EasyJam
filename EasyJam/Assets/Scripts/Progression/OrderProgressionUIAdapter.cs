@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using TheLastGift.UI;
 using TheLastGift.Audio;
@@ -186,20 +187,25 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
         ui.SetActiveOrderQueueEntry(progression.ActiveQueueEntry);
     }
 
-    private void HandleOrderQueueChanged()
+    private void HandleOrderQueueChanged(IReadOnlyList<OrderQueueEntry> entries)
     {
         if (ui == null || progression == null || !progression.OrderQueueEnabled
             || progression.CurrentOrder != null || progression.IsCompleted)
             return;
 
-        ui.ShowOrderQueue(progression.WaitingOrders, SelectQueuedOrder);
+        ui.ShowOrderQueue(entries, SelectQueuedOrder);
     }
 
-    private void HandleOrderQueueTimerChanged()
+    private void HandleOrderQueueTimerChanged(IReadOnlyList<OrderQueueEntry> entries)
     {
-        if (ui != null && progression != null && progression.OrderQueueEnabled
-            && progression.CurrentOrder == null && !progression.IsCompleted)
-            ui.UpdateOrderQueueWaitTimes(progression.WaitingOrders);
+        if (ui == null || progression == null || !progression.OrderQueueEnabled
+            || progression.IsCompleted)
+            return;
+
+        if (progression.CurrentOrder == null)
+            ui.UpdateOrderQueueWaitTimes(entries);
+        else
+            ui.UpdateActiveOrderQueueWaitTime(progression.ActiveQueueEntry);
     }
 
     private void SelectQueuedOrder(GiftOrderDefinition order)
@@ -301,9 +307,11 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
 
         Action afterDialogue = () =>
         {
-            bool hasAnotherOrder = progression.CurrentDayData != null
-                && progression.CurrentDayData.Orders != null
-                && progression.CurrentOrderNumber < progression.CurrentDayData.Orders.Count;
+            bool hasAnotherOrder = progression.OrderQueueEnabled
+                ? progression.HasPendingOrders
+                : progression.CurrentDayData != null
+                    && progression.CurrentDayData.Orders != null
+                    && progression.CurrentOrderNumber < progression.CurrentDayData.Orders.Count;
 
             if (eventSchedule.TryQueue(progression.TotalOrdersCompleted, hasAnotherOrder)
                 && eventSchedule.TryConsume(out ScheduledChristmasShopEvent scheduledEvent))

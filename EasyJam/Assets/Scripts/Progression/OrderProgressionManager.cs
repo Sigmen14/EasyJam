@@ -65,6 +65,9 @@ public class OrderProgressionManager : MonoBehaviour
     public bool OrderQueueEnabled => orderQueueEnabled;
     public IReadOnlyList<OrderQueueEntry> WaitingOrders => waitingOrders;
     public OrderQueueEntry ActiveQueueEntry => activeQueueEntry;
+    public bool HasPendingOrders => orderQueueEnabled && CurrentDayData != null
+        && CurrentDayData.Orders != null
+        && (waitingOrders.Count > 0 || nextQueueOrderIndex < CurrentDayData.Orders.Count);
 
     public event Action<IReadOnlyList<OrderQueueEntry>> OrderQueueChanged;
     public event Action<IReadOnlyList<OrderQueueEntry>> OrderQueueTimerChanged;
@@ -235,10 +238,15 @@ public class OrderProgressionManager : MonoBehaviour
                 waitingTimerChanged = true;
         }
 
-        // The selected order keeps its deadline while it is being packed. Other customers
-        // continue waiting in parallel, and Time.deltaTime naturally stops while paused.
+        // The selected customer's deadline keeps running during packing. Pausing the game
+        // sets timeScale to zero, so Time.deltaTime freezes every queue timer automatically.
         if (activeQueueEntry != null && CurrentOrder != null)
+        {
+            int previousSecond = Mathf.FloorToInt(activeQueueEntry.WaitedSeconds);
             activeQueueEntry.AdvanceWait(Time.deltaTime);
+            if (Mathf.FloorToInt(activeQueueEntry.WaitedSeconds) != previousSecond)
+                waitingTimerChanged = true;
+        }
 
         if (waitingTimerChanged)
             OrderQueueTimerChanged?.Invoke(waitingOrders);

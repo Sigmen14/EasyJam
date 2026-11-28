@@ -70,6 +70,7 @@ namespace TheLastGift.UI
         private int lastResultUrgencyBonus;
         private bool lastResultCanOpenWorkshop;
         private OrderQueueEntry activeOrderQueueEntry;
+        private Text activeUrgencyLabel;
         private readonly List<OrderQueueEntry> displayedQueueEntries = new List<OrderQueueEntry>();
         private readonly List<Text> displayedQueueWaitLabels = new List<Text>();
         private Sprite scarfSprite;
@@ -424,6 +425,8 @@ namespace TheLastGift.UI
 
         private void Build(string screenName)
         {
+            activeUrgencyLabel = null;
+
             if (wrappingRoot != null)
             {
                 Destroy(wrappingRoot);
@@ -748,6 +751,19 @@ namespace TheLastGift.UI
         public void SetActiveOrderQueueEntry(OrderQueueEntry entry)
         {
             activeOrderQueueEntry = entry;
+            UpdateActiveOrderQueueWaitTime(entry);
+        }
+
+        public void UpdateActiveOrderQueueWaitTime(OrderQueueEntry entry)
+        {
+            if (activeUrgencyLabel == null || entry == null || !entry.IsUrgent)
+                return;
+
+            activeUrgencyLabel.text = entry.UrgencyBonusAvailable
+                ? "СРОЧНО • +" + entry.UrgencyBonusCoins + " • "
+                    + FormatQueueTime(entry.UrgencySecondsRemaining)
+                : "СРОЧНО • БОНУС УТРАЧЕН";
+            activeUrgencyLabel.color = entry.UrgencyBonusAvailable ? paper : cream;
         }
 
         private void BuildGameplayScreen()
@@ -1333,9 +1349,10 @@ namespace TheLastGift.UI
             {
                 Panel(root.transform, "Лента срочного заказа",
                     new Vector2(0.052f, 0.612f), new Vector2(0.238f, 0.655f), red);
-                Label("СРОЧНО • БОНУС +" + activeOrderQueueEntry.UrgencyBonusCoins,
+                activeUrgencyLabel = Label("СРОЧНО • БОНУС +" + activeOrderQueueEntry.UrgencyBonusCoins,
                     12, paper, new Vector2(0.055f, 0.615f),
                     new Vector2(0.235f, 0.652f), TextAnchor.MiddleCenter);
+                UpdateActiveOrderQueueWaitTime(activeOrderQueueEntry);
             }
             Label(currentOrder.Wish, 17, brown,
                 new Vector2(0.05f, 0.475f), new Vector2(0.24f, isUrgentOrder ? 0.605f : 0.645f),
