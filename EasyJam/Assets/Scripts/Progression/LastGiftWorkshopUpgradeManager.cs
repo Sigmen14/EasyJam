@@ -47,7 +47,10 @@ public sealed class LastGiftWorkshopUpgradeManager : MonoBehaviour
 
     public bool TryPurchase(WorkshopUpgradeType upgrade)
     {
+        if (progression == null)
+            progression = GetComponent<OrderProgressionManager>();
         if (progression == null || IsPurchased(upgrade)) return false;
+
         int cost = GetCost(upgrade);
         if (cost <= 0 || !progression.TrySpendCoins(cost)) return false;
         switch (upgrade)
