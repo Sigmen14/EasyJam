@@ -55,6 +55,8 @@ namespace TheLastGift.UI
         private readonly List<string> placedGiftNames = new List<string>();
         private bool tutorialShown = false;
         private bool secretWishAnswered;
+        private bool introTransitionPending;
+        private bool introCompleted;
 
         private static readonly string[] SortingEventGiftNames =
         {
@@ -411,22 +413,51 @@ namespace TheLastGift.UI
                 "Ты открыла маленькую рождественскую лавку!\nСобирай подарки по пожеланиям покупателей.\nЗа выполненные заказы получай монеты.\nВыбирай подарки и перетаскивай их в коробку мышью.",
                 true);
 
-            ButtonAt("НАЧАТЬ ИГРУ", green, () =>
-            {
-                if (!tutorialShown)
-                    ShowTutorial();
-                else
-                {
-                    StartGame?.Invoke();
-                    Gameplay();
-                }
-            }, new Vector2(0.25f, 0.18f), new Vector2(0.49f, 0.275f));
+            ButtonAt("НАЧАТЬ ИГРУ", green, BeginGameFromMenu,
+                new Vector2(0.25f, 0.18f), new Vector2(0.49f, 0.275f));
 
             ButtonAt("НАСТРОЙКИ", wood, SettingsMenu,
                 new Vector2(0.51f, 0.18f), new Vector2(0.75f, 0.275f));
 
             ButtonAt("ВЫЙТИ", wood, Application.Quit,
                 new Vector2(0.41f, 0.085f), new Vector2(0.59f, 0.16f));
+        }
+
+        private void BeginGameFromMenu()
+        {
+            if (introTransitionPending)
+                return;
+
+            // Once completed or skipped, returning to the menu must not replay the intro.
+            if (introCompleted)
+            {
+                ContinueStartGameFlow();
+                return;
+            }
+
+            introTransitionPending = true;
+            bool started = LastGiftIntroController.TryPlay(() =>
+            {
+                introTransitionPending = false;
+                introCompleted = true;
+                ContinueStartGameFlow();
+            });
+
+            if (!started)
+                introTransitionPending = false;
+        }
+
+        private void ContinueStartGameFlow()
+        {
+            // Keep the existing first-run tutorial and campaign start behavior unchanged.
+            if (!tutorialShown)
+            {
+                ShowTutorial();
+                return;
+            }
+
+            StartGame?.Invoke();
+            Gameplay();
         }
 
         private void SettingsMenu()
