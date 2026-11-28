@@ -200,20 +200,21 @@ namespace TheLastGift.UI
             streetBackground = streetImage.rectTransform;
             streetBackground.localScale = Vector3.one * 1.12f;
 
-            // The shop sign sits on the painted awning (texture y=365..392),
-            // not over the roof or the house windows.
+            // Keep the shop title in the clear sky at the upper-right edge.
+            // It is intentionally separate from the house artwork so it cannot
+            // overlap the roof, windows, timber seams or doorway.
             RectTransform signPanel = CreateRect(
                 streetGroup,
-                "Панель вывески на фасаде",
-                new Vector2(0.285f, 0.70f),
-                new Vector2(0.715f, 0.75f));
+                "Плашка названия лавки",
+                new Vector2(0.715f, 0.835f),
+                new Vector2(0.985f, 0.925f));
             Image signBacking = signPanel.gameObject.AddComponent<Image>();
             signBacking.sprite = whiteSprite;
-            signBacking.color = new Color32(67, 42, 37, 248);
+            signBacking.color = new Color32(43, 42, 39, 238);
             signBacking.raycastTarget = false;
 
-            CreateText(signPanel, "Вывеска лавки", "РОЖДЕСТВЕНСКАЯ ЛАВКА",
-                19, Gold, new Vector2(0.02f, 0.04f), new Vector2(0.98f, 0.96f),
+            CreateText(signPanel, "Название лавки", "РОЖДЕСТВЕНСКАЯ ЛАВКА",
+                16, Gold, new Vector2(0.035f, 0.08f), new Vector2(0.965f, 0.92f),
                 TextAnchor.MiddleCenter);
 
             streetBoy = CreateCharacter(streetGroup, "Мальчик с подарком", new Vector2(0.56f, 0.20f), 0.62f, false);
