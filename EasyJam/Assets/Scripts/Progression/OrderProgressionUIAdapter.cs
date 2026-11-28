@@ -90,9 +90,20 @@ public sealed class OrderProgressionUIAdapter : MonoBehaviour
     private void StartOrRestartGame()
     {
         if (progression.IsCompleted)
+        {
             progression.RestartGame();
-        else
-            progression.StartGame();
+            return;
+        }
+
+        // Returning to the main menu does not reset campaign progression.
+        // Rebuild the current order's puzzle when the player resumes.
+        if (progression.CurrentOrder != null)
+        {
+            HandleOrderStarted(progression.CurrentOrder);
+            return;
+        }
+
+        progression.StartGame();
     }
 
     private void HandleOrderStarted(GiftOrderDefinition order)
