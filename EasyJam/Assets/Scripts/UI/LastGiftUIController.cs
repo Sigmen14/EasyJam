@@ -2039,7 +2039,7 @@ namespace TheLastGift.UI
         private void RenderOrderSuccessScreen()
         {
             Build("Заказ выполнен");
-            string resultMessage = "Покупатель доволен!\nТы заработала монеты и помогла сделать чей-то праздник теплее.";
+            string resultMessage = "Покупатель доволен!\nТы получаешь монеты и помогаешь сделать чей-то праздник теплее.";
             if (lastResultWrappingBonus > 0)
                 resultMessage += "\nБонус за удачное оформление: +" + lastResultWrappingBonus + " монет.";
             if (lastResultReputationBonus > 0)
