@@ -52,6 +52,7 @@ public class OrderProgressionManager : MonoBehaviour
     private int dayIndex;
     private int orderIndex;
     private bool awaitingResultContinue;
+    private bool awaitingDayContinue;
     private bool campaignStarted;
     private bool secretWishShownForCurrentOrder;
     private bool secretWishBonusAwarded;
@@ -257,6 +258,7 @@ public class OrderProgressionManager : MonoBehaviour
         TotalTipsEarned = 0;
         TotalReputationEarned = 0;
         awaitingResultContinue = false;
+        awaitingDayContinue = false;
         GenerateSecretWishAssignments();
         dayIndex = 0;
         orderIndex = 0;
@@ -327,16 +329,27 @@ public class OrderProgressionManager : MonoBehaviour
             CurrentOrder, result, success, baseReward, tip, wrappingBonus, reputationBonus, earned));
     }
 
-    /// <summary>UI calls after showing the order-result panel.</summary>
+    /// <summary>
+    /// UI calls after an order result or day summary. A completed day is deliberately paused
+    /// until the player presses the day-summary button.
+    /// </summary>
     public void ContinueAfterResult()
     {
+        if (awaitingDayContinue)
+        {
+            awaitingDayContinue = false;
+            StartCurrentDay();
+            return;
+        }
+
         if (!awaitingResultContinue)
             return;
 
         awaitingResultContinue = false;
         orderIndex++;
 
-        if (CurrentDayData != null && orderIndex < CurrentDayData.Orders.Count)
+        if (CurrentDayData != null && CurrentDayData.Orders != null
+            && orderIndex < CurrentDayData.Orders.Count)
         {
             StartCurrentOrder();
             return;
@@ -384,10 +397,12 @@ public class OrderProgressionManager : MonoBehaviour
         DayCompleted?.Invoke(new DaySummaryData(CurrentDay, CurrentDayData.Orders.Count, DayOrdersCompleted, DayCoinsEarned, CurrentCoins));
 
         dayIndex++;
+        CurrentOrder = null;
+        CurrentDayData = null;
+
         if (dayIndex >= campaign.Days.Count)
         {
-            CurrentOrder = null;
-            CurrentDayData = null;
+            awaitingDayContinue = false;
             IsCompleted = true;
             GameCompleted?.Invoke(new GameSummaryData(
                 CurrentCoins, TotalOrdersCompleted, TotalCoinsEarned, TotalTipsEarned,
@@ -395,7 +410,9 @@ public class OrderProgressionManager : MonoBehaviour
             return;
         }
 
-        StartCurrentDay();
+        // Do not start the next day yet. The day summary is a real pause in progression,
+        // and its button is responsible for advancing to the next day.
+        awaitingDayContinue = true;
     }
 
     private void AddCoins(int amount)

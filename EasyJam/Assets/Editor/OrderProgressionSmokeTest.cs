@@ -195,7 +195,20 @@ public static class OrderProgressionSmokeTest
                         "The perfect-wrapping reputation bonus is incorrect for " + currentOrder.name + ".");
                 }
 
+                int completedDaysBeforeContinue = completedDays.Count;
                 manager.ContinueAfterResult();
+
+                if (completedDays.Count > completedDaysBeforeContinue && !manager.IsCompleted)
+                {
+                    Require(manager.CurrentOrder == null,
+                        "The next day started before the player continued from the day summary.");
+
+                    // Simulate pressing the day-summary button to start the next day.
+                    manager.ContinueAfterResult();
+                    Require(manager.CurrentOrder != null,
+                        "The day-summary continue action did not start the next day.");
+                }
+
                 attemptIndex++;
             }
 
