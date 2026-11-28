@@ -2038,11 +2038,11 @@ namespace TheLastGift.UI
         private void RenderOrderSuccessScreen()
         {
             Build("Заказ выполнен");
-            string resultMessage = "Покупатель доволен!\\nТы заработала монеты и помогла сделать чей-то праздник теплее.";
+            string resultMessage = "Покупатель доволен!\nТы заработала монеты и помогла сделать чей-то праздник теплее.";
             if (lastResultWrappingBonus > 0)
-                resultMessage += "\\nБонус за удачное оформление: +" + lastResultWrappingBonus + " монет.";
+                resultMessage += "\nБонус за удачное оформление: +" + lastResultWrappingBonus + " монет.";
             if (lastResultReputationBonus > 0)
-                resultMessage += "\\nИдеальное сочетание! Репутация +" + lastResultReputationBonus + ".";
+                resultMessage += "\nИдеальное сочетание! Репутация +" + lastResultReputationBonus + ".";
             RectTransform successCard = Card("Заказ выполнен!", resultMessage);
             ChildLabel(successCard, "+ " + lastResultEarned + " МОНЕТ ✦", 44, gold,
                 new Vector2(0.10f, 0.21f), new Vector2(0.90f, 0.41f), TextAnchor.MiddleCenter);
