@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -51,6 +52,7 @@ public class OrderProgressionManager : MonoBehaviour
     private int orderIndex;
     private bool awaitingResultContinue;
     private bool campaignStarted;
+    private readonly HashSet<string> grantedEventRewardIds = new HashSet<string>(StringComparer.Ordinal);
 
     public bool IsCompleted { get; private set; }
 
@@ -66,6 +68,7 @@ public class OrderProgressionManager : MonoBehaviour
         }
 
         campaignStarted = true;
+        grantedEventRewardIds.Clear();
         IsCompleted = false;
         CurrentCoins = startingCoins;
         CurrentDay = 0;
@@ -149,6 +152,28 @@ public class OrderProgressionManager : MonoBehaviour
         }
 
         FinishCurrentDay();
+    }
+
+
+    /// <summary>
+    /// Grants a shop-event reward once per unique event ID in the current campaign.
+    /// The reward is included in campaign earnings and the current balance.
+    /// </summary>
+    public bool TryAwardEventReward(string eventRewardId, int amount)
+    {
+        if (!campaignStarted || IsCompleted || awaitingResultContinue || CurrentOrder == null
+            || string.IsNullOrWhiteSpace(eventRewardId) || amount <= 0)
+        {
+            return false;
+        }
+
+        if (!grantedEventRewardIds.Add(eventRewardId))
+            return false;
+
+        AddCoins(amount);
+        DayCoinsEarned += amount;
+        TotalCoinsEarned += amount;
+        return true;
     }
 
     private void StartCurrentDay()

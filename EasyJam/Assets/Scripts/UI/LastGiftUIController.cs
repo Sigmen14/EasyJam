@@ -46,6 +46,27 @@ namespace TheLastGift.UI
         private readonly List<string> placedGiftNames = new List<string>();
         private bool tutorialShown = false;
 
+        private static readonly string[] SortingEventGiftNames =
+        {
+            "МИШКА", "ПОДАРОК", "ЛЕДЕНЕЦ", "СНЕЖНЫЙ ШАР"
+        };
+
+        private static readonly string[] SortingEventTargetNames =
+        {
+            "ОБЪЯТИЯ", "ПОД ЁЛКУ", "СЛАДОСТИ", "ЗИМНЕЕ ЧУДО"
+        };
+
+        private readonly RectTransform[] sortingEventTargets = new RectTransform[4];
+        private readonly GameObject[] sortingEventCards = new GameObject[4];
+        private readonly bool[] sortingEventPlaced = new bool[4];
+        private Text sortingEventStatus;
+        private Text sortingEventTimer;
+        private Coroutine sortingEventTimerRoutine;
+        private Action sortingEventCompleted;
+        private int sortingEventPlacedCount;
+        private int sortingEventSecondsRemaining;
+        private bool sortingEventSolved;
+
         private sealed class CustomerOrderData
         {
             public readonly string CustomerName;
@@ -108,6 +129,9 @@ namespace TheLastGift.UI
 
         private void OnDestroy()
         {
+            if (sortingEventTimerRoutine != null)
+                StopCoroutine(sortingEventTimerRoutine);
+
             if (christmasBackground != null)
                 Destroy(christmasBackground);
             if (christmasBackgroundTexture != null)
@@ -917,6 +941,239 @@ namespace TheLastGift.UI
                 StartCoroutine(Pop(feedback.transform));
         }
 
+
+        /// <summary>
+        /// Opens the short in-shop sorting challenge. Gift visuals come from the same
+        /// resource atlas used by the regular customer order shelf.
+        /// </summary>
+        public void ShowMixedGiftSortingEvent(Action onCompleted)
+        {
+            if (sortingEventTimerRoutine != null)
+                StopCoroutine(sortingEventTimerRoutine);
+
+            sortingEventCompleted = onCompleted;
+            sortingEventPlacedCount = 0;
+            sortingEventSolved = false;
+            Array.Clear(sortingEventPlaced, 0, sortingEventPlaced.Length);
+            Array.Clear(sortingEventCards, 0, sortingEventCards.Length);
+            Array.Clear(sortingEventTargets, 0, sortingEventTargets.Length);
+
+            Build("Перепутанные подарки");
+
+            Panel(root.transform, "Яркая плашка происшествия",
+                new Vector2(0.10f, 0.83f), new Vector2(0.90f, 0.95f), red);
+            Label("РОЖДЕСТВЕНСКОЕ ПРОИСШЕСТВИЕ ✦", 29, cream,
+                new Vector2(0.12f, 0.84f), new Vector2(0.88f, 0.94f), TextAnchor.MiddleCenter);
+            Label("Эльфы перепутали подарки! Перетащи каждый подарок в правильное место.",
+                21, brown, new Vector2(0.08f, 0.75f), new Vector2(0.92f, 0.82f), TextAnchor.MiddleCenter);
+            Label("Подсказка: мишка → объятия   •   подарок → под ёлку   •   леденец → сладости   •   снежный шар → зимнее чудо",
+                15, green, new Vector2(0.06f, 0.68f), new Vector2(0.94f, 0.74f), TextAnchor.MiddleCenter);
+
+            int[] shuffledGiftIndices = { 0, 1, 2, 3 };
+            for (int i = shuffledGiftIndices.Length - 1; i > 0; i--)
+            {
+                int swapIndex = UnityEngine.Random.Range(0, i + 1);
+                int temporary = shuffledGiftIndices[i];
+                shuffledGiftIndices[i] = shuffledGiftIndices[swapIndex];
+                shuffledGiftIndices[swapIndex] = temporary;
+            }
+
+            const float tileWidth = 0.17f;
+            const float tileGap = 0.035f;
+            float tileStart = (1f - (tileWidth * 4f + tileGap * 3f)) * 0.5f;
+
+            for (int visualIndex = 0; visualIndex < shuffledGiftIndices.Length; visualIndex++)
+            {
+                int giftIndex = shuffledGiftIndices[visualIndex];
+                string giftName = SortingEventGiftNames[giftIndex];
+                float left = tileStart + visualIndex * (tileWidth + tileGap);
+
+                GameObject card = new GameObject(
+                    "Карточка подарка " + giftName,
+                    typeof(RectTransform), typeof(Image));
+                card.transform.SetParent(root.transform, false);
+
+                RectTransform cardRect = card.GetComponent<RectTransform>();
+                cardRect.anchorMin = new Vector2(left, 0.44f);
+                cardRect.anchorMax = new Vector2(left + tileWidth, 0.64f);
+                cardRect.offsetMin = Vector2.zero;
+                cardRect.offsetMax = Vector2.zero;
+
+                Image cardBackground = card.GetComponent<Image>();
+                cardBackground.color = giftIndex % 2 == 0 ? paper : paleBlue;
+                cardBackground.raycastTarget = true;
+
+                Image giftImage = ImageAt(card.transform, "Изображение " + giftName,
+                    new Vector2(0.14f, 0.24f), new Vector2(0.86f, 0.91f),
+                    GetGiftSprite(giftName), Color.white);
+
+                if (giftImage == null)
+                {
+                    ChildLabel(card.transform, GetGiftDisplayName(giftName), 17, brown,
+                        new Vector2(0.06f, 0.28f), new Vector2(0.94f, 0.88f), TextAnchor.MiddleCenter);
+                }
+
+                Text giftCaption = ChildLabel(card.transform, GetGiftDisplayName(giftName).ToUpperInvariant(),
+                    14, brown, new Vector2(0.03f, 0.02f), new Vector2(0.97f, 0.25f), TextAnchor.MiddleCenter);
+                giftCaption.raycastTarget = false;
+
+                LastGiftEventDraggableGift draggable = card.AddComponent<LastGiftEventDraggableGift>();
+                draggable.Initialize(this, GetGiftSprite(giftName), giftName);
+                sortingEventCards[giftIndex] = card;
+            }
+
+            for (int targetIndex = 0; targetIndex < SortingEventTargetNames.Length; targetIndex++)
+            {
+                float left = tileStart + targetIndex * (tileWidth + tileGap);
+                RectTransform target = Panel(root.transform,
+                    "Место сортировки " + SortingEventTargetNames[targetIndex],
+                    new Vector2(left, 0.20f),
+                    new Vector2(left + tileWidth, 0.40f),
+                    targetIndex % 2 == 0 ? new Color32(239, 222, 190, 255) : new Color32(211, 229, 232, 255));
+
+                sortingEventTargets[targetIndex] = target;
+                ChildLabel(target, SortingEventTargetNames[targetIndex], 15, green,
+                    new Vector2(0.04f, 0.70f), new Vector2(0.96f, 0.98f), TextAnchor.MiddleCenter);
+            }
+
+            sortingEventStatus = Label("Перетащи подарки в нужные места. Ошибка не страшна — попробуй ещё раз!",
+                17, brown, new Vector2(0.08f, 0.11f), new Vector2(0.92f, 0.17f), TextAnchor.MiddleCenter);
+            sortingEventTimer = Label("ОСТАЛОСЬ: 30 С", 17, red,
+                new Vector2(0.36f, 0.045f), new Vector2(0.64f, 0.10f), TextAnchor.MiddleCenter);
+
+            sortingEventSecondsRemaining = 30;
+            sortingEventTimerRoutine = StartCoroutine(SortingEventCountdown());
+        }
+
+        /// <summary>Called by the event-specific drag component when a gift is released.</summary>
+        public void TrySortMixedGift(string giftName, Vector2 screenPosition)
+        {
+            if (sortingEventSolved || string.IsNullOrEmpty(giftName))
+                return;
+
+            int giftIndex = Array.IndexOf(SortingEventGiftNames, giftName.ToUpperInvariant());
+            if (giftIndex < 0 || sortingEventPlaced[giftIndex])
+                return;
+
+            int targetIndex = -1;
+            for (int i = 0; i < sortingEventTargets.Length; i++)
+            {
+                RectTransform target = sortingEventTargets[i];
+                if (target != null && RectTransformUtility.RectangleContainsScreenPoint(
+                    target, screenPosition, null))
+                {
+                    targetIndex = i;
+                    break;
+                }
+            }
+
+            if (targetIndex < 0)
+            {
+                SetSortingEventStatus("Отпусти подарок над одним из четырёх мест сортировки.", false);
+                return;
+            }
+
+            if (targetIndex != giftIndex)
+            {
+                SetSortingEventStatus("Пока не подходит! Подсказка сверху поможет выбрать нужное место.", false);
+                StartCoroutine(Pop(sortingEventTargets[targetIndex]));
+                return;
+            }
+
+            sortingEventPlaced[giftIndex] = true;
+            sortingEventPlacedCount++;
+
+            if (sortingEventCards[giftIndex] != null)
+                sortingEventCards[giftIndex].SetActive(false);
+
+            Image placedIcon = ImageAt(sortingEventTargets[targetIndex],
+                "Рассортированный подарок " + giftName,
+                new Vector2(0.22f, 0.04f), new Vector2(0.78f, 0.69f),
+                GetGiftSprite(giftName), Color.white);
+            if (placedIcon != null)
+                placedIcon.raycastTarget = false;
+
+            SetSortingEventStatus(
+                sortingEventPlacedCount == SortingEventGiftNames.Length
+                    ? "Все подарки на местах! Сейчас проверим работу эльфов…"
+                    : "Верно! Осталось подарков: " + (SortingEventGiftNames.Length - sortingEventPlacedCount) + ".",
+                true);
+
+            if (sortingEventPlacedCount == SortingEventGiftNames.Length)
+                StartCoroutine(FinishMixedGiftSorting());
+        }
+
+        private IEnumerator SortingEventCountdown()
+        {
+            while (sortingEventSecondsRemaining > 0 && !sortingEventSolved)
+            {
+                if (sortingEventTimer != null)
+                    sortingEventTimer.text = "ОСТАЛОСЬ: " + sortingEventSecondsRemaining + " С";
+
+                yield return new WaitForSecondsRealtime(1f);
+                sortingEventSecondsRemaining--;
+            }
+
+            if (!sortingEventSolved && sortingEventTimer != null)
+            {
+                sortingEventTimer.text = "МОЖНО ПРОДОЛЖАТЬ — НЕ СПЕШИ!";
+                SetSortingEventStatus("Время вышло, но прогресс сохранён. Закончи сортировку в своём темпе.", false);
+            }
+
+            sortingEventTimerRoutine = null;
+        }
+
+        private IEnumerator FinishMixedGiftSorting()
+        {
+            sortingEventSolved = true;
+            if (sortingEventTimerRoutine != null)
+                StopCoroutine(sortingEventTimerRoutine);
+            sortingEventTimerRoutine = null;
+
+            if (sortingEventTimer != null)
+                sortingEventTimer.text = "ГОТОВО!";
+            SetSortingEventStatus("✦ УРА! ВСЕ ПОДАРКИ РАССОРТИРОВАНЫ! ✦", true);
+
+            yield return new WaitForSecondsRealtime(0.75f);
+
+            Action completed = sortingEventCompleted;
+            sortingEventCompleted = null;
+            completed?.Invoke();
+        }
+
+        private void SetSortingEventStatus(string message, bool success)
+        {
+            if (sortingEventStatus == null)
+                return;
+
+            sortingEventStatus.text = message;
+            sortingEventStatus.color = success ? green : red;
+            if (success)
+                StartCoroutine(Pop(sortingEventStatus.transform));
+        }
+
+        /// <summary>Shows the reward screen after a sorting event has been completed.</summary>
+        public void ShowChristmasEventSuccess(int rewardCoins, Action continueToShop)
+        {
+            if (sortingEventTimerRoutine != null)
+                StopCoroutine(sortingEventTimerRoutine);
+            sortingEventTimerRoutine = null;
+            sortingEventStatus = null;
+            sortingEventTimer = null;
+            sortingEventCompleted = null;
+
+            Build("Происшествие завершено");
+            RectTransform successCard = Card(
+                "Эльфам снова можно доверять!",
+                "Все подарки вернулись на свои места.\nЛавка снова готова принимать покупателей!\nСпасибо за помощь.");
+            ChildLabel(successCard,
+                rewardCoins > 0 ? "+ " + rewardCoins + " МОНЕТ ✦" : "БОНУС ЗА ЭТО ПРОИСШЕСТВИЕ УЖЕ ПОЛУЧЕН",
+                38, gold, new Vector2(0.08f, 0.21f), new Vector2(0.92f, 0.41f), TextAnchor.MiddleCenter);
+            ButtonAt("ПРОДОЛЖИТЬ РАБОТУ", green, () => continueToShop?.Invoke(),
+                new Vector2(0.32f, 0.13f), new Vector2(0.68f, 0.23f));
+            StartCoroutine(Pop(successCard));
+        }
+
         public void OrderSuccess(int earned)
         {
             coins += earned;
@@ -930,8 +1187,10 @@ namespace TheLastGift.UI
                 new Vector2(0.10f, 0.21f), new Vector2(0.90f, 0.41f), TextAnchor.MiddleCenter);
             Button("СЛЕДУЮЩИЙ ПОКУПАТЕЛЬ", green, () =>
             {
-                Continue?.Invoke();
-                Gameplay();
+                if (Continue != null)
+                    Continue.Invoke();
+                else
+                    Gameplay();
             }, 0, -250, 430, 70);
         }
 
@@ -942,8 +1201,10 @@ namespace TheLastGift.UI
             Card("Рабочий день окончен!", "Выполнено заказов: " + orders + "\nЗаработано монет: " + earnings + "\n\nОтличная работа! Завтра лавка снова откроется.");
             Button("НАЧАТЬ НОВЫЙ ДЕНЬ", green, () =>
             {
-                Continue?.Invoke();
-                Gameplay();
+                if (Continue != null)
+                    Continue.Invoke();
+                else
+                    Gameplay();
             }, 0, -250, 380, 70);
         }
 
