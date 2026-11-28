@@ -754,8 +754,8 @@ namespace TheLastGift.UI
                 UIVertex vertex = UIVertex.simpleVert;
                 vertex.color = color;
                 vertex.position = new Vector3(
-                    (vertices[i].x + 0.5f) * rect.width,
-                    (vertices[i].y + 0.5f) * rect.height,
+                    rect.xMin + (vertices[i].x + 0.5f) * rect.width,
+                    rect.yMin + (vertices[i].y + 0.5f) * rect.height,
                     0f);
                 vertexHelper.AddVert(vertex);
             }
