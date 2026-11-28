@@ -215,9 +215,27 @@ namespace TheLastGift.UI
             if (currentOrder == null || customerPortraits.Length == 0)
                 return null;
 
-            // Three orders are presented on each of the three campaign days.
-            int portraitIndex = ((Mathf.Max(1, day) - 1) * 3 + (Mathf.Max(1, order) - 1))
-                % customerPortraits.Length;
+            // Match each campaign customer to the correct person in the portrait atlas.
+            // Indices use the atlas order: left-to-right, top-to-bottom.
+            int portraitIndex;
+            switch (currentOrder.CustomerName.Trim().ToUpperInvariant())
+            {
+                case "ЭММА": portraitIndex = 0; break;   // young woman
+                case "НОЙ": portraitIndex = 1; break;    // young man with glasses
+                case "ОЛИВЕР": portraitIndex = 3; break; // man in green
+                case "ИТАН": portraitIndex = 5; break;   // man with winter scarf
+                case "ЛИЛИ": portraitIndex = 2; break;   // woman with white hair
+                case "МИЯ": portraitIndex = 4; break;    // blonde young woman
+                case "АВА": portraitIndex = 6; break;    // red-haired woman
+                case "ФРЕЯ": portraitIndex = 8; break;   // woman in cream sweater
+                case "ТЕО": portraitIndex = 7; break;    // young man in red sweater
+                default:
+                    // Keep a deterministic fallback for any future customer.
+                    portraitIndex = ((Mathf.Max(1, day) - 1) * 3
+                        + (Mathf.Max(1, order) - 1)) % customerPortraits.Length;
+                    break;
+            }
+
             return customerPortraits[portraitIndex];
         }
 
