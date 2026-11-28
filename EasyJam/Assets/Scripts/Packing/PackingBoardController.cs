@@ -503,7 +503,7 @@ namespace TheLastGift.Packing
 
             var scale = Mathf.Max(1.15f, Mathf.Clamp(Screen.height / 900f, 0.78f, 1.2f));
             var panelWidth = Mathf.Min(660f, Screen.width - 36f);
-            var panelHeight = 338f * scale;
+            var panelHeight = 356f * scale;
             var panel = new Rect(
                 (Screen.width - panelWidth) * 0.5f,
                 (Screen.height - panelHeight) * 0.5f,
@@ -540,10 +540,10 @@ namespace TheLastGift.Packing
                 "Все подарки аккуратно уложены.\nНи одной пустой клеточки!", completionBodyStyle);
 
             var badge = new Rect(panel.x + panel.width * 0.24f, panel.y + 242f * scale,
-                panel.width * 0.52f, 30f * scale);
+                panel.width * 0.52f, 44f * scale);
             GUI.Label(badge, $"ИДЕАЛЬНАЯ УПАКОВКА  •  {width * height}/{width * height}", completionKickerStyle);
 
-            var button = new Rect(panel.x + panel.width * 0.18f, panel.y + 282f * scale,
+            var button = new Rect(panel.x + panel.width * 0.18f, panel.y + 296f * scale,
                 panel.width * 0.64f, 44f * scale);
             if (GUI.Button(button, "СЫГРАТЬ ЕЩЁ РАЗ", completionButtonStyle))
                 RestartPuzzle();
