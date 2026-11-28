@@ -241,8 +241,9 @@ public static class OrderProgressionSmokeTest
                 {
                     expectedCoins += Mathf.Max(0, order.RewardCoins);
                     expectedCoins += Mathf.Max(0, order.PerfectPackingTip);
-                    // The second order is deliberately wrapped poorly to verify it still completes.
-                    if (totalOrders > 2)
+                    // The first order fails; the second has unsuitable wrapping.
+                    // Starting with the third order, the simulated wrapping earns its coin bonus.
+                    if (totalOrders >= 2)
                         expectedCoins += Mathf.Max(0, order.WrappingBonusCoins);
                 }
 
