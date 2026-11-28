@@ -10,11 +10,12 @@ The default board is 4×4. It has four tetrominoes (two T pieces, one L piece, a
 
 ## Controls
 - **Left mouse:** pick up, drag, and release a gift. Release on the board to place it.
-- **R / Space / right mouse while dragging:** rotate a rotatable gift clockwise by 90 degrees.
+- **R / Space / right mouse while dragging:** rotate a rotatable gift clockwise by 90 degrees. The same hint is displayed in the game HUD.
 - **V:** manually validate the current arrangement.
+- To remove a placed gift, drag it beyond the edge of the box; it returns to its tray position.
 - Gifts can be picked up from the tray or from the board and moved again. An invalid move of an already placed piece restores its previous position; a piece dragged from the tray returns to the tray if the drop is invalid.
 
-The HUD shows the number of covered cells and placed fragments. The puzzle is validated automatically after each drop; a success message appears only when all fragments are placed, none overlap or leave the box, and all 16 cells are covered.
+The HUD shows the number of covered cells and placed fragments, plus the rotation and removal controls. The puzzle is validated automatically after each drop. When all fragments are placed without overlaps and all 16 cells are covered, a completion panel appears and offers a **Play Again** button.
 
 ## Integration API
 - `SetupBoard(int width, int height, List<GiftDefinition> gifts)`: replaces the board and current gifts.
