@@ -23,7 +23,7 @@ MonoBehaviour:
   constraints:
   - type: 2
     primaryGift: {fileID: 11400000, guid: a2000000000000000000000000000005, type: 2}
-    secondaryGift: {fileID: 11400000, guid: 00000000000000000000000000000000, type: 0}
+    secondaryGift: {fileID: 0}
   - type: 1
     primaryGift: {fileID: 11400000, guid: a2000000000000000000000000000006, type: 2}
     secondaryGift: {fileID: 11400000, guid: a2000000000000000000000000000007, type: 2}
