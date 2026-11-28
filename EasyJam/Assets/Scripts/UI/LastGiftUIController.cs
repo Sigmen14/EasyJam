@@ -42,11 +42,13 @@ namespace TheLastGift.UI
             public readonly string CustomerName;
             public readonly string Wish;
             public readonly string[] RequiredGifts;
+            public readonly GiftBoxSize BoxSize;
 
-            public CustomerOrderData(string customerName, string wish, params string[] requiredGifts)
+            public CustomerOrderData(string customerName, string wish, GiftBoxSize boxSize, params string[] requiredGifts)
             {
                 CustomerName = customerName;
                 Wish = wish;
+                BoxSize = boxSize;
                 RequiredGifts = requiredGifts;
             }
         }
@@ -320,7 +322,7 @@ namespace TheLastGift.UI
 
         private void BuildPackingArea()
         {
-            Label("КОРОБКА ДЛЯ УПАКОВКИ", 21, green,
+            Label("КОРОБКА ДЛЯ УПАКОВКИ — " + GetBoxSizeLabel(currentOrder.BoxSize), 21, green,
                 new Vector2(0.29f, 0.785f), new Vector2(0.71f, 0.84f), TextAnchor.MiddleCenter);
             Label("Перетаскивай сюда подарки с полки справа", 16, brown,
                 new Vector2(0.29f, 0.745f), new Vector2(0.71f, 0.785f), TextAnchor.MiddleCenter);
@@ -331,11 +333,17 @@ namespace TheLastGift.UI
             packingRect = Panel(root.transform, "Коробка",
                 new Vector2(0.315f, 0.295f), new Vector2(0.685f, 0.695f), paper);
 
-            for (int i = 1; i < 3; i++)
+            int columns = GetBoxColumns(currentOrder.BoxSize);
+            int rows = GetBoxRows(currentOrder.BoxSize);
+            for (int i = 1; i < columns; i++)
             {
-                float p = i / 3f;
+                float p = i / (float)columns;
                 Panel(packingRect, "Вертикальная линия",
                     new Vector2(p - 0.0015f, 0f), new Vector2(p + 0.0015f, 1f), new Color32(225, 209, 181, 255));
+            }
+            for (int i = 1; i < rows; i++)
+            {
+                float p = i / (float)rows;
                 Panel(packingRect, "Горизонтальная линия",
                     new Vector2(0f, p - 0.002f), new Vector2(1f, p + 0.002f), new Color32(225, 209, 181, 255));
             }
@@ -474,6 +482,7 @@ namespace TheLastGift.UI
             currentOrder = new CustomerOrderData(
                 orderData.CustomerName,
                 orderData.CustomerWish,
+                orderData.BoxSize,
                 requiredGifts.ToArray());
 
             day = currentDay;
@@ -518,6 +527,31 @@ namespace TheLastGift.UI
             return count;
         }
 
+        private int GetBoxColumns(GiftBoxSize size)
+        {
+            return size == GiftBoxSize.Small ? 2 : 3;
+        }
+
+        private int GetBoxRows(GiftBoxSize size)
+        {
+            switch (size)
+            {
+                case GiftBoxSize.Small: return 2;
+                case GiftBoxSize.Medium: return 2;
+                default: return 3;
+            }
+        }
+
+        private string GetBoxSizeLabel(GiftBoxSize size)
+        {
+            switch (size)
+            {
+                case GiftBoxSize.Small: return "МАЛЕНЬКАЯ";
+                case GiftBoxSize.Medium: return "СРЕДНЯЯ";
+                default: return "БОЛЬШАЯ";
+            }
+        }
+
         private Sprite GetGiftSprite(string giftName)
         {
             switch (giftName)
@@ -556,21 +590,24 @@ namespace TheLastGift.UI
                 return;
             }
 
-            if (placedGiftCount >= 9)
+            int columns = GetBoxColumns(currentOrder.BoxSize);
+            int rows = GetBoxRows(currentOrder.BoxSize);
+            int capacity = columns * rows;
+            if (placedGiftCount >= capacity)
             {
-                SetStatus("Коробка заполнена. В ней больше нет места.", false);
+                SetStatus("Коробка заполнена. Очисти её или проверь заказ.", false);
                 return;
             }
 
-            int column = placedGiftCount % 3;
-            int row = placedGiftCount / 3;
+            int column = placedGiftCount % columns;
+            int row = placedGiftCount / columns;
 
             GameObject placed = new GameObject("Упакованный подарок " + giftName, typeof(RectTransform), typeof(Image));
             placed.transform.SetParent(packingRect, false);
 
             RectTransform rect = placed.GetComponent<RectTransform>();
-            rect.anchorMin = new Vector2(column / 3f, row / 3f);
-            rect.anchorMax = new Vector2((column + 1) / 3f, (row + 1) / 3f);
+            rect.anchorMin = new Vector2(column / (float)columns, row / (float)rows);
+            rect.anchorMax = new Vector2((column + 1) / (float)columns, (row + 1) / (float)rows);
             rect.offsetMin = new Vector2(7, 7);
             rect.offsetMax = new Vector2(-7, -7);
 
