@@ -82,8 +82,8 @@ namespace TheLastGift.UI
             BuildTownAndShop();
             BuildSnowfall();
             BuildTitleCard();
-            BuildSkipButton();
             BuildFadeCurtain();
+            BuildSkipButton();
         }
 
         private void Update()
