@@ -17,6 +17,22 @@ namespace TheLastGift.UI
         private const float IntroDuration = 25.5f;
         private const float FadeOutDuration = 1.3f;
 
+        // Each story beat pauses the cinematic until the player presses Space.
+        private static readonly float[] StoryBeatTimes =
+        {
+            0.7f, 5.2f, 10.8f, 13.4f, 17.2f, 21.2f
+        };
+
+        private static readonly string[] StoryBeats =
+        {
+            "24 декабря. В городе тихо падает снег.",
+            "В маленькой рождественской лавке хозяин готовится закрыться.",
+            "К двери подходит мальчик. Он пришёл не просто за подарком.",
+            "Его мама — медсестра. Этой ночью она снова будет на смене.",
+            "Мальчик мечтает подарить ей тёплый шарф — такой, каким мама укрывает его.",
+            "Но ему не хватает денег. Хозяин решает помочь."
+        };
+
         private static LastGiftIntroController activeIntro;
         private Action completionCallback;
         private bool hasCompleted;
@@ -33,14 +49,21 @@ namespace TheLastGift.UI
         private Image fadeCurtain;
         private Sprite whiteSprite;
         private Sprite softCircleSprite;
+        private Sprite pineTriangleSprite;
         private Texture2D whiteTexture;
         private Texture2D softCircleTexture;
+        private Texture2D pineTriangleTexture;
         private Font introFont;
         private bool ownsIntroFont;
         private readonly List<SnowParticle> snowParticles = new List<SnowParticle>();
 
         private float elapsed;
         private bool exiting;
+        private bool awaitingStoryAdvance;
+        private int storyBeatIndex;
+        private RectTransform storyPanel;
+        private Text storyText;
+        private RectTransform continuePromptRoot;
 
         private sealed class SnowParticle
         {
@@ -77,8 +100,10 @@ namespace TheLastGift.UI
             BuildTownAndShop();
             BuildSnowfall();
             BuildTitleCard();
+            BuildStoryCaptions();
             BuildFadeCurtain();
             BuildSkipPrompt();
+            BuildSkipButton();
         }
 
         private void Update()
@@ -87,9 +112,12 @@ namespace TheLastGift.UI
                 return;
 
             Keyboard keyboard = Keyboard.current;
-            if (keyboard != null && keyboard.spaceKey.wasPressedThisFrame)
+            if (awaitingStoryAdvance)
             {
-                SkipIntro();
+                if (keyboard != null && keyboard.spaceKey.wasPressedThisFrame)
+                    ContinueStory();
+
+                // Keep the current shot and its line on screen until the player is ready.
                 return;
             }
 
@@ -110,6 +138,14 @@ namespace TheLastGift.UI
                 fadeCurtain.color = curtainColor;
             }
 
+            if (storyBeatIndex < StoryBeatTimes.Length &&
+                elapsed >= StoryBeatTimes[storyBeatIndex])
+            {
+                ShowStoryBeat(storyBeatIndex);
+                awaitingStoryAdvance = true;
+                return;
+            }
+
             if (elapsed >= IntroDuration)
                 CompleteAndClose();
         }
@@ -120,10 +156,14 @@ namespace TheLastGift.UI
                 Destroy(whiteSprite);
             if (softCircleSprite != null)
                 Destroy(softCircleSprite);
+            if (pineTriangleSprite != null)
+                Destroy(pineTriangleSprite);
             if (whiteTexture != null)
                 Destroy(whiteTexture);
             if (softCircleTexture != null)
                 Destroy(softCircleTexture);
+            if (pineTriangleTexture != null)
+                Destroy(pineTriangleTexture);
             if (ownsIntroFont && introFont != null)
                 Destroy(introFont);
         }
@@ -162,6 +202,36 @@ namespace TheLastGift.UI
                 new Rect(0f, 0f, diameter, diameter),
                 new Vector2(0.5f, 0.5f),
                 100f);
+
+            // Standard UI sprite keeps the pine silhouettes fully opaque and stable
+            // across render pipelines, unlike the custom polygon graphic.
+            const int triangleSize = 128;
+            pineTriangleTexture = new Texture2D(triangleSize, triangleSize, TextureFormat.RGBA32, false);
+            pineTriangleTexture.name = "Last Gift Intro — pine silhouette";
+            pineTriangleTexture.filterMode = FilterMode.Bilinear;
+            pineTriangleTexture.wrapMode = TextureWrapMode.Clamp;
+            Color32[] trianglePixels = new Color32[triangleSize * triangleSize];
+            float triangleCenter = (triangleSize - 1) * 0.5f;
+            for (int y = 0; y < triangleSize; y++)
+            {
+                float vertical = (float)y / (triangleSize - 1);
+                float halfWidth = (1f - vertical) * triangleSize * 0.49f;
+                for (int x = 0; x < triangleSize; x++)
+                {
+                    float distance = Mathf.Abs((x + 0.5f) - triangleCenter);
+                    float coverage = Mathf.Clamp01(halfWidth + 0.5f - distance);
+                    trianglePixels[y * triangleSize + x] =
+                        new Color32(255, 255, 255, (byte)Mathf.RoundToInt(coverage * 255f));
+                }
+            }
+
+            pineTriangleTexture.SetPixels32(trianglePixels);
+            pineTriangleTexture.Apply(false, true);
+            pineTriangleSprite = Sprite.Create(
+                pineTriangleTexture,
+                new Rect(0f, 0f, triangleSize, triangleSize),
+                new Vector2(0.5f, 0.5f),
+                100f);
         }
 
         private void CreateCanvas()
@@ -187,7 +257,7 @@ namespace TheLastGift.UI
 
             canvasGroup = canvasObject.GetComponent<CanvasGroup>();
             canvasGroup.alpha = 1f;
-            canvasGroup.interactable = false;
+            canvasGroup.interactable = true;
             canvasGroup.blocksRaycasts = true;
 
             // This transparent graphic prevents clicks from reaching the game menu below the cinematic.
@@ -297,18 +367,15 @@ namespace TheLastGift.UI
         {
             AddImage(parent, "Pine trunk", new Vector2(x, baseY + 50f * scale),
                 new Vector2(36f * scale, 120f * scale), new Color32(83, 53, 39, 255));
-            AddPolygon(parent, "Pine lower bough", new Vector2(x, baseY + 150f * scale),
+            AddImage(parent, "Pine lower bough", new Vector2(x, baseY + 150f * scale),
                 new Vector2(250f * scale, 250f * scale),
-                new[] { new Vector2(-0.5f, -0.48f), new Vector2(0f, 0.5f), new Vector2(0.5f, -0.48f) },
-                new Color32(20, 72, 59, 255));
-            AddPolygon(parent, "Pine middle bough", new Vector2(x, baseY + 225f * scale),
+                new Color32(20, 72, 59, 255), pineTriangleSprite);
+            AddImage(parent, "Pine middle bough", new Vector2(x, baseY + 225f * scale),
                 new Vector2(195f * scale, 210f * scale),
-                new[] { new Vector2(-0.5f, -0.48f), new Vector2(0f, 0.5f), new Vector2(0.5f, -0.48f) },
-                new Color32(27, 91, 68, 255));
-            AddPolygon(parent, "Pine upper bough", new Vector2(x, baseY + 285f * scale),
+                new Color32(27, 91, 68, 255), pineTriangleSprite);
+            AddImage(parent, "Pine upper bough", new Vector2(x, baseY + 285f * scale),
                 new Vector2(135f * scale, 155f * scale),
-                new[] { new Vector2(-0.5f, -0.48f), new Vector2(0f, 0.5f), new Vector2(0.5f, -0.48f) },
-                new Color32(33, 107, 75, 255));
+                new Color32(33, 107, 75, 255), pineTriangleSprite);
             AddImage(parent, "Snow cap lower", new Vector2(x, baseY + 78f * scale),
                 new Vector2(175f * scale, 12f * scale), new Color32(233, 239, 228, 230));
             AddImage(parent, "Snow cap middle", new Vector2(x, baseY + 188f * scale),
@@ -359,6 +426,23 @@ namespace TheLastGift.UI
                 new Color32(86, 54, 40, 255));
             AddImage(worldRoot, "Shop right timber", new Vector2(520f, 15f), new Vector2(24f, 600f),
                 new Color32(86, 54, 40, 255));
+
+            // Close the visible gap between the timber facade and the snowy street.
+            AddImage(worldRoot, "Shop foundation shadow", new Vector2(0f, -303f),
+                new Vector2(1120f, 70f), new Color32(55, 43, 37, 255));
+            AddImage(worldRoot, "Shop stone foundation", new Vector2(0f, -303f),
+                new Vector2(1096f, 58f), new Color32(126, 103, 82, 255));
+            for (int joint = 0; joint < 8; joint++)
+            {
+                float jointX = -480f + joint * 137f;
+                AddImage(worldRoot, "Foundation stone joint " + joint,
+                    new Vector2(jointX, -303f), new Vector2(3f, 48f),
+                    new Color32(91, 72, 59, 255));
+            }
+            AddImage(worldRoot, "Shop foundation upper beam", new Vector2(0f, -273f),
+                new Vector2(1110f, 18f), new Color32(78, 48, 37, 255));
+            AddImage(worldRoot, "Shop foundation snow edge", new Vector2(0f, -333f),
+                new Vector2(1128f, 10f), new Color32(235, 240, 230, 255));
 
             AddImage(worldRoot, "Shop sign frame", new Vector2(0f, 300f), new Vector2(590f, 88f),
                 new Color32(60, 42, 35, 255));
@@ -467,8 +551,10 @@ namespace TheLastGift.UI
                 new Color32(61, 46, 39, 255), softCircleSprite);
             AddImage(worldRoot, "Shopkeeper right eye", new Vector2(-318f, 112f), new Vector2(6f, 6f),
                 new Color32(61, 46, 39, 255), softCircleSprite);
-            shopkeeperArm = CreateRect(worldRoot, "Shopkeeper moving arm", new Vector2(-272f, 15f), new Vector2(27f, 112f));
-            shopkeeperArm.pivot = new Vector2(0.5f, 0.88f);
+            // The arm's top pivot is embedded in the shopkeeper's right shoulder.
+            shopkeeperArm = CreateRect(worldRoot, "Shopkeeper moving arm",
+                new Vector2(-291f, 42f), new Vector2(32f, 108f));
+            shopkeeperArm.pivot = new Vector2(0.5f, 0.9f);
             AddImage(shopkeeperArm, "Shopkeeper sleeve", Vector2.zero, new Vector2(27f, 112f),
                 new Color32(45, 82, 65, 255));
             AddImage(shopkeeperArm, "Shopkeeper hand", new Vector2(0f, -56f), new Vector2(25f, 24f), skin, softCircleSprite);
@@ -496,6 +582,29 @@ namespace TheLastGift.UI
                 new Color32(164, 54, 49, 255));
             AddImage(boyRoot, "Boy hat pompom", new Vector2(28f, 180f), new Vector2(18f, 18f),
                 new Color32(245, 236, 218, 255), softCircleSprite);
+
+            // Clear, high-contrast facial features remain readable at the final camera scale.
+            AddImage(boyRoot, "Boy left cheek", new Vector2(-23f, 87f), new Vector2(12f, 8f),
+                new Color32(218, 127, 112, 150), softCircleSprite);
+            AddImage(boyRoot, "Boy right cheek", new Vector2(23f, 87f), new Vector2(12f, 8f),
+                new Color32(218, 127, 112, 150), softCircleSprite);
+            AddImage(boyRoot, "Boy left eye white", new Vector2(-15f, 101f), new Vector2(11f, 14f),
+                new Color32(255, 250, 239, 255), softCircleSprite);
+            AddImage(boyRoot, "Boy right eye white", new Vector2(15f, 101f), new Vector2(11f, 14f),
+                new Color32(255, 250, 239, 255), softCircleSprite);
+            AddImage(boyRoot, "Boy left pupil", new Vector2(-14f, 101f), new Vector2(5f, 8f),
+                new Color32(55, 43, 39, 255), softCircleSprite);
+            AddImage(boyRoot, "Boy right pupil", new Vector2(16f, 101f), new Vector2(5f, 8f),
+                new Color32(55, 43, 39, 255), softCircleSprite);
+            AddImage(boyRoot, "Boy left eyebrow", new Vector2(-15f, 113f), new Vector2(12f, 3f),
+                new Color32(91, 62, 47, 255));
+            AddImage(boyRoot, "Boy right eyebrow", new Vector2(15f, 113f), new Vector2(12f, 3f),
+                new Color32(91, 62, 47, 255));
+            AddImage(boyRoot, "Boy nose", new Vector2(0f, 88f), new Vector2(6f, 7f),
+                new Color32(204, 139, 111, 255), softCircleSprite);
+            AddImage(boyRoot, "Boy smile", new Vector2(0f, 76f), new Vector2(13f, 5f),
+                new Color32(111, 59, 54, 255), softCircleSprite);
+
             AddImage(boyRoot, "Boy left boot", new Vector2(-22f, -77f), new Vector2(34f, 20f),
                 new Color32(70, 53, 47, 255));
             AddImage(boyRoot, "Boy right boot", new Vector2(25f, -77f), new Vector2(34f, 20f),
@@ -557,7 +666,7 @@ namespace TheLastGift.UI
                 TextAnchor.MiddleCenter, FontStyle.Bold);
             AddImage(titleRoot, "Title gold divider", new Vector2(0f, -33f), new Vector2(490f, 3f),
                 new Color32(205, 157, 83, 255));
-            AddText(titleRoot, "Story subtitle", "ЕГО МАМА — МЕДСЕСТРА. ЭТОЙ НОЧЬЮ ОНА НА СМЕНЕ.\nМАЛЬЧИК ИЩЕТ ДЛЯ НЕЁ ОСОБЕННЫЙ ПОДАРОК.", 25,
+            AddText(titleRoot, "Story subtitle", "ОДНА ПРОСТАЯ ПРОСЬБА МОЖЕТ ИЗМЕНИТЬ ЭТОТ ВЕЧЕР.", 25,
                 new Vector2(0f, -110f), new Vector2(980f, 90f), new Color32(244, 235, 216, 255),
                 TextAnchor.MiddleCenter, FontStyle.Normal);
             AddText(titleRoot, "Title ornament", "✦     ❄     ✦", 25,
@@ -572,18 +681,60 @@ namespace TheLastGift.UI
             fadeCurtain.raycastTarget = false;
         }
 
+        private void BuildStoryCaptions()
+        {
+            RectTransform canvasRect = transform.Find("Intro Canvas") as RectTransform;
+            storyPanel = CreateRect(canvasRect, "Story dialogue panel",
+                new Vector2(0f, -322f), new Vector2(1320f, 142f));
+            AddImage(storyPanel, "Story panel gold frame", Vector2.zero,
+                new Vector2(1320f, 142f), new Color32(208, 164, 91, 242));
+            AddImage(storyPanel, "Story panel wooden surface", Vector2.zero,
+                new Vector2(1308f, 130f), new Color32(48, 39, 36, 245));
+            AddImage(storyPanel, "Story panel inner surface", Vector2.zero,
+                new Vector2(1288f, 110f), new Color32(73, 58, 49, 248));
+
+            storyText = AddText(storyPanel, "Story dialogue text", string.Empty, 29,
+                Vector2.zero, new Vector2(1210f, 86f), new Color32(250, 239, 218, 255),
+                TextAnchor.MiddleCenter, FontStyle.Bold);
+            storyPanel.gameObject.SetActive(false);
+        }
+
         private void BuildSkipPrompt()
         {
-            RectTransform prompt = CreateRect(transform.Find("Intro Canvas"),
-                "Space skip prompt", new Vector2(0f, -474f), new Vector2(470f, 62f));
-            AddImage(prompt, "Prompt gold frame", Vector2.zero, new Vector2(470f, 62f),
-                new Color32(208, 164, 91, 238));
-            AddImage(prompt, "Prompt wooden plaque", Vector2.zero, new Vector2(462f, 54f),
-                new Color32(55, 45, 41, 245));
-            AddImage(prompt, "Prompt red accent", new Vector2(-224f, 0f), new Vector2(5f, 48f),
-                new Color32(169, 54, 49, 255));
-            AddText(prompt, "Prompt label", "ПРОБЕЛ — пропустить заставку", 21,
-                Vector2.zero, new Vector2(438f, 48f), new Color32(250, 232, 199, 255),
+            continuePromptRoot = CreateRect(transform.Find("Intro Canvas"),
+                "Space continue prompt", new Vector2(0f, -468f), new Vector2(500f, 54f));
+            AddImage(continuePromptRoot, "Continue prompt gold frame", Vector2.zero,
+                new Vector2(500f, 54f), new Color32(208, 164, 91, 238));
+            AddImage(continuePromptRoot, "Continue prompt wooden plaque", Vector2.zero,
+                new Vector2(492f, 46f), new Color32(55, 45, 41, 245));
+            AddText(continuePromptRoot, "Continue prompt label", "ПРОБЕЛ — продолжить", 20,
+                Vector2.zero, new Vector2(470f, 40f), new Color32(250, 232, 199, 255),
+                TextAnchor.MiddleCenter, FontStyle.Bold);
+            continuePromptRoot.gameObject.SetActive(false);
+        }
+
+        private void BuildSkipButton()
+        {
+            RectTransform canvasRect = transform.Find("Intro Canvas") as RectTransform;
+            RectTransform buttonRoot = CreateRect(canvasRect, "Skip intro button",
+                new Vector2(820f, 470f), new Vector2(230f, 68f));
+
+            Image background = AddImage(buttonRoot, "Skip button background",
+                Vector2.zero, new Vector2(230f, 68f), new Color32(153, 45, 43, 250));
+            background.raycastTarget = true;
+
+            Button button = buttonRoot.gameObject.AddComponent<Button>();
+            button.targetGraphic = background;
+            ColorBlock colors = button.colors;
+            colors.normalColor = new Color32(153, 45, 43, 250);
+            colors.highlightedColor = new Color32(184, 62, 54, 255);
+            colors.pressedColor = new Color32(112, 34, 34, 255);
+            colors.selectedColor = new Color32(184, 62, 54, 255);
+            button.colors = colors;
+            button.onClick.AddListener(SkipIntro);
+
+            AddText(buttonRoot, "Skip button label", "ПРОПУСТИТЬ", 20,
+                Vector2.zero, new Vector2(210f, 52f), new Color32(255, 242, 220, 255),
                 TextAnchor.MiddleCenter, FontStyle.Bold);
         }
 
@@ -648,6 +799,32 @@ namespace TheLastGift.UI
         {
             if (titleGroup != null)
                 titleGroup.alpha = Smooth01((elapsed - 17.4f) / 1.55f);
+        }
+
+        private void ShowStoryBeat(int index)
+        {
+            if (storyText == null || index < 0 || index >= StoryBeats.Length)
+                return;
+
+            storyText.text = StoryBeats[index];
+            if (storyPanel != null)
+                storyPanel.gameObject.SetActive(true);
+            if (continuePromptRoot != null)
+                continuePromptRoot.gameObject.SetActive(true);
+        }
+
+        private void ContinueStory()
+        {
+            if (!awaitingStoryAdvance || exiting)
+                return;
+
+            awaitingStoryAdvance = false;
+            storyBeatIndex++;
+
+            if (storyPanel != null)
+                storyPanel.gameObject.SetActive(false);
+            if (continuePromptRoot != null)
+                continuePromptRoot.gameObject.SetActive(false);
         }
 
         private void SkipIntro()

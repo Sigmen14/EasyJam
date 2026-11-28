@@ -11,7 +11,8 @@ namespace TheLastGift.UI
 {
     public sealed class LastGiftUIController : MonoBehaviour
     {
-        public Action ConfirmPacking, Continue, StartGame;
+        public Action ConfirmPacking, Continue, StartGame, OpenWorkshop;
+        public Func<WorkshopUpgradeType, bool> PurchaseWorkshopUpgrade;
         public Action<GiftWrappingSelection> ConfirmWrapping;
         public Action SecretWishShown;
         public Func<bool, int, int> AwardSecretWishBonus;
@@ -57,6 +58,17 @@ namespace TheLastGift.UI
         private bool secretWishAnswered;
         private bool introTransitionPending;
         private bool introCompleted;
+        private bool workshopGarland;
+        private bool workshopExtraShelf;
+        private bool workshopPremiumWrapping;
+        private Text workshopStatus;
+        private Action workshopReturnAction;
+        private int lastResultEarned;
+        private int lastResultWrappingBonus;
+        private int lastResultReputationBonus;
+        private bool lastResultCanOpenWorkshop;
+        private Sprite scarfSprite;
+        private Texture2D scarfTexture;
 
         private static readonly string[] SortingEventGiftNames =
         {
@@ -110,7 +122,7 @@ namespace TheLastGift.UI
 
         private static readonly string[] AllGiftNames =
         {
-            "МИШКА", "ПОДАРОК", "ЛЕДЕНЕЦ", "СНЕЖНЫЙ ШАР"
+            "МИШКА", "ПОДАРОК", "ЛЕДЕНЕЦ", "СНЕЖНЫЙ ШАР", "ШАРФ"
         };
 
         /// <summary>
@@ -164,6 +176,7 @@ namespace TheLastGift.UI
                 ? customFont
                 : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             LoadGiftSprites();
+            scarfSprite = CreateScarfSprite();
             LoadCustomerPortraits();
             christmasBackgroundTexture = LastGiftChristmasBackground.CreateTexture();
             christmasBackground = Sprite.Create(
@@ -184,6 +197,10 @@ namespace TheLastGift.UI
                 Destroy(christmasBackground);
             if (christmasBackgroundTexture != null)
                 Destroy(christmasBackgroundTexture);
+            if (scarfSprite != null)
+                Destroy(scarfSprite);
+            if (scarfTexture != null)
+                Destroy(scarfTexture);
 
             for (int i = 0; i < customerPortraits.Length; i++)
             {
@@ -260,6 +277,42 @@ namespace TheLastGift.UI
             snowGlobeSprite = Sprite.Create(giftAtlas, new Rect(64, 64, 64, 64), new Vector2(0.5f, 0.5f), 96);
         }
 
+        private Sprite CreateScarfSprite()
+        {
+            const int size = 64;
+            scarfTexture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            scarfTexture.name = "Шарф — процедурная иконка";
+            scarfTexture.filterMode = FilterMode.Bilinear;
+            scarfTexture.wrapMode = TextureWrapMode.Clamp;
+            Color32 clear = new Color32(0, 0, 0, 0);
+            Color32 fabric = new Color32(158, 48, 52, 255);
+            Color32 goldStripe = new Color32(232, 184, 96, 255);
+            Color32[] pixels = new Color32[size * size];
+            for (int i = 0; i < pixels.Length; i++) pixels[i] = clear;
+            FillScarfRect(pixels, size, 13, 39, 51, 53, fabric);
+            FillScarfRect(pixels, size, 17, 8, 29, 47, fabric);
+            FillScarfRect(pixels, size, 35, 7, 47, 42, fabric);
+            for (int y = 13; y < 53; y += 10)
+            {
+                FillScarfRect(pixels, size, 17, y, 29, y + 2, goldStripe);
+                if (y < 40) FillScarfRect(pixels, size, 35, y, 47, y + 2, goldStripe);
+            }
+            for (int x = 18; x < 29; x += 3) FillScarfRect(pixels, size, x, 4, x + 1, 8, goldStripe);
+            for (int x = 36; x < 47; x += 3) FillScarfRect(pixels, size, x, 3, x + 1, 7, goldStripe);
+            scarfTexture.SetPixels32(pixels);
+            scarfTexture.Apply(false, false);
+            return Sprite.Create(scarfTexture, new Rect(0, 0, size, size),
+                new Vector2(0.5f, 0.5f), 96f);
+        }
+
+        private static void FillScarfRect(Color32[] pixels, int textureSize,
+            int xMin, int yMin, int xMax, int yMax, Color32 color)
+        {
+            for (int y = Mathf.Max(0, yMin); y < Mathf.Min(textureSize, yMax); y++)
+                for (int x = Mathf.Max(0, xMin); x < Mathf.Min(textureSize, xMax); x++)
+                    pixels[y * textureSize + x] = color;
+        }
+
         private void LoadCustomerPortraits()
         {
             customerPortraitAtlas = Resources.Load<Texture2D>("LastGift/CustomerPortraits");
@@ -315,6 +368,7 @@ namespace TheLastGift.UI
                 case "АВА": portraitIndex = 6; break;    // red-haired woman
                 case "ФРЕЯ": portraitIndex = 8; break;   // woman in cream sweater
                 case "ТЕО": portraitIndex = 7; break;    // young man in red sweater
+                case "МИША": portraitIndex = 7; break;   // use the closest existing youthful male portrait
                 default:
                     // Keep a deterministic fallback for any future customer.
                     portraitIndex = ((Mathf.Max(1, day) - 1) * 3
@@ -449,15 +503,14 @@ namespace TheLastGift.UI
 
         private void ContinueStartGameFlow()
         {
-            // Keep the existing first-run tutorial and campaign start behavior unchanged.
             if (!tutorialShown)
             {
                 ShowTutorial();
                 return;
             }
 
-            StartGame?.Invoke();
-            Gameplay();
+            if (StartGame != null) StartGame.Invoke();
+            else Gameplay();
         }
 
         private void SettingsMenu()
@@ -504,8 +557,8 @@ namespace TheLastGift.UI
             ButtonAt("ПОНЯТНО, НАЧИНАЕМ!", green, () =>
             {
                 tutorialShown = true;
-                StartGame?.Invoke();
-                Gameplay();
+                if (StartGame != null) StartGame.Invoke();
+                else Gameplay();
             }, new Vector2(0.27f, 0.085f), new Vector2(0.73f, 0.19f));
         }
 
@@ -541,7 +594,7 @@ namespace TheLastGift.UI
 
             FestivePanel(root.transform, "Верхняя праздничная панель",
                 new Vector2(0.02f, 0.875f), new Vector2(0.98f, 0.925f), wood);
-            Label("ПОСЛЕДНИЙ ПОДАРОК ✦", 25, cream,
+            Label(workshopGarland ? "✦ ПОСЛЕДНИЙ ПОДАРОК ✦" : "ПОСЛЕДНИЙ ПОДАРОК ✦", 25, cream,
                 new Vector2(0.035f, 0.875f), new Vector2(0.34f, 0.925f), TextAnchor.MiddleLeft);
             Label("ДЕНЬ " + day, 21, cream,
                 new Vector2(0.37f, 0.875f), new Vector2(0.51f, 0.925f), TextAnchor.MiddleCenter);
@@ -721,8 +774,8 @@ namespace TheLastGift.UI
             }
 
             // Start from neutral choices for every order; customer preferences are shown as a hint.
-            selectedPaper = GiftWrappingPaper.Blue;
-            selectedRibbon = GiftWrappingRibbon.ThinBlue;
+            selectedPaper = workshopPremiumWrapping ? GiftWrappingPaper.Gold : GiftWrappingPaper.Blue;
+            selectedRibbon = workshopPremiumWrapping ? GiftWrappingRibbon.BigGold : GiftWrappingRibbon.ThinBlue;
             selectedCard = GiftWrappingCard.MerryChristmas;
             wrappingSubmitted = false;
             root.SetActive(false);
@@ -1180,15 +1233,29 @@ namespace TheLastGift.UI
             Panel(root.transform, "Зелёная лента заголовка полки",
                 new Vector2(0.750f, 0.800f), new Vector2(0.960f, 0.840f), green);
 
-            Label("ПОДАРКИ НА ПОЛКЕ", 18, paper,
+            Label(workshopExtraShelf ? "ПОДАРКИ И НОВАЯ ПОЛКА ✦" : "ПОДАРКИ НА ПОЛКЕ", 18, paper,
                 new Vector2(0.75f, 0.795f), new Vector2(0.96f, 0.845f), TextAnchor.MiddleCenter);
             Label("Зажми предмет и перетащи его", 14, brown,
                 new Vector2(0.75f, 0.755f), new Vector2(0.96f, 0.795f), TextAnchor.MiddleCenter);
 
-            AddShelfGift("МИШКА", teddySprite, new Vector2(0.755f, 0.535f), new Vector2(0.855f, 0.735f), wood);
-            AddShelfGift("ПОДАРОК", giftBoxSprite, new Vector2(0.865f, 0.535f), new Vector2(0.965f, 0.735f), red);
-            AddShelfGift("ЛЕДЕНЕЦ", candyCaneSprite, new Vector2(0.755f, 0.305f), new Vector2(0.855f, 0.505f), red);
-            AddShelfGift("СНЕЖНЫЙ ШАР", snowGlobeSprite, new Vector2(0.865f, 0.305f), new Vector2(0.965f, 0.505f), green);
+            if (currentOrder.Definition != null && currentOrder.Definition.IsStoryFinaleOrder)
+            {
+                AddShelfGift("ШАРФ", scarfSprite, new Vector2(0.795f, 0.425f), new Vector2(0.915f, 0.695f), red);
+            }
+            else
+            {
+                AddShelfGift("МИШКА", teddySprite, new Vector2(0.755f, 0.535f), new Vector2(0.855f, 0.735f), wood);
+                AddShelfGift("ПОДАРОК", giftBoxSprite, new Vector2(0.865f, 0.535f), new Vector2(0.965f, 0.735f), red);
+                AddShelfGift("ЛЕДЕНЕЦ", candyCaneSprite, new Vector2(0.755f, 0.305f), new Vector2(0.855f, 0.505f), red);
+                AddShelfGift("СНЕЖНЫЙ ШАР", snowGlobeSprite, new Vector2(0.865f, 0.305f), new Vector2(0.965f, 0.505f), green);
+            }
+            if (workshopExtraShelf)
+            {
+                Panel(root.transform, "Дополнительная декоративная полка",
+                    new Vector2(0.755f, 0.245f), new Vector2(0.965f, 0.275f), gold);
+                Label("НОВАЯ ПОЛКА ✦", 12, brown,
+                    new Vector2(0.76f, 0.245f), new Vector2(0.96f, 0.275f), TextAnchor.MiddleCenter);
+            }
         }
 
         private void AddRequestedGift(Sprite sprite, string caption, Vector2 min, Vector2 max)
@@ -1339,6 +1406,90 @@ namespace TheLastGift.UI
             reputation = currentReputation;
         }
 
+        public void SetWorkshopDecorations(bool garland, bool extraShelf, bool premiumWrapping)
+        {
+            workshopGarland = garland;
+            workshopExtraShelf = extraShelf;
+            workshopPremiumWrapping = premiumWrapping;
+        }
+
+        public void ShowStoryDialogue(string speaker, string line, Action onContinue)
+        {
+            Build("Сюжетный диалог");
+            FestivePanel(root.transform, "Праздничная карточка диалога",
+                new Vector2(0.12f, 0.18f), new Vector2(0.88f, 0.86f), paper);
+            FestiveHeader(root.transform, "Заголовок реплики", speaker.ToUpperInvariant(),
+                new Vector2(0.18f, 0.70f), new Vector2(0.82f, 0.81f), red, 26);
+            CreateText(root.transform, line, 25, brown,
+                new Vector2(0.19f, 0.39f), new Vector2(0.81f, 0.68f),
+                TextAnchor.MiddleCenter, Vector2.zero);
+            ButtonAt("ПРОДОЛЖИТЬ", green, () => onContinue?.Invoke(),
+                new Vector2(0.34f, 0.07f), new Vector2(0.66f, 0.16f));
+        }
+
+        public void ShowWorkshopScreen()
+        {
+            workshopReturnAction = RenderOrderSuccessScreen;
+            Build("Улучшения мастерской");
+            FestivePanel(root.transform, "Панель улучшений мастерской",
+                new Vector2(0.08f, 0.12f), new Vector2(0.92f, 0.92f), paper);
+            FestiveHeader(root.transform, "Заголовок улучшений", "МАСТЕРСКАЯ",
+                new Vector2(0.14f, 0.82f), new Vector2(0.86f, 0.91f), red, 30);
+            Label("БАЛАНС: " + coins + " МОНЕТ", 22, gold,
+                new Vector2(0.18f, 0.75f), new Vector2(0.82f, 0.81f), TextAnchor.MiddleCenter);
+            DrawWorkshopUpgrade(WorkshopUpgradeType.FestiveGarland,
+                "РОЖДЕСТВЕНСКАЯ ГИРЛЯНДА", "Добавит тёплые огоньки в заголовок лавки.",
+                LastGiftWorkshopUpgradeManager.GarlandCost, workshopGarland,
+                new Vector2(0.15f, 0.57f), new Vector2(0.85f, 0.71f));
+            DrawWorkshopUpgrade(WorkshopUpgradeType.ExtraShelf,
+                "ДОПОЛНИТЕЛЬНАЯ ПОЛКА", "Небольшое украшение и новая полка в мастерской.",
+                LastGiftWorkshopUpgradeManager.ExtraShelfCost, workshopExtraShelf,
+                new Vector2(0.15f, 0.39f), new Vector2(0.85f, 0.53f));
+            DrawWorkshopUpgrade(WorkshopUpgradeType.PremiumWrapping,
+                "ПРЕМИАЛЬНАЯ УПАКОВКА", "Золотая бумага и лента станут выбором по умолчанию.",
+                LastGiftWorkshopUpgradeManager.PremiumWrappingCost, workshopPremiumWrapping,
+                new Vector2(0.15f, 0.21f), new Vector2(0.85f, 0.35f));
+            workshopStatus = Label("Улучшения сохраняются до конца этого прохождения.",
+                16, green, new Vector2(0.16f, 0.16f), new Vector2(0.84f, 0.20f), TextAnchor.MiddleCenter);
+            ButtonAt("НАЗАД К ЗАКАЗУ", green, ReturnFromWorkshop,
+                new Vector2(0.34f, 0.055f), new Vector2(0.66f, 0.135f));
+        }
+
+        private void DrawWorkshopUpgrade(WorkshopUpgradeType upgrade, string title, string description,
+            int cost, bool purchased, Vector2 min, Vector2 max)
+        {
+            FestivePanel(root.transform, "Карточка улучшения " + title, min, max, cream);
+            Label(title, 17, brown, new Vector2(min.x + 0.02f, min.y + 0.075f),
+                new Vector2(min.x + 0.43f, max.y - 0.015f), TextAnchor.MiddleLeft);
+            Label(description, 13, brown, new Vector2(min.x + 0.02f, min.y + 0.015f),
+                new Vector2(min.x + 0.48f, min.y + 0.08f), TextAnchor.MiddleLeft);
+            string caption = purchased ? "КУПЛЕНО" : "КУПИТЬ · " + cost + " ✦";
+            ButtonAt(caption, purchased ? wood : green, () => TryPurchaseWorkshopUpgrade(upgrade),
+                new Vector2(max.x - 0.25f, min.y + 0.035f),
+                new Vector2(max.x - 0.025f, max.y - 0.035f));
+        }
+
+        private void TryPurchaseWorkshopUpgrade(WorkshopUpgradeType upgrade)
+        {
+            if (PurchaseWorkshopUpgrade != null && PurchaseWorkshopUpgrade.Invoke(upgrade))
+            {
+                ShowWorkshopScreen();
+                return;
+            }
+            if (workshopStatus != null)
+            {
+                workshopStatus.text = "Недостаточно монет или улучшение уже куплено.";
+                workshopStatus.color = red;
+            }
+        }
+
+        private void ReturnFromWorkshop()
+        {
+            Action returnAction = workshopReturnAction;
+            workshopReturnAction = null;
+            returnAction?.Invoke();
+        }
+
         private void ClearPackingBox()
         {
             if (packingRect == null)
@@ -1404,6 +1555,7 @@ namespace TheLastGift.UI
                 case "ПОДАРОК": return giftBoxSprite;
                 case "ЛЕДЕНЕЦ": return candyCaneSprite;
                 case "СНЕЖНЫЙ ШАР": return snowGlobeSprite;
+                case "ШАРФ": return scarfSprite;
                 default: return null;
             }
         }
@@ -1416,6 +1568,7 @@ namespace TheLastGift.UI
                 case "ПОДАРОК": return "подарок";
                 case "ЛЕДЕНЕЦ": return "леденец";
                 case "СНЕЖНЫЙ ШАР": return "снежный шар";
+                case "ШАРФ": return "шарф";
                 default: return giftName.ToLowerInvariant();
             }
         }
@@ -1871,21 +2024,32 @@ namespace TheLastGift.UI
             OrderSuccess(earned, 0, 0);
         }
 
-        public void OrderSuccess(int earned, int wrappingBonus, int reputationBonus)
+        public void OrderSuccess(int earned, int wrappingBonus, int reputationBonus, bool allowWorkshop = true)
         {
             coins += earned;
             order++;
             currentOrder = null;
+            lastResultEarned = earned;
+            lastResultWrappingBonus = wrappingBonus;
+            lastResultReputationBonus = reputationBonus;
+            lastResultCanOpenWorkshop = allowWorkshop;
+            RenderOrderSuccessScreen();
+        }
+
+        private void RenderOrderSuccessScreen()
+        {
             Build("Заказ выполнен");
             string resultMessage = "Покупатель доволен!\nТы заработала монеты и помогла сделать чей-то праздник теплее.";
-            if (wrappingBonus > 0)
-                resultMessage += "\nБонус за удачное оформление: +" + wrappingBonus + " монет.";
-            if (reputationBonus > 0)
-                resultMessage += "\nИдеальное сочетание! Репутация +" + reputationBonus + ".";
+            if (lastResultWrappingBonus > 0)
+                resultMessage += "\nБонус за удачное оформление: +" + lastResultWrappingBonus + " монет.";
+            if (lastResultReputationBonus > 0)
+                resultMessage += "\nИдеальное сочетание! Репутация +" + lastResultReputationBonus + ".";
             RectTransform successCard = Card("Заказ выполнен!", resultMessage);
-            ChildLabel(successCard, "+ " + earned + " МОНЕТ ✦", 44, gold,
+            ChildLabel(successCard, "+ " + lastResultEarned + " МОНЕТ ✦", 44, gold,
                 new Vector2(0.10f, 0.21f), new Vector2(0.90f, 0.41f), TextAnchor.MiddleCenter);
-            Button("СЛЕДУЮЩИЙ ПОКУПАТЕЛЬ", green, ContinueProgressionAndRefresh, 0, -250, 430, 70);
+            Button("СЛЕДУЮЩИЙ ПОКУПАТЕЛЬ", green, ContinueProgressionAndRefresh, 0, -245, 430, 66);
+            if (lastResultCanOpenWorkshop)
+                Button("УЛУЧШИТЬ ЛАВКУ", wood, () => OpenWorkshop?.Invoke(), 0, -330, 330, 58);
         }
 
         public void DayEnd(int orders, int earnings)
@@ -1901,7 +2065,7 @@ namespace TheLastGift.UI
             Build("Финал");
             string body = summary == null
                 ? "Спасибо, что наполнила лавку теплом и заботой!\nПусть в каждом подарке будет немного рождественского чуда."
-                : "Ты завершила все три дня!\nВыполнено заказов: " + summary.OrdersCompleted
+                : "Ты завершила рождественский вечер!\nВыполнено заказов: " + summary.OrdersCompleted
                     + "\nЗаработано монет: " + summary.TotalCoinsEarned
                     + "\nИтоговый баланс: " + summary.FinalCoins
                     + "\nРепутация: " + summary.ReputationEarned
@@ -1916,7 +2080,6 @@ namespace TheLastGift.UI
                 currentOrder = null;
                 placedGiftCount = 0;
                 placedGiftNames.Clear();
-                StartGame?.Invoke();
                 MainMenu();
             }, 0, -250, 340, 70);
         }

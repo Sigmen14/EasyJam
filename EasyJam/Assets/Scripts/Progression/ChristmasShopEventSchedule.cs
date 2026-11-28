@@ -20,12 +20,12 @@ public struct ScheduledChristmasShopEvent
 }
 
 /// <summary>
-/// Queues one short event after each three successful orders. Scheduling and consuming
+/// Queues one short event after each two successful orders. Scheduling and consuming
 /// are separate so the caller can wait until result/day-summary screens have closed.
 /// </summary>
 public sealed class ChristmasShopEventSchedule
 {
-    public const int OrdersBetweenEvents = 3;
+    public const int OrdersBetweenEvents = 2;
 
     private int nextOrderMilestone = OrdersBetweenEvents;
     private bool hasPendingEvent;
