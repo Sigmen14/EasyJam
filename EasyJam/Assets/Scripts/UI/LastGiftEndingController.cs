@@ -461,12 +461,12 @@ namespace TheLastGift.UI
                     skipRequested ? 0.45f : 1.1f, skipRequested);
 
             if (!skipRequested)
-                yield return Hold(3.2f);
+                yield return Hold(0.7f);
 
             if (endGroup != null)
             {
                 yield return Fade(endGroup, 0f, 1f,
-                    skipRequested ? 0.45f : 0.9f, skipRequested);
+                    skipRequested ? 0.45f : 0.35f, skipRequested);
                 endGroup.interactable = true;
                 endGroup.blocksRaycasts = true;
             }
