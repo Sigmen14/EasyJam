@@ -197,7 +197,7 @@ namespace TheLastGift.Packing
             if (hudStyle != null) return;
 
             var scale = Mathf.Clamp(Screen.height / 900f, 0.78f, 1.25f);
-            var fontScale = Mathf.Max(1f, scale);
+            var fontScale = Mathf.Max(1.15f, scale);
 
             hudTitleStyle = new GUIStyle(GUI.skin.label)
             {
@@ -429,28 +429,29 @@ namespace TheLastGift.Packing
         {
             var scale = Mathf.Clamp(Screen.height / 900f, 0.78f, 1.25f);
             var panelWidth = Mathf.Min(960f, Screen.width - 24f);
-            var panelHeight = 154f * scale;
+            var fontScale = Mathf.Max(1.15f, scale);
+            var panelHeight = 154f * fontScale;
             var panel = new Rect((Screen.width - panelWidth) * 0.5f, 10f, panelWidth, panelHeight);
 
             GUI.DrawTexture(new Rect(panel.x + 8f, panel.y + 7f, panel.width, panel.height), hudPanelShadowTexture);
             GUI.DrawTexture(panel, hudPanelTexture);
             var titleRibbon = new Rect(
                 panel.x + panel.width * 0.16f,
-                panel.y + 5f * scale,
+                panel.y + 5f * fontScale,
                 panel.width * 0.68f,
-                34f * scale);
+                34f * fontScale);
             GUI.DrawTexture(titleRibbon, hudRibbonTexture);
-            GUI.Label(new Rect(panel.x + 16f, panel.y + 7f, panel.width - 32f, 27f * scale),
+            GUI.Label(new Rect(panel.x + 16f, panel.y + 7f * fontScale, panel.width - 32f, 27f * fontScale),
                 "ПОСЛЕДНИЙ ПОДАРОК", hudTitleStyle);
 
             var cells = CountPlacedCells();
             var placed = CountPlacedPieces();
-            GUI.Label(new Rect(panel.x + 12f, panel.y + 35f * scale, panel.width - 24f, 38f * scale),
+            GUI.Label(new Rect(panel.x + 12f, panel.y + 35f * fontScale, panel.width - 24f, 38f * fontScale),
                 $"ЯЧЕЙКИ  {cells}/{width * height}     •     ФИГУРЫ  {placed}/{pieces.Count}", hudStyle);
 
-            GUI.Label(new Rect(panel.x + 18f, panel.y + 77f * scale, panel.width - 36f, 25f * scale),
+            GUI.Label(new Rect(panel.x + 18f, panel.y + 77f * fontScale, panel.width - 36f, 29f * fontScale),
                 "ПОВОРОТ НА 90°:  R  /  ПРОБЕЛ  /  ПРАВАЯ КНОПКА МЫШИ", controlStyle);
-            GUI.Label(new Rect(panel.x + 18f, panel.y + 103f * scale, panel.width - 36f, 25f * scale),
+            GUI.Label(new Rect(panel.x + 18f, panel.y + 108f * fontScale, panel.width - 36f, 29f * fontScale),
                 "ВЫНУТЬ ФИГУРУ: ПЕРЕТАЩИ ЗА КРАЙ КОРОБКИ     •     V — ПРОВЕРКА", controlStyle);
         }
 
@@ -470,14 +471,15 @@ namespace TheLastGift.Packing
                 };
             }
 
-            returnToShopButtonStyle.fontSize = Mathf.RoundToInt(23f * Mathf.Max(1f, scale));
+            var fontScale = Mathf.Max(1.15f, scale);
+            returnToShopButtonStyle.fontSize = Mathf.RoundToInt(23f * fontScale);
 
             var buttonWidth = Mathf.Min(300f, Screen.width - 32f);
             var buttonRect = new Rect(
                 Screen.width - buttonWidth - 16f,
-                172f * scale,
+                172f * fontScale,
                 buttonWidth,
-                44f * scale);
+                44f * fontScale);
 
             if (GUI.Button(buttonRect, "ВЕРНУТЬСЯ В ЛАВКУ", returnToShopButtonStyle))
                 LastGiftUIController.ReturnFromPackingMiniGame();
@@ -489,7 +491,7 @@ namespace TheLastGift.Packing
             GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), Texture2D.whiteTexture);
             GUI.color = Color.white;
 
-            var scale = Mathf.Clamp(Screen.height / 900f, 0.78f, 1.2f);
+            var scale = Mathf.Max(1.15f, Mathf.Clamp(Screen.height / 900f, 0.78f, 1.2f));
             var panelWidth = Mathf.Min(660f, Screen.width - 36f);
             var panelHeight = 338f * scale;
             var panel = new Rect(
