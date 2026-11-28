@@ -436,14 +436,18 @@ namespace TheLastGift.UI
 
             Vector2 cardMin = new Vector2(0.16f, 0.18f);
             Vector2 cardMax = new Vector2(0.84f, 0.89f);
-            Panel(root.transform, "Тень настроек",
-                cardMin, cardMax, new Vector2(14, -12), new Vector2(14, -12), wood);
-            RectTransform card = Panel(root.transform, "Карточка настроек",
-                cardMin, cardMax, Vector2.zero, Vector2.zero, paper);
+            RectTransform card = FestivePanel(root.transform, "Праздничная панель настроек",
+                cardMin, cardMax, paper);
 
-            CreateText(card, "НАСТРОЙКИ", 42, green,
-                new Vector2(0.10f, 0.83f), new Vector2(0.90f, 0.97f),
-                TextAnchor.MiddleCenter, Vector2.zero);
+            FestiveHeader(card, "Заголовок настроек", "НАСТРОЙКИ",
+                new Vector2(0.08f, 0.835f), new Vector2(0.92f, 0.975f), red, 34);
+
+            FestivePanel(card, "Карточка общей громкости",
+                new Vector2(0.08f, 0.55f), new Vector2(0.92f, 0.80f), cream);
+            FestivePanel(card, "Карточка музыки",
+                new Vector2(0.08f, 0.32f), new Vector2(0.92f, 0.57f), cream);
+            FestivePanel(card, "Карточка звуковых эффектов",
+                new Vector2(0.08f, 0.09f), new Vector2(0.92f, 0.34f), cream);
 
             CreateVolumeControl(card, "ОБЩАЯ ГРОМКОСТЬ",
                 LastGiftAudioManager.MasterVolume, 0.68f,
@@ -504,7 +508,8 @@ namespace TheLastGift.UI
             placedGiftCount = 0;
             placedGiftNames.Clear();
 
-            Panel(root.transform, "Верхняя панель", new Vector2(0.02f, 0.875f), new Vector2(0.98f, 0.925f), wood);
+            FestivePanel(root.transform, "Верхняя праздничная панель",
+                new Vector2(0.02f, 0.875f), new Vector2(0.98f, 0.925f), wood);
             Label("ПОСЛЕДНИЙ ПОДАРОК ✦", 25, cream,
                 new Vector2(0.035f, 0.875f), new Vector2(0.34f, 0.925f), TextAnchor.MiddleLeft);
             Label("ДЕНЬ " + day, 21, cream,
@@ -523,6 +528,8 @@ namespace TheLastGift.UI
             ButtonAt("ГОЛОВОЛОМКА 4×4", gold, OpenPackingMiniGame,
                 new Vector2(0.045f, 0.215f), new Vector2(0.245f, 0.27f));
 
+            FestivePanel(root.transform, "Подложка подсказки игроку",
+                new Vector2(0.275f, 0.172f), new Vector2(0.725f, 0.242f), cream);
             feedback = Label("Перетащи подарки с правой полки в коробку по центру.",
                 18, brown, new Vector2(0.285f, 0.18f), new Vector2(0.715f, 0.235f), TextAnchor.MiddleCenter);
 
@@ -554,11 +561,11 @@ namespace TheLastGift.UI
             SecretCustomerWishDefinition wish = currentOrder.Definition.SecretWish;
             Debug.Log($"[SecretWishFlow] ShowSecretWish invoked for {currentOrder.CustomerName}.", this);
             Build("Тайное желание покупателя");
-            Panel(root.transform, "Карточка тайного желания",
+            FestivePanel(root.transform, "Праздничная карточка тайного желания",
                 new Vector2(0.10f, 0.14f), new Vector2(0.90f, 0.90f), paper);
 
-            Label("ТАЙНОЕ ЖЕЛАНИЕ ПОКУПАТЕЛЯ", 34, green,
-                new Vector2(0.16f, 0.79f), new Vector2(0.84f, 0.88f), TextAnchor.MiddleCenter);
+            FestiveHeader(root.transform, "Лента тайного желания", "ТАЙНОЕ ЖЕЛАНИЕ ПОКУПАТЕЛЯ",
+                new Vector2(0.14f, 0.785f), new Vector2(0.86f, 0.895f), red, 24);
             Panel(root.transform, "Рамка портрета",
                 new Vector2(0.17f, 0.55f), new Vector2(0.30f, 0.74f), gold);
 
@@ -572,7 +579,7 @@ namespace TheLastGift.UI
 
             Label(currentOrder.CustomerName, 19, brown,
                 new Vector2(0.15f, 0.49f), new Vector2(0.32f, 0.55f), TextAnchor.MiddleCenter);
-            Panel(root.transform, "Реплика покупателя",
+            FestivePanel(root.transform, "Праздничная карточка реплики покупателя",
                 new Vector2(0.34f, 0.55f), new Vector2(0.83f, 0.74f), cream);
             Label("«" + wish.Clue + "»", 24, brown,
                 new Vector2(0.36f, 0.56f), new Vector2(0.81f, 0.73f), TextAnchor.MiddleCenter);
@@ -613,6 +620,7 @@ namespace TheLastGift.UI
             Image background = optionObject.GetComponent<Image>();
             background.color = paleBlue;
             background.raycastTarget = true;
+            AddGoldOutline(optionObject, 2.5f);
 
             Button button = optionObject.GetComponent<Button>();
             button.targetGraphic = background;
@@ -706,22 +714,24 @@ namespace TheLastGift.UI
 
             Panel(wrappingRoot.transform, "Затемнение", Vector2.zero, Vector2.one,
                 new Color(0.035f, 0.075f, 0.12f, 0.92f));
-            Panel(wrappingRoot.transform, "Панель оформления",
+            FestivePanel(wrappingRoot.transform, "Большая праздничная панель оформления",
                 new Vector2(0.035f, 0.055f), new Vector2(0.965f, 0.945f), paper);
 
-            CreateText(wrappingRoot.transform, "УКРАШЕНИЕ ПОДАРКА", 34, green,
-                new Vector2(0.08f, 0.855f), new Vector2(0.92f, 0.93f), TextAnchor.MiddleCenter, Vector2.zero);
+            FestiveHeader(wrappingRoot.transform, "Лента оформления подарка", "УКРАШЕНИЕ ПОДАРКА",
+                new Vector2(0.08f, 0.855f), new Vector2(0.92f, 0.935f), red, 30);
 
             string hint = currentOrder.Definition != null
                 ? currentOrder.Definition.WrappingHint
                 : string.Empty;
             if (string.IsNullOrWhiteSpace(hint))
                 hint = "Подбери бумагу, ленту и открытку, чтобы порадовать покупателя.";
+            FestivePanel(wrappingRoot.transform, "Карточка пожелания покупателя",
+                new Vector2(0.065f, 0.778f), new Vector2(0.635f, 0.852f), cream);
             CreateText(wrappingRoot.transform, currentOrder.CustomerName + ": " + hint, 18, brown,
                 new Vector2(0.075f, 0.785f), new Vector2(0.625f, 0.85f), TextAnchor.MiddleCenter, Vector2.zero);
 
-            CreateText(wrappingRoot.transform, "УПАКОВОЧНАЯ БУМАГА", 18, green,
-                new Vector2(0.07f, 0.705f), new Vector2(0.62f, 0.76f), TextAnchor.MiddleLeft, Vector2.zero);
+            FestiveHeader(wrappingRoot.transform, "Заголовок выбора бумаги", "УПАКОВОЧНАЯ БУМАГА",
+                new Vector2(0.07f, 0.705f), new Vector2(0.62f, 0.76f), green, 15, false);
             GiftWrappingPaper[] papers = {
                 GiftWrappingPaper.Red, GiftWrappingPaper.Green, GiftWrappingPaper.Blue,
                 GiftWrappingPaper.Gold, GiftWrappingPaper.Blush
@@ -736,8 +746,8 @@ namespace TheLastGift.UI
                     selectedPaper == option, () => { selectedPaper = option; RefreshWrappingScreen(); });
             }
 
-            CreateText(wrappingRoot.transform, "ЛЕНТА И СТИЛЬ", 18, green,
-                new Vector2(0.07f, 0.505f), new Vector2(0.62f, 0.56f), TextAnchor.MiddleLeft, Vector2.zero);
+            FestiveHeader(wrappingRoot.transform, "Заголовок выбора ленты", "ЛЕНТА И СТИЛЬ",
+                new Vector2(0.07f, 0.505f), new Vector2(0.62f, 0.56f), red, 15, false);
             GiftWrappingRibbon[] ribbons = {
                 GiftWrappingRibbon.BigRed, GiftWrappingRibbon.BigGold, GiftWrappingRibbon.ClassicGreen,
                 GiftWrappingRibbon.ThinBlue, GiftWrappingRibbon.SoftPink
@@ -752,8 +762,8 @@ namespace TheLastGift.UI
                     selectedRibbon == option, () => { selectedRibbon = option; RefreshWrappingScreen(); });
             }
 
-            CreateText(wrappingRoot.transform, "ПРАЗДНИЧНАЯ ОТКРЫТКА", 18, green,
-                new Vector2(0.07f, 0.305f), new Vector2(0.62f, 0.36f), TextAnchor.MiddleLeft, Vector2.zero);
+            FestiveHeader(wrappingRoot.transform, "Заголовок выбора открытки", "ПРАЗДНИЧНАЯ ОТКРЫТКА",
+                new Vector2(0.07f, 0.305f), new Vector2(0.62f, 0.36f), green, 15, false);
             GiftWrappingCard[] cards = {
                 GiftWrappingCard.MerryChristmas, GiftWrappingCard.WarmWishes,
                 GiftWrappingCard.DreamsComeTrue, GiftWrappingCard.WithLove,
@@ -769,10 +779,10 @@ namespace TheLastGift.UI
                     selectedCard == option, () => { selectedCard = option; RefreshWrappingScreen(); });
             }
 
-            Panel(wrappingRoot.transform, "Подложка предпросмотра",
+            FestivePanel(wrappingRoot.transform, "Праздничная рамка предпросмотра",
                 new Vector2(0.665f, 0.285f), new Vector2(0.94f, 0.765f), cream);
-            CreateText(wrappingRoot.transform, "ТВОЙ ПОДАРОК", 18, green,
-                new Vector2(0.68f, 0.70f), new Vector2(0.925f, 0.755f), TextAnchor.MiddleCenter, Vector2.zero);
+            FestiveHeader(wrappingRoot.transform, "Заголовок предпросмотра", "ТВОЙ ПОДАРОК",
+                new Vector2(0.68f, 0.70f), new Vector2(0.925f, 0.755f), green, 15, false);
             DrawWrappingPreview();
 
             ButtonAtOnParent(wrappingRoot.transform, "НАЗАД", wood, BackToGameplay,
@@ -839,10 +849,10 @@ namespace TheLastGift.UI
             Panel(wrappingRoot.transform, "Узел банта",
                 new Vector2(0.802f, 0.66f), new Vector2(0.818f, 0.685f), gold);
 
-            Panel(wrappingRoot.transform, "Открытка предпросмотра",
-                new Vector2(0.685f, 0.305f), new Vector2(0.92f, 0.385f), new Color32(255, 249, 235, 255));
+            FestivePanel(wrappingRoot.transform, "Рамка открытки предпросмотра",
+                new Vector2(0.685f, 0.305f), new Vector2(0.92f, 0.385f), paper);
             CreateText(wrappingRoot.transform, GetWrappingCardText(selectedCard), 15, brown,
-                new Vector2(0.695f, 0.31f), new Vector2(0.91f, 0.38f), TextAnchor.MiddleCenter, Vector2.zero);
+                new Vector2(0.700f, 0.318f), new Vector2(0.905f, 0.372f), TextAnchor.MiddleCenter, Vector2.zero);
         }
 
         private void CreateWrappingOptionButton(Transform parent, string caption, Color color,
@@ -870,12 +880,10 @@ namespace TheLastGift.UI
             button.colors = colors;
             button.onClick.AddListener(() => onClick?.Invoke());
 
-            if (selected)
-            {
-                Outline outline = buttonObject.AddComponent<Outline>();
-                outline.effectColor = gold;
-                outline.effectDistance = new Vector2(4f, 4f);
-            }
+            Outline outline = buttonObject.AddComponent<Outline>();
+            outline.effectColor = gold;
+            outline.effectDistance = selected ? new Vector2(4f, 4f) : new Vector2(2f, 2f);
+            outline.useGraphicAlpha = false;
 
             Color labelColor = color.grayscale > 0.72f ? brown : paper;
             Text label = ChildLabel(buttonObject.transform, caption, 13, labelColor,
@@ -907,6 +915,7 @@ namespace TheLastGift.UI
             colors.selectedColor = Color.Lerp(color, Color.white, 0.12f);
             button.colors = colors;
             button.onClick.AddListener(() => action?.Invoke());
+            AddGoldOutline(buttonObject, 2f);
 
             Text label = ChildLabel(buttonObject.transform, caption, 18, paper,
                 Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
@@ -1179,6 +1188,7 @@ namespace TheLastGift.UI
             Image background = tile.GetComponent<Image>();
             background.color = tileColor;
             background.raycastTarget = true;
+            AddGoldOutline(tile, 2.5f);
 
             Image icon = ImageAt(tile.transform, "Картинка " + caption,
                 new Vector2(0.10f, 0.22f), new Vector2(0.90f, 0.94f), sprite, Color.white);
@@ -1476,12 +1486,15 @@ namespace TheLastGift.UI
 
             Build("Перепутанные подарки");
 
-            Panel(root.transform, "Яркая плашка происшествия",
-                new Vector2(0.10f, 0.83f), new Vector2(0.90f, 0.95f), red);
-            Label("РОЖДЕСТВЕНСКОЕ ПРОИСШЕСТВИЕ ✦", 29, cream,
-                new Vector2(0.12f, 0.84f), new Vector2(0.88f, 0.94f), TextAnchor.MiddleCenter);
+            FestivePanel(root.transform, "Праздничная карточка события",
+                new Vector2(0.065f, 0.15f), new Vector2(0.935f, 0.95f), paper);
+            FestiveHeader(root.transform, "Лента рождественского происшествия",
+                "РОЖДЕСТВЕНСКОЕ ПРОИСШЕСТВИЕ ✦",
+                new Vector2(0.10f, 0.83f), new Vector2(0.90f, 0.95f), red, 25);
+            FestivePanel(root.transform, "Описание происшествия",
+                new Vector2(0.08f, 0.745f), new Vector2(0.92f, 0.82f), cream);
             Label("Эльфы перепутали подарки! Перетащи каждый подарок в правильное место.",
-                21, brown, new Vector2(0.08f, 0.75f), new Vector2(0.92f, 0.82f), TextAnchor.MiddleCenter);
+                21, brown, new Vector2(0.095f, 0.75f), new Vector2(0.905f, 0.815f), TextAnchor.MiddleCenter);
 
             int[] shuffledGiftIndices = { 0, 1, 2, 3 };
             for (int i = shuffledGiftIndices.Length - 1; i > 0; i--)
@@ -1514,8 +1527,9 @@ namespace TheLastGift.UI
                 cardRect.offsetMax = Vector2.zero;
 
                 Image cardBackground = card.GetComponent<Image>();
-                cardBackground.color = giftIndex % 2 == 0 ? paper : paleBlue;
+                cardBackground.color = giftIndex % 2 == 0 ? cream : paleBlue;
                 cardBackground.raycastTarget = true;
+                AddGoldOutline(card, 2.5f);
 
                 Image giftImage = ImageAt(card.transform, "Изображение " + giftName,
                     new Vector2(0.14f, 0.24f), new Vector2(0.86f, 0.91f),
@@ -1543,7 +1557,8 @@ namespace TheLastGift.UI
                     "Место сортировки " + SortingEventTargetNames[targetIndex],
                     new Vector2(left, 0.20f),
                     new Vector2(left + tileWidth, 0.40f),
-                    targetIndex % 2 == 0 ? new Color32(239, 222, 190, 255) : new Color32(211, 229, 232, 255));
+                    targetIndex % 2 == 0 ? new Color32(249, 239, 216, 255) : new Color32(224, 239, 232, 255));
+                AddGoldOutline(target.gameObject, 2.5f);
 
                 sortingEventTargets[targetIndex] = target;
                 ChildLabel(target, SortingEventTargetNames[targetIndex], 15, green,
@@ -1895,6 +1910,60 @@ namespace TheLastGift.UI
                 min + surfaceInset, max - surfaceInset, surface);
         }
 
+        private RectTransform FestiveHeader(
+            Transform parent,
+            string objectName,
+            string title,
+            Vector2 min,
+            Vector2 max,
+            Color ribbonColor,
+            int fontSize,
+            bool showStars = true)
+        {
+            Panel(parent, objectName + " — золотая основа", min, max, gold);
+
+            Vector2 inset = new Vector2(0.006f, 0.006f);
+            RectTransform ribbon = Panel(parent, objectName + " — цветная лента",
+                min + inset, max - inset, ribbonColor);
+
+            Panel(parent, objectName + " — верхний золотой кант",
+                new Vector2(min.x + 0.018f, max.y - 0.014f),
+                new Vector2(max.x - 0.018f, max.y - 0.008f), gold);
+            Panel(parent, objectName + " — нижний золотой кант",
+                new Vector2(min.x + 0.018f, min.y + 0.008f),
+                new Vector2(max.x - 0.018f, min.y + 0.014f), gold);
+
+            float sideInset = showStars ? 0.075f : 0.018f;
+            if (showStars)
+            {
+                ChildLabel(parent, "✦", Mathf.Max(12, fontSize - 3), gold,
+                    new Vector2(min.x + 0.012f, min.y + 0.012f),
+                    new Vector2(min.x + 0.072f, max.y - 0.012f), TextAnchor.MiddleCenter);
+                ChildLabel(parent, "✦", Mathf.Max(12, fontSize - 3), gold,
+                    new Vector2(max.x - 0.072f, min.y + 0.012f),
+                    new Vector2(max.x - 0.012f, max.y - 0.012f), TextAnchor.MiddleCenter);
+            }
+
+            ChildLabel(parent, title, fontSize, paper,
+                new Vector2(min.x + sideInset, min.y + 0.015f),
+                new Vector2(max.x - sideInset, max.y - 0.015f),
+                TextAnchor.MiddleCenter);
+            return ribbon;
+        }
+
+        private void AddGoldOutline(GameObject target, float distance)
+        {
+            if (target == null) return;
+
+            Outline outline = target.GetComponent<Outline>();
+            if (outline == null)
+                outline = target.AddComponent<Outline>();
+
+            outline.effectColor = gold;
+            outline.effectDistance = new Vector2(distance, -distance);
+            outline.useGraphicAlpha = false;
+        }
+
         private RectTransform Card(string title, string body, bool isMainMenu = false)
         {
             bool isTutorial = title == "Как играть";
@@ -1940,22 +2009,23 @@ namespace TheLastGift.UI
                 return festiveCard;
             }
 
-            Panel(root.transform, "Тень карточки",
-                cardMin, cardMax, new Vector2(14, -12), new Vector2(14, -12), wood);
-            RectTransform card = Panel(root.transform, "Карточка",
-                cardMin, cardMax, Vector2.zero, Vector2.zero, paper);
+            RectTransform card = FestivePanel(root.transform, "Праздничная карточка — " + title,
+                cardMin, cardMax, paper);
 
-            // Text is parented to the card itself, not positioned over the whole
-            // screen. This keeps the title and body inside the panel at every size.
-            CreateText(card, title, isTutorial ? 40 : 42, green,
-                new Vector2(0.055f, isTutorial || isOrderSuccess ? 0.84f : 0.77f),
-                new Vector2(0.945f, 0.97f), TextAnchor.MiddleCenter, Vector2.zero);
+            FestiveHeader(card, "Заголовок карточки — " + title, title,
+                new Vector2(0.04f, 0.83f), new Vector2(0.96f, 0.975f),
+                isOrderSuccess ? red : green, isTutorial ? 32 : 30);
 
             Vector2 bodyMin = isOrderSuccess ? new Vector2(0.075f, 0.44f) : new Vector2(0.075f, 0.10f);
             Vector2 bodyMax = isOrderSuccess
                 ? new Vector2(0.925f, 0.79f)
                 : new Vector2(0.925f, isTutorial ? 0.81f : 0.70f);
-            CreateText(card, body, isTutorial ? 27 : 29, brown,
+            Vector2 insetMin = bodyMin - new Vector2(0.018f, 0.025f);
+            Vector2 insetMax = bodyMax + new Vector2(0.018f, 0.025f);
+            FestivePanel(card, "Светлая область текста — " + title,
+                insetMin, insetMax, cream);
+
+            CreateText(card, body, isTutorial ? 25 : 27, brown,
                 bodyMin, bodyMax, TextAnchor.MiddleCenter, Vector2.zero);
 
             return card;
@@ -2170,6 +2240,7 @@ namespace TheLastGift.UI
             colors.selectedColor = Color.Lerp(color, Color.white, 0.12f);
             button.colors = colors;
             button.onClick.AddListener(() => action?.Invoke());
+            AddGoldOutline(buttonObject, 2f);
 
             Text label = ChildLabel(buttonObject.transform, caption, 18, paper,
                 Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
@@ -2198,6 +2269,7 @@ namespace TheLastGift.UI
             colors.selectedColor = Color.Lerp(color, Color.white, 0.12f);
             button.colors = colors;
             button.onClick.AddListener(() => action?.Invoke());
+            AddGoldOutline(buttonObject, 2f);
 
             Text label = ChildLabel(buttonObject.transform, caption, 18, paper,
                 Vector2.zero, Vector2.one, TextAnchor.MiddleCenter);
